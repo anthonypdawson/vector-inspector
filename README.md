@@ -145,6 +145,41 @@ vector-viewer/
 5. **Data Migration**: Transfer data between vector database providers
 6. **Education**: Learn and experiment with vector databases interactively
 
+## Feature Access (Free vs Pro)
+
+| Feature                                      | Access   |
+|----------------------------------------------|----------|
+| Connection to ChromaDB                       | Free     |
+| Basic metadata browsing and filtering        | Free     |
+| Simple similarity search interface           | Free     |
+| 2D vector visualization (PCA/t-SNE)          | Free     |
+| Basic CRUD operations                        | Free     |
+| Metadata filtering (advanced)                | Free     |
+| Item editing                                 | Free     |
+| Import/export (CSV, JSON, Parquet)           | Free     |
+| Provider abstraction layer                   | Free     |
+| Pinecone support                             | Free     |
+| Weaviate support                             | Free     |
+| Qdrant support                               | Pro      |
+| Milvus support                               | Pro      |
+| ChromaDB advanced support                    | Pro      |
+| FAISS (local files) support                  | Pro      |
+| pgvector (PostgreSQL extension) support      | Pro      |
+| Elasticsearch with vector search support     | Pro      |
+| Advanced query builder                       | Free     |
+| 3D visualization                             | Free     |
+| Embedding model integration (basic)          | Free     |
+| Query history and saved queries              | Free     |
+| Model Comparison Mode                        | Pro      |
+| Cluster Explorer                             | Pro      |
+| Embedding Inspector                          | Pro      |
+| Embedding Provenance Graph                   | Pro      |
+| Semantic Drift Timeline                      | Pro      |
+| Cross-Collection Similarity                  | Pro      |
+| Vector Surgery                               | Pro      |
+| Custom plugin system                         | Pro      |
+| Team collaboration features                  | Pro      |
+
 ## Planned Roadmap
 
 ### Phase 1: Foundation (MVP)
@@ -155,28 +190,46 @@ vector-viewer/
 - [x] Basic CRUD operations
 
 ### Phase 2: Core Features
-- [ ] Support for all major providers
-- [ ] Advanced query builder
-- [ ] 3D visualization
-- [ ] Embedding model integration
-- [ ] Import/export functionality
-- [ ] Query history and saved queries
-- [ ] Model Comparison Mode (side-by-side comparison of different embedding models)
-- [ ] Cluster Explorer (interactive cluster navigation, statistics, and labeling)
+- [ ] Metadata filtering (advanced filtering, combine with search)
+- [ ] Item editing (update metadata and documents)
+- [ ] Import/export (CSV, JSON, Parquet, backup/restore)
+- [ ] Provider abstraction layer (unified interface for all supported vector DBs)
 
-### Phase 3: Advanced Features
-- [ ] Cluster analysis tools
-- [ ] Performance monitoring
-- [ ] Bulk operations
-- [ ] Embedding Inspector (explain why items/collections are similar, with interpretable activations)
-- [ ] Embedding Provenance Graph (track source → preprocessing → model → parameters lineage)
-- [ ] Semantic Drift Timeline (track how embeddings evolve over time)
-- [ ] Cross-Collection Similarity (find similar items across different collections)
-- [ ] Vector Surgery (edit specific dimensions and observe similarity changes)
-- [ ] Custom plugin system
-- [ ] Team collaboration features (shared queries, annotations)
+### Phase 3: Modular/Plugin System & Hybrid Model
+- [ ] Implement modular/plugin system for feature extensions
+- [ ] Migrate paid/advanced features to commercial modules
+- [ ] Add licensing/access control for commercial features
 
-### Phase 4: Enterprise Features
+
+
+### Phase 4: Provider Expansion (Incremental)
+- [ ] Pinecone support (free)
+- [ ] Weaviate support (free)
+- [ ] Qdrant support (paid)
+
+#### Future/Backlog Providers
+- [ ] Milvus support (paid)
+- [ ] ChromaDB advanced support (paid)
+- [ ] FAISS (local files) support (paid)
+- [ ] pgvector (PostgreSQL extension) support (paid)
+- [ ] Elasticsearch with vector search support (paid)
+
+### Phase 5: Advanced Features
+- [ ] Advanced query builder (free)
+- [ ] 3D visualization (free)
+- [ ] Embedding model integration (free)
+- [ ] Query history and saved queries (free)
+- [ ] Model Comparison Mode (paid)
+- [ ] Cluster Explorer (paid)
+- [ ] Embedding Inspector (paid)
+- [ ] Embedding Provenance Graph (paid)
+- [ ] Semantic Drift Timeline (paid)
+- [ ] Cross-Collection Similarity (paid)
+- [ ] Vector Surgery (paid)
+- [ ] Custom plugin system (paid)
+- [ ] Team collaboration features (paid)
+
+### Phase 6: Enterprise Features
 - [ ] Multi-user support with auth
 - [ ] Audit logging
 - [ ] Advanced security features

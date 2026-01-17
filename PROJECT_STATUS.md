@@ -130,9 +130,10 @@ All dependencies successfully installed. ✅
 ## Phase 2 Planning
 
 
+
 ### Priority Features (Recommended Next)
 
-1. **Advanced Filtering** (High Priority)
+1. **Metadata Filtering** (High Priority)
    - Metadata filter UI
    - Query builder
    - Combine filters with search
@@ -142,15 +143,15 @@ All dependencies successfully installed. ✅
    - Update documents
    - Batch updates
 
-3. **Import/Export** (Medium Priority)
+3. **Import/Export** (High Priority)
    - CSV import/export
    - JSON import/export
    - Collection backup/restore
 
-4. **Multiple Providers** (Medium Priority)
+4. **Provider Abstraction Layer** (High Priority)
+   - Unified interface for all supported vector DBs
    - Pinecone support
    - Weaviate support
-   - Provider abstraction layer
 
 5. **Enhanced Visualization** (Low Priority)
    - Color by metadata
@@ -232,6 +233,32 @@ All dependencies successfully installed. ✅
 ❌ Public release
 
 ## Recommendations
+
+
+## Commercialization & Modularization Plan
+
+To support a hybrid open source/commercial model, the project will adopt a modular architecture:
+
+- **Open Source Core:**
+   - Core features (basic CRUD, metadata browsing, simple search, basic visualization) will remain open source.
+   - Support for a subset of providers (e.g., ChromaDB, Pinecone, Weaviate) will be included in the open core.
+
+- **Commercial Extensions:**
+   - Advanced features (e.g., Embedding Inspector, Model Comparison Mode, Provenance Graph, Semantic Drift Timeline, Cross-Collection Similarity, Vector Surgery) will be implemented as separate modules or plugins.
+   - Support for additional providers (e.g., Qdrant, Milvus, FAISS, pgvector, Elasticsearch) may be included in the commercial edition.
+   - Commercial modules will be developed in a separate repository and distributed under a commercial license.
+
+- **Plugin/Extension System:**
+   - The application will provide a plugin interface for loading both open and commercial modules.
+   - Feature flags or access control will be used to enable/disable features based on license or configuration.
+
+- **Development Workflow:**
+   - New features intended for commercial use will be developed as modular components from the start.
+   - The public repository will only include stubs or interfaces for commercial features, with full implementations in the private/commercial repo.
+
+This approach allows safe, open development of the core platform while enabling a clear path to commercial offerings and advanced provider support.
+
+---
 
 ### Immediate Next Steps
 1. Test with real-world datasets
