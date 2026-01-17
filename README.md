@@ -214,17 +214,25 @@ vector-viewer/
 - [ ] pgvector (PostgreSQL extension) support (paid)
 - [ ] Elasticsearch with vector search support (paid)
 
-### Phase 5: Advanced Features
+
+### Phase 5A: Advanced Usability & Visualization
 - [ ] Advanced query builder (free)
 - [ ] 3D visualization (free)
 - [ ] Embedding model integration (free)
 - [ ] Query history and saved queries (free)
+- [ ] Metadata Type Detection & Rich Media Preview (free)
+
+### Phase 5B: Analytical & Comparison Tools
 - [ ] Model Comparison Mode (paid)
 - [ ] Cluster Explorer (paid)
 - [ ] Embedding Inspector (paid)
 - [ ] Embedding Provenance Graph (paid)
+
+### Phase 5C: Temporal & Cross-Collection Analytics
 - [ ] Semantic Drift Timeline (paid)
 - [ ] Cross-Collection Similarity (paid)
+
+### Phase 5D: Experimental & Power Features
 - [ ] Vector Surgery (paid)
 - [ ] Custom plugin system (paid)
 - [ ] Team collaboration features (paid)
