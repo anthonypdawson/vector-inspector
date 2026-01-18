@@ -1,0 +1,216 @@
+"""Abstract base class for vector database connections."""
+
+from abc import ABC, abstractmethod
+from typing import Optional, List, Dict, Any
+
+
+class VectorDBConnection(ABC):
+    """Abstract base class for vector database connections.
+    
+    This class defines the interface that all vector database providers
+    must implement to be compatible with Vector Viewer.
+    """
+    
+    @abstractmethod
+    def connect(self) -> bool:
+        """
+        Establish connection to the vector database.
+        
+        Returns:
+            True if connection successful, False otherwise
+        """
+        pass
+    
+    @abstractmethod
+    def disconnect(self):
+        """Close connection to the vector database."""
+        pass
+    
+    @property
+    @abstractmethod
+    def is_connected(self) -> bool:
+        """
+        Check if connected to the vector database.
+        
+        Returns:
+            True if connected, False otherwise
+        """
+        pass
+    
+    @abstractmethod
+    def list_collections(self) -> List[str]:
+        """
+        Get list of all collections/indexes.
+        
+        Returns:
+            List of collection/index names
+        """
+        pass
+    
+    @abstractmethod
+    def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get collection metadata and statistics.
+        
+        Args:
+            name: Collection/index name
+            
+        Returns:
+            Dictionary with collection info including:
+                - name: Collection name
+                - count: Number of items
+                - metadata_fields: List of available metadata field names
+        """
+        pass
+    
+    @abstractmethod
+    def query_collection(
+        self,
+        collection_name: str,
+        query_texts: Optional[List[str]] = None,
+        query_embeddings: Optional[List[List[float]]] = None,
+        n_results: int = 10,
+        where: Optional[Dict[str, Any]] = None,
+        where_document: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Query a collection for similar vectors.
+        
+        Args:
+            collection_name: Name of collection to query
+            query_texts: Text queries to embed and search
+            query_embeddings: Direct embedding vectors to search
+            n_results: Number of results to return
+            where: Metadata filter
+            where_document: Document content filter
+            
+        Returns:
+            Query results dictionary with keys:
+                - ids: List of result IDs
+                - distances: List of distances/scores
+                - documents: List of document texts
+                - metadatas: List of metadata dicts
+                - embeddings: List of embedding vectors (optional)
+        """
+        pass
+    
+    @abstractmethod
+    def get_all_items(
+        self,
+        collection_name: str,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        where: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get all items from a collection.
+        
+        Args:
+            collection_name: Name of collection
+            limit: Maximum number of items to return
+            offset: Number of items to skip
+            where: Metadata filter
+            
+        Returns:
+            Dictionary with collection items:
+                - ids: List of item IDs
+                - documents: List of document texts
+                - metadatas: List of metadata dicts
+                - embeddings: List of embedding vectors
+        """
+        pass
+    
+    @abstractmethod
+    def add_items(
+        self,
+        collection_name: str,
+        documents: List[str],
+        metadatas: Optional[List[Dict[str, Any]]] = None,
+        ids: Optional[List[str]] = None,
+        embeddings: Optional[List[List[float]]] = None,
+    ) -> bool:
+        """
+        Add items to a collection.
+        
+        Args:
+            collection_name: Name of collection
+            documents: Document texts
+            metadatas: Metadata for each document
+            ids: IDs for each document
+            embeddings: Pre-computed embeddings
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        pass
+    
+    @abstractmethod
+    def update_items(
+        self,
+        collection_name: str,
+        ids: List[str],
+        documents: Optional[List[str]] = None,
+        metadatas: Optional[List[Dict[str, Any]]] = None,
+        embeddings: Optional[List[List[float]]] = None,
+    ) -> bool:
+        """
+        Update items in a collection.
+        
+        Args:
+            collection_name: Name of collection
+            ids: IDs of items to update
+            documents: New document texts
+            metadatas: New metadata
+            embeddings: New embeddings
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        pass
+    
+    @abstractmethod
+    def delete_items(
+        self,
+        collection_name: str,
+        ids: Optional[List[str]] = None,
+        where: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """
+        Delete items from a collection.
+        
+        Args:
+            collection_name: Name of collection
+            ids: IDs of items to delete
+            where: Metadata filter for items to delete
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        pass
+    
+    @abstractmethod
+    def delete_collection(self, name: str) -> bool:
+        """
+        Delete an entire collection.
+        
+        Args:
+            name: Collection name
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        pass
+    
+    # Optional: Methods that may be provider-specific but useful to define
+    
+    def get_connection_info(self) -> Dict[str, Any]:
+        """
+        Get information about the current connection.
+        
+        Returns:
+            Dictionary with connection details (provider-specific)
+        """
+        return {
+            "provider": self.__class__.__name__,
+            "connected": self.is_connected
+        }

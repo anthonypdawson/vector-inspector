@@ -1,140 +1,106 @@
-"""ChromaDB connection manager."""
+"""Template for implementing a new vector database connection.
+
+Copy this file and replace 'Template' with your database name.
+Implement all abstract methods according to your database's API.
+"""
 
 from typing import Optional, List, Dict, Any
-import os
-from pathlib import Path
-import chromadb
-from chromadb.api.client import Client
-from chromadb.api.models.Collection import Collection
-
 from .base_connection import VectorDBConnection
 
 
-class ChromaDBConnection(VectorDBConnection):
-    """Manages connection to ChromaDB and provides query interface."""
+class TemplateConnection(VectorDBConnection):
+    """Template vector database connection.
     
-    def __init__(self, path: Optional[str] = None, host: Optional[str] = None, port: Optional[int] = None):
+    Replace this with your database provider name (e.g., PineconeConnection, QdrantConnection).
+    """
+    
+    def __init__(self, **kwargs):
         """
-        Initialize ChromaDB connection.
+        Initialize connection parameters.
         
         Args:
-            path: Path for persistent client (local storage)
-            host: Host for HTTP client
-            port: Port for HTTP client
+            **kwargs: Provider-specific connection parameters
+                      (e.g., api_key, host, port, credentials, etc.)
         """
-        self.path = path
-        self.host = host
-        self.port = port
-        self._client: Optional[Client] = None
-        self._current_collection: Optional[Collection] = None
+        # Store your connection parameters here
+        self._client = None
+        # Add your provider-specific attributes
         
     def connect(self) -> bool:
         """
-        Establish connection to ChromaDB.
+        Establish connection to the vector database.
         
         Returns:
             True if connection successful, False otherwise
         """
         try:
-            if self.path:
-                # Resolve relative paths to project root
-                path_to_use = self._resolve_path(self.path)
-                # Ensure directory exists
-                os.makedirs(path_to_use, exist_ok=True)
-                self._client = chromadb.PersistentClient(path=path_to_use)
-            elif self.host and self.port:
-                self._client = chromadb.HttpClient(host=self.host, port=self.port)
-            else:
-                # Default to ephemeral client for testing
-                self._client = chromadb.Client()
+            # Initialize your database client here
+            # self._client = YourDatabaseClient(...)
             return True
         except Exception as e:
             print(f"Connection failed: {e}")
             return False
-
-    def _resolve_path(self, input_path: str) -> str:
-        """Resolve a path relative to the project root if not absolute."""
-        if os.path.isabs(input_path):
-            return input_path
-        # Find project root by searching for pyproject.toml
-        current = Path(__file__).resolve()
-        for parent in current.parents:
-            if (parent / "pyproject.toml").exists():
-                return str((parent / input_path).resolve())
-        # Fallback to CWD if project root not found
-        return str(Path(input_path).resolve())
     
     def disconnect(self):
-        """Close connection to ChromaDB."""
+        """Close connection to the vector database."""
+        # Clean up your connection
         self._client = None
-        self._current_collection = None
     
     @property
     def is_connected(self) -> bool:
-        """Check if connected to ChromaDB."""
+        """
+        Check if connected to the vector database.
+        
+        Returns:
+            True if connected, False otherwise
+        """
+        # Return whether the client is active
         return self._client is not None
     
     def list_collections(self) -> List[str]:
         """
-        Get list of all collections.
+        Get list of all collections/indexes.
         
         Returns:
-            List of collection names
+            List of collection/index names
         """
         if not self._client:
             return []
         try:
-            collections = self._client.list_collections()
-            return [col.name for col in collections]
+            # Call your database API to list collections
+            # collections = self._client.list_collections()
+            # return [col.name for col in collections]
+            return []
         except Exception as e:
             print(f"Failed to list collections: {e}")
             return []
-    
-    def get_collection(self, name: str) -> Optional[Collection]:
-        """
-        Get or create a collection.
-        
-        Args:
-            name: Collection name
-            
-        Returns:
-            Collection object or None if failed
-        """
-        if not self._client:
-            return None
-        try:
-            self._current_collection = self._client.get_or_create_collection(name=name)
-            return self._current_collection
-        except Exception as e:
-            print(f"Failed to get collection: {e}")
-            return None
     
     def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
         """
         Get collection metadata and statistics.
         
         Args:
-            name: Collection name
+            name: Collection/index name
             
         Returns:
-            Dictionary with collection info
+            Dictionary with collection info:
+                - name: Collection name
+                - count: Number of items
+                - metadata_fields: List of available metadata field names
         """
-        collection = self.get_collection(name)
-        if not collection:
+        if not self._client:
             return None
         
         try:
-            count = collection.count()
-            # Get a sample to determine metadata fields
-            sample = collection.get(limit=1, include=["metadatas"])
-            metadata_fields = []
-            if sample and sample["metadatas"]:
-                metadata_fields = list(sample["metadatas"][0].keys()) if sample["metadatas"][0] else []
+            # Get collection stats from your database
+            # collection = self._client.get_collection(name)
+            # count = collection.count()
+            # metadata_fields = collection.get_metadata_fields()
             
             return {
                 "name": name,
-                "count": count,
-                "metadata_fields": metadata_fields,
+                "count": 0,  # Replace with actual count
+                "metadata_fields": [],  # Replace with actual fields
             }
         except Exception as e:
             print(f"Failed to get collection info: {e}")
@@ -161,22 +127,33 @@ class ChromaDBConnection(VectorDBConnection):
             where_document: Document content filter
             
         Returns:
-            Query results or None if failed
+            Query results dictionary with keys:
+                - ids: List of result IDs
+                - distances: List of distances/scores
+                - documents: List of document texts
+                - metadatas: List of metadata dicts
+                - embeddings: List of embedding vectors (optional)
         """
-        collection = self.get_collection(collection_name)
-        if not collection:
+        if not self._client:
             return None
         
         try:
-            results = collection.query(
-                query_texts=query_texts,
-                query_embeddings=query_embeddings,
-                n_results=n_results,
-                where=where,
-                where_document=where_document,
-                include=["metadatas", "documents", "distances", "embeddings"]
-            )
-            return results
+            # Perform similarity search
+            # results = self._client.query(
+            #     collection=collection_name,
+            #     query_embeddings=query_embeddings,
+            #     n_results=n_results,
+            #     filter=where
+            # )
+            
+            # Transform results to standard format
+            return {
+                "ids": [],
+                "distances": [],
+                "documents": [],
+                "metadatas": [],
+                "embeddings": []
+            }
         except Exception as e:
             print(f"Query failed: {e}")
             return None
@@ -198,20 +175,30 @@ class ChromaDBConnection(VectorDBConnection):
             where: Metadata filter
             
         Returns:
-            Collection items or None if failed
+            Dictionary with collection items:
+                - ids: List of item IDs
+                - documents: List of document texts
+                - metadatas: List of metadata dicts
+                - embeddings: List of embedding vectors
         """
-        collection = self.get_collection(collection_name)
-        if not collection:
+        if not self._client:
             return None
         
         try:
-            results = collection.get(
-                limit=limit,
-                offset=offset,
-                where=where,
-                include=["metadatas", "documents", "embeddings"]
-            )
-            return results
+            # Fetch items from collection with pagination
+            # results = self._client.fetch(
+            #     collection=collection_name,
+            #     limit=limit,
+            #     offset=offset,
+            #     filter=where
+            # )
+            
+            return {
+                "ids": [],
+                "documents": [],
+                "metadatas": [],
+                "embeddings": []
+            }
         except Exception as e:
             print(f"Failed to get items: {e}")
             return None
@@ -237,17 +224,18 @@ class ChromaDBConnection(VectorDBConnection):
         Returns:
             True if successful, False otherwise
         """
-        collection = self.get_collection(collection_name)
-        if not collection:
+        if not self._client:
             return False
         
         try:
-            collection.add(
-                documents=documents,
-                metadatas=metadatas,
-                ids=ids,
-                embeddings=embeddings
-            )
+            # Add items to the collection
+            # self._client.upsert(
+            #     collection=collection_name,
+            #     documents=documents,
+            #     metadatas=metadatas,
+            #     ids=ids,
+            #     embeddings=embeddings
+            # )
             return True
         except Exception as e:
             print(f"Failed to add items: {e}")
@@ -274,17 +262,18 @@ class ChromaDBConnection(VectorDBConnection):
         Returns:
             True if successful, False otherwise
         """
-        collection = self.get_collection(collection_name)
-        if not collection:
+        if not self._client:
             return False
         
         try:
-            collection.update(
-                ids=ids,
-                documents=documents,
-                metadatas=metadatas,
-                embeddings=embeddings
-            )
+            # Update existing items
+            # self._client.update(
+            #     collection=collection_name,
+            #     ids=ids,
+            #     documents=documents,
+            #     metadatas=metadatas,
+            #     embeddings=embeddings
+            # )
             return True
         except Exception as e:
             print(f"Failed to update items: {e}")
@@ -307,12 +296,16 @@ class ChromaDBConnection(VectorDBConnection):
         Returns:
             True if successful, False otherwise
         """
-        collection = self.get_collection(collection_name)
-        if not collection:
+        if not self._client:
             return False
         
         try:
-            collection.delete(ids=ids, where=where)
+            # Delete items
+            # self._client.delete(
+            #     collection=collection_name,
+            #     ids=ids,
+            #     filter=where
+            # )
             return True
         except Exception as e:
             print(f"Failed to delete items: {e}")
@@ -332,10 +325,22 @@ class ChromaDBConnection(VectorDBConnection):
             return False
         
         try:
-            self._client.delete_collection(name=name)
-            if self._current_collection and self._current_collection.name == name:
-                self._current_collection = None
+            # Delete the collection
+            # self._client.delete_collection(name)
             return True
         except Exception as e:
             print(f"Failed to delete collection: {e}")
             return False
+    
+    def get_connection_info(self) -> Dict[str, Any]:
+        """
+        Get information about the current connection.
+        
+        Returns:
+            Dictionary with connection details
+        """
+        return {
+            "provider": "Template",  # Replace with your provider name
+            "connected": self.is_connected,
+            # Add provider-specific details here
+        }
