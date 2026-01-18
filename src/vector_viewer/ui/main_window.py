@@ -15,6 +15,7 @@ from vector_viewer.ui.views.collection_browser import CollectionBrowser
 from vector_viewer.ui.views.metadata_view import MetadataView
 from vector_viewer.ui.views.search_view import SearchView
 from vector_viewer.ui.views.visualization_view import VisualizationView
+from vector_viewer.ui.components.backup_restore_dialog import BackupRestoreDialog
 
 
 class MainWindow(QMainWindow):
@@ -114,6 +115,13 @@ class MainWindow(QMainWindow):
         refresh_action.triggered.connect(self._on_refresh_collections)
         collection_menu.addAction(refresh_action)
         
+        collection_menu.addSeparator()
+        
+        backup_action = QAction("&Backup/Restore...", self)
+        backup_action.setShortcut("Ctrl+B")
+        backup_action.triggered.connect(self._on_backup_restore)
+        collection_menu.addAction(backup_action)
+        
         # Help menu
         help_menu = menubar.addMenu("&Help")
         
@@ -134,6 +142,12 @@ class MainWindow(QMainWindow):
         disconnect_action = QAction("Disconnect", self)
         disconnect_action.triggered.connect(self._on_disconnect)
         toolbar.addAction(disconnect_action)
+        toolbar.addSeparator()
+        
+        backup_action = QAction("Backup/Restore", self)
+        backup_action.triggered.connect(self._on_backup_restore)
+        toolbar.addAction(backup_action)
+        
         
         toolbar.addSeparator()
         
@@ -243,6 +257,22 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(
                     self, "Error", f"Failed to create collection '{name}'."
                 )
+    
+    def _on_backup_restore(self):
+        """Open backup/restore dialog."""
+        if not self.connection.is_connected:
+            QMessageBox.warning(self, "Not Connected", "Please connect to a database first.")
+            return
+            
+        dialog = BackupRestoreDialog(
+            self.connection,
+            self.current_collection,
+            self
+        )
+        dialog.exec()
+        
+        # Refresh collections after dialog closes (in case something was restored)
+        self._on_refresh_collections()
                 
     def _show_about(self):
         """Show about dialog."""

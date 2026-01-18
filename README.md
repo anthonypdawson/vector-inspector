@@ -109,6 +109,9 @@ Vector Viewer bridges the gap between vector databases and user-friendly data ex
 #### Data Layer
 - **Connection Management**: SQLAlchemy-style connection pooling adapted for vector DBs
 - **Query Abstraction**: Unified query interface that translates to provider-specific syntax
+- **Storage Modes**:
+  - Qdrant Remote: connect via host/port (e.g., localhost:6333)
+  - Qdrant Embedded: `QdrantClient(path="./data/qdrant_local")` to persist locally without a separate server
 - **Caching**: Redis or in-memory cache for frequently accessed data
 
 ### Application Structure
@@ -190,10 +193,10 @@ vector-viewer/
 - [x] Basic CRUD operations
 
 ### Phase 2: Core Features
-- [ ] Metadata filtering (advanced filtering, combine with search)
-- [ ] Item editing (update metadata and documents)
-- [ ] Import/export (CSV, JSON, Parquet, backup/restore)
-- [ ] Provider abstraction layer (unified interface for all supported vector DBs)
+- [x] Metadata filtering (advanced filtering, combine with search)
+- [x] Item editing (update metadata and documents)
+- [x] Import/export (CSV, JSON, Parquet, backup/restore)
+- [x] Provider abstraction layer (unified interface for all supported vector DBs)
 
 ### Phase 3: Modular/Plugin System & Hybrid Model
 - [ ] Implement modular/plugin system for feature extensions
@@ -328,7 +331,15 @@ This project draws inspiration from:
 
 ---
 
-**Status**: ✅ Phase 1 Complete - Ready for Testing!
+**Status**: ✅ Phase 2 Complete - Advanced Features Implemented!
+
+**What's New in Phase 2:**
+- 🔍 Advanced metadata filtering with customizable filter rules (AND/OR logic)
+- ✏️ Double-click to edit items directly in the data browser
+- 📥 Import data from CSV, JSON, and Parquet files
+- 📤 Export filtered data to CSV, JSON, and Parquet formats
+- 💾 Comprehensive backup and restore system for collections
+- 🔄 Metadata filters integrated with search for powerful queries
 
 See [GETTING_STARTED.md](GETTING_STARTED.md) for usage instructions and [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for technical details.
 

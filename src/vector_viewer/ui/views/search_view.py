@@ -4,11 +4,14 @@ from typing import Optional, Dict, Any
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
     QPushButton, QLabel, QSpinBox, QTableWidget,
-    QTableWidgetItem, QGroupBox, QSplitter
+    QTableWidgetItem, QGroupBox, QSplitter, QCheckBox, QApplication
 )
 from PySide6.QtCore import Qt
 
 from vector_viewer.core.connections.base_connection import VectorDBConnection
+from vector_viewer.ui.components.filter_builder import FilterBuilder
+from vector_viewer.ui.components.loading_dialog import LoadingDialog
+from vector_viewer.services.filter_service import apply_client_side_filters
 
 
 class SearchView(QWidget):
@@ -19,6 +22,7 @@ class SearchView(QWidget):
         self.connection = connection
         self.current_collection: str = ""
         self.search_results: Optional[Dict[str, Any]] = None
+        self.loading_dialog = LoadingDialog("Searching...", self)
         
         self._setup_ui()
         
@@ -64,6 +68,20 @@ class SearchView(QWidget):
         query_group.setLayout(query_group_layout)
         query_layout.addWidget(query_group)
         
+        # Advanced filters section
+        filter_group = QGroupBox("Advanced Metadata Filters")
+        filter_group.setCheckable(True)
+        filter_group.setChecked(False)
+        filter_group_layout = QVBoxLayout()
+        
+        # Filter builder
+        self.filter_builder = FilterBuilder()
+        filter_group_layout.addWidget(self.filter_builder)
+        
+        filter_group.setLayout(filter_group_layout)
+        query_layout.addWidget(filter_group)
+        self.filter_group = filter_group
+        
         splitter.addWidget(query_widget)
         
         # Results section
@@ -98,8 +116,43 @@ class SearchView(QWidget):
         """Set the current collection to search."""
         self.current_collection = collection_name
         self.search_results = None
+        
+        # Clear search form inputs
+        self.query_input.clear()
         self.results_table.setRowCount(0)
         self.results_status.setText(f"Collection: {collection_name}")
+        
+        # Reset filters
+        self.filter_builder._clear_all()
+        self.filter_group.setChecked(False)
+        
+        # Update filter builder with supported operators
+        operators = self.connection.get_supported_filter_operators()
+        self.filter_builder.set_operators(operators)
+        
+        # Load metadata fields immediately (even if tab is not visible)
+        self._load_metadata_fields()
+    
+    def _load_metadata_fields(self):
+        """Load metadata field names from collection for filter builder."""
+        if not self.current_collection:
+            return
+            
+        try:
+            # Get a small sample to extract field names
+            sample_data = self.connection.get_all_items(
+                self.current_collection,
+                limit=1
+            )
+            
+            if sample_data and sample_data.get("metadatas"):
+                metadatas = sample_data["metadatas"]
+                if metadatas and len(metadatas) > 0 and metadatas[0]:
+                    field_names = sorted(metadatas[0].keys())
+                    self.filter_builder.set_available_fields(field_names)
+        except Exception as e:
+            # Silently ignore errors - fields can still be typed manually
+            print(f"Note: Could not auto-populate filter fields: {e}")
         
     def _perform_search(self):
         """Perform similarity search."""
@@ -114,17 +167,54 @@ class SearchView(QWidget):
             
         n_results = self.n_results_spin.value()
         
-        # Perform query
-        results = self.connection.query_collection(
-            self.current_collection,
-            query_texts=[query_text],
-            n_results=n_results
-        )
+        # Get filters split into server-side and client-side
+        server_filter = None
+        client_filters = []
+        if self.filter_group.isChecked() and self.filter_builder.has_filters():
+            server_filter, client_filters = self.filter_builder.get_filters_split()
+            if server_filter or client_filters:
+                filter_summary = self.filter_builder.get_filter_summary()
+                self.results_status.setText(f"Searching with filters: {filter_summary}")
+        
+        # Show loading indicator
+        self.loading_dialog.show_loading("Searching for similar vectors...")
+        QApplication.processEvents()
+        
+        try:
+            # Perform query
+            results = self.connection.query_collection(
+                self.current_collection,
+                query_texts=[query_text],
+                n_results=n_results,
+                where=server_filter
+            )
+        finally:
+            self.loading_dialog.hide_loading()
         
         if not results:
             self.results_status.setText("Search failed")
             self.results_table.setRowCount(0)
             return
+        
+        # Apply client-side filters if any
+        if client_filters and results:
+            # Restructure results for filtering
+            filter_data = {
+                "ids": results.get("ids", [[]])[0],
+                "documents": results.get("documents", [[]])[0],
+                "metadatas": results.get("metadatas", [[]])[0],
+            }
+            filtered = apply_client_side_filters(filter_data, client_filters)
+            
+            # Restructure back to query results format
+            results = {
+                "ids": [filtered["ids"]],
+                "documents": [filtered["documents"]],
+                "metadatas": [filtered["metadatas"]],
+                "distances": [[results.get("distances", [[]])[0][i] 
+                              for i, orig_id in enumerate(results.get("ids", [[]])[0]) 
+                              if orig_id in filtered["ids"]]]
+            }
             
         self.search_results = results
         self._display_results(results)

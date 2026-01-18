@@ -4,13 +4,17 @@ from typing import Optional, Dict, Any, List
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QPushButton, QLabel, QSpinBox,
-    QLineEdit, QComboBox, QGroupBox, QHeaderView, QMessageBox, QDialog
+    QLineEdit, QComboBox, QGroupBox, QHeaderView, QMessageBox, QDialog,
+    QFileDialog, QMenu
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 from vector_viewer.core.connections.base_connection import VectorDBConnection
 from vector_viewer.ui.components.item_dialog import ItemDialog
 from vector_viewer.ui.components.loading_dialog import LoadingDialog
+from vector_viewer.ui.components.filter_builder import FilterBuilder
+from vector_viewer.services.import_export_service import ImportExportService
+from vector_viewer.services.filter_service import apply_client_side_filters
 from PySide6.QtWidgets import QApplication
 
 
@@ -25,6 +29,11 @@ class MetadataView(QWidget):
         self.page_size = 50
         self.current_page = 0
         self.loading_dialog = LoadingDialog("Loading data...", self)
+        
+        # Debounce timer for filter changes
+        self.filter_reload_timer = QTimer()
+        self.filter_reload_timer.setSingleShot(True)
+        self.filter_reload_timer.timeout.connect(self._reload_with_filters)
         
         self._setup_ui()
         
@@ -77,13 +86,51 @@ class MetadataView(QWidget):
         self.delete_button.clicked.connect(self._delete_selected)
         controls_layout.addWidget(self.delete_button)
         
+        # Export button with menu
+        self.export_button = QPushButton("Export...")
+        self.export_button.setStyleSheet("QPushButton::menu-indicator { width: 0px; }")
+        export_menu = QMenu(self)
+        export_menu.addAction("Export to JSON", lambda: self._export_data("json"))
+        export_menu.addAction("Export to CSV", lambda: self._export_data("csv"))
+        export_menu.addAction("Export to Parquet", lambda: self._export_data("parquet"))
+        self.export_button.setMenu(export_menu)
+        controls_layout.addWidget(self.export_button)
+        
+        # Import button with menu
+        self.import_button = QPushButton("Import...")
+        self.import_button.setStyleSheet("QPushButton::menu-indicator { width: 0px; }")
+        import_menu = QMenu(self)
+        import_menu.addAction("Import from JSON", lambda: self._import_data("json"))
+        import_menu.addAction("Import from CSV", lambda: self._import_data("csv"))
+        import_menu.addAction("Import from Parquet", lambda: self._import_data("parquet"))
+        self.import_button.setMenu(import_menu)
+        controls_layout.addWidget(self.import_button)
+        
         layout.addLayout(controls_layout)
+        
+        # Filter section
+        filter_group = QGroupBox("Metadata Filters")
+        filter_group.setCheckable(True)
+        filter_group.setChecked(False)
+        filter_group_layout = QVBoxLayout()
+        
+        self.filter_builder = FilterBuilder()
+        # Remove auto-reload on filter changes - only reload when user clicks Refresh
+        # self.filter_builder.filter_changed.connect(self._on_filter_changed)
+        # But DO reload when user presses Enter or clicks away from value input
+        self.filter_builder.apply_filters.connect(self._apply_filters)
+        filter_group_layout.addWidget(self.filter_builder)
+        
+        filter_group.setLayout(filter_group_layout)
+        layout.addWidget(filter_group)
+        self.filter_group = filter_group
         
         # Data table
         self.table = QTableWidget()
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.doubleClicked.connect(self._on_row_double_clicked)
         layout.addWidget(self.table)
         
         # Status bar
@@ -95,25 +142,63 @@ class MetadataView(QWidget):
         """Set the current collection to display."""
         self.current_collection = collection_name
         self.current_page = 0
-        self._load_data()
+        
+        # Show loading dialog at the start
+        self.loading_dialog.show_loading("Loading collection data...")
+        QApplication.processEvents()
+        
+        try:
+            # Update filter builder with supported operators
+            operators = self.connection.get_supported_filter_operators()
+            self.filter_builder.set_operators(operators)
+            
+            self._load_data_internal()
+            
+            # Ensure UI is fully updated before hiding loading dialog
+            QApplication.processEvents()
+        finally:
+            self.loading_dialog.hide_loading()
         
     def _load_data(self):
-        """Load data from current collection."""
+        """Load data from current collection (with loading dialog)."""
         if not self.current_collection:
             self.status_label.setText("No collection selected")
             self.table.setRowCount(0)
             return
+            
         self.loading_dialog.show_loading("Loading data from collection...")
         QApplication.processEvents()
         try:
-            offset = self.current_page * self.page_size
-            data = self.connection.get_all_items(
-                self.current_collection,
-                limit=self.page_size,
-                offset=offset
-            )
+            self._load_data_internal()
         finally:
             self.loading_dialog.hide_loading()
+    
+    def _load_data_internal(self):
+        """Internal method to load data without managing loading dialog."""
+        if not self.current_collection:
+            self.status_label.setText("No collection selected")
+            self.table.setRowCount(0)
+            return
+        
+        offset = self.current_page * self.page_size
+        
+        # Get filters split into server-side and client-side
+        server_filter = None
+        client_filters = []
+        if self.filter_group.isChecked() and self.filter_builder.has_filters():
+            server_filter, client_filters = self.filter_builder.get_filters_split()
+        
+        data = self.connection.get_all_items(
+            self.current_collection,
+            limit=self.page_size,
+            offset=offset,
+            where=server_filter
+        )
+        
+        # Apply client-side filters if any
+        if client_filters and data:
+            data = apply_client_side_filters(data, client_filters)
+        
         if not data:
             self.status_label.setText("Failed to load data")
             self.table.setRowCount(0)
@@ -121,6 +206,28 @@ class MetadataView(QWidget):
         self.current_data = data
         self._populate_table(data)
         self._update_pagination_controls()
+        
+        # Update filter builder with available metadata fields
+        self._update_filter_fields(data)
+        
+    def _update_filter_fields(self, data: Dict[str, Any]):
+        """Update filter builder with available metadata field names."""
+        field_names = []
+        
+        # Add 'document' field if documents exist
+        documents = data.get("documents", [])
+        if documents and any(doc for doc in documents if doc):
+            field_names.append("document")
+        
+        # Add metadata fields
+        metadatas = data.get("metadatas", [])
+        if metadatas and len(metadatas) > 0 and metadatas[0]:
+            # Get all unique metadata keys from the first item
+            metadata_keys = sorted(metadatas[0].keys())
+            field_names.extend(metadata_keys)
+        
+        if field_names:
+            self.filter_builder.set_available_fields(field_names)
         
     def _populate_table(self, data: Dict[str, Any]):
         """Populate table with data."""
@@ -254,3 +361,195 @@ class MetadataView(QWidget):
                 self._load_data()
             else:
                 QMessageBox.warning(self, "Error", "Failed to delete items.")
+    
+    def _on_filter_changed(self):
+        """Handle filter changes - debounce and reload data."""
+        if self.filter_group.isChecked():
+            # Restart the timer - will only fire 500ms after last change
+            self.filter_reload_timer.stop()
+            self.filter_reload_timer.start(500)  # 500ms debounce
+    
+    def _reload_with_filters(self):
+        """Reload data with current filters (called after debounce)."""
+        self.current_page = 0
+        self._load_data()
+    
+    def _apply_filters(self):
+        """Apply filters when user presses Enter or clicks away."""
+        if self.filter_group.isChecked() and self.current_collection:
+            self.current_page = 0
+            self._load_data()
+    
+    def _on_row_double_clicked(self, index):
+        """Handle double-click on a row to edit item."""
+        if not self.current_collection or not self.current_data:
+            return
+            
+        row = index.row()
+        if row < 0 or row >= self.table.rowCount():
+            return
+            
+        # Get item data for this row
+        ids = self.current_data.get("ids", [])
+        documents = self.current_data.get("documents", [])
+        metadatas = self.current_data.get("metadatas", [])
+        
+        if row >= len(ids):
+            return
+            
+        item_data = {
+            "id": ids[row],
+            "document": documents[row] if row < len(documents) else "",
+            "metadata": metadatas[row] if row < len(metadatas) else {}
+        }
+        
+        # Open edit dialog
+        dialog = ItemDialog(self, item_data=item_data)
+        
+        if dialog.exec() == QDialog.Accepted:
+            updated_data = dialog.get_item_data()
+            if not updated_data:
+                return
+                
+            # Update item in collection
+            success = self.connection.update_items(
+                self.current_collection,
+                ids=[updated_data["id"]],
+                documents=[updated_data["document"]] if updated_data["document"] else None,
+                metadatas=[updated_data["metadata"]] if updated_data["metadata"] else None
+            )
+            
+            if success:
+                QMessageBox.information(self, "Success", "Item updated successfully.")
+                self._load_data()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to update item.")
+    
+    def _export_data(self, format_type: str):
+        """Export collection data to file."""
+        if not self.current_collection:
+            QMessageBox.warning(self, "No Collection", "Please select a collection first.")
+            return
+            
+        # Get all data (not just current page)
+        self.loading_dialog.show_loading("Exporting data...")
+        QApplication.processEvents()
+        
+        try:
+            # Get filter if active
+            where_filter = None
+            if self.filter_group.isChecked() and self.filter_builder.has_filters():
+                where_filter = self.filter_builder.get_filter()
+                
+            # Fetch all data
+            all_data = self.connection.get_all_items(
+                self.current_collection,
+                where=where_filter
+            )
+        finally:
+            self.loading_dialog.hide_loading()
+            
+        if not all_data or not all_data.get("ids"):
+            QMessageBox.warning(self, "No Data", "No data to export.")
+            return
+        
+        # Select file path
+        file_filters = {
+            "json": "JSON Files (*.json)",
+            "csv": "CSV Files (*.csv)",
+            "parquet": "Parquet Files (*.parquet)"
+        }
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            f"Export to {format_type.upper()}",
+            f"{self.current_collection}.{format_type}",
+            file_filters[format_type]
+        )
+        
+        if not file_path:
+            return
+            
+        # Export
+        service = ImportExportService()
+        success = False
+        
+        if format_type == "json":
+            success = service.export_to_json(all_data, file_path)
+        elif format_type == "csv":
+            success = service.export_to_csv(all_data, file_path)
+        elif format_type == "parquet":
+            success = service.export_to_parquet(all_data, file_path)
+            
+        if success:
+            QMessageBox.information(
+                self,
+                "Export Successful",
+                f"Exported {len(all_data['ids'])} items to {file_path}"
+            )
+        else:
+            QMessageBox.warning(self, "Export Failed", "Failed to export data.")
+    
+    def _import_data(self, format_type: str):
+        """Import data from file into collection."""
+        if not self.current_collection:
+            QMessageBox.warning(self, "No Collection", "Please select a collection first.")
+            return
+            
+        # Select file to import
+        file_filters = {
+            "json": "JSON Files (*.json)",
+            "csv": "CSV Files (*.csv)",
+            "parquet": "Parquet Files (*.parquet)"
+        }
+        
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            f"Import from {format_type.upper()}",
+            "",
+            file_filters[format_type]
+        )
+        
+        if not file_path:
+            return
+            
+        # Import
+        self.loading_dialog.show_loading("Importing data...")
+        QApplication.processEvents()
+        
+        try:
+            service = ImportExportService()
+            imported_data = None
+            
+            if format_type == "json":
+                imported_data = service.import_from_json(file_path)
+            elif format_type == "csv":
+                imported_data = service.import_from_csv(file_path)
+            elif format_type == "parquet":
+                imported_data = service.import_from_parquet(file_path)
+                
+            if not imported_data:
+                QMessageBox.warning(self, "Import Failed", "Failed to parse import file.")
+                return
+                
+            # Add items to collection
+            success = self.connection.add_items(
+                self.current_collection,
+                documents=imported_data["documents"],
+                metadatas=imported_data.get("metadatas"),
+                ids=imported_data.get("ids"),
+                embeddings=imported_data.get("embeddings")
+            )
+        finally:
+            self.loading_dialog.hide_loading()
+            
+        if success:
+            QMessageBox.information(
+                self,
+                "Import Successful",
+                f"Imported {len(imported_data['ids'])} items."
+            )
+            self._load_data()
+        else:
+            QMessageBox.warning(self, "Import Failed", "Failed to import data.")
+

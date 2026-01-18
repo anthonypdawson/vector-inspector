@@ -26,14 +26,18 @@ def create_sample_data_chroma():
     print("4. Browse, search, and visualize the data!")
 
 
-def create_sample_data_qdrant(host="localhost", port=6333, collection_name="sample_documents", vector_size=384):
-    """Create sample data for Qdrant."""
-    print(f"Creating sample Qdrant data on {host}:{port}...")
+def create_sample_data_qdrant(host="localhost", port=6333, collection_name="sample_documents", vector_size=384, path: str | None = None):
+    """Create sample data for Qdrant (remote or local path)."""
     from qdrant_client import QdrantClient
     from qdrant_client.models import Distance, VectorParams, PointStruct
     from sentence_transformers import SentenceTransformer
-    
-    client = QdrantClient(host=host, port=port, prefer_grpc=False, check_compatibility=False)
+
+    if path:
+        print(f"Creating sample Qdrant data in local path '{path}'...")
+        client = QdrantClient(path=path, check_compatibility=False)
+    else:
+        print(f"Creating sample Qdrant data on {host}:{port}...")
+        client = QdrantClient(host=host, port=port, prefer_grpc=False, check_compatibility=False)
     # Delete collection if it exists (to avoid config mismatch)
     try:
         client.delete_collection(collection_name=collection_name)
@@ -79,36 +83,243 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
     print(f"Added {len(documents)} documents to collection '{collection_name}'")
     print("\nYou can now:")
     print(f"1. Run the Vector Viewer application")
-    print(f"2. Connect to Qdrant at {host}:{port}")
+    if path:
+        print(f"2. Connect to Qdrant (Local Path) at: {path}")
+    else:
+        print(f"2. Connect to Qdrant at {host}:{port}")
     print(f"3. Select the '{collection_name}' collection")
     print("4. Browse, search, and visualize the data!")
 
 
 def get_sample_docs():
     documents = [
+        # Animals (15 docs)
         "The quick brown fox jumps over the lazy dog.",
+        "Elephants are the largest land animals on Earth.",
+        "Dolphins communicate using complex vocalizations.",
+        "Cheetahs can run up to 70 miles per hour.",
+        "Polar bears are excellent swimmers in Arctic waters.",
+        "Hummingbirds can hover in mid-air by flapping their wings rapidly.",
+        "Octopuses have three hearts and blue blood.",
+        "Penguins huddle together to stay warm in Antarctica.",
+        "Wolves hunt in coordinated packs for efficiency.",
+        "Monarch butterflies migrate thousands of miles annually.",
+        "Koalas sleep up to 22 hours per day.",
+        "Giraffes have the same number of neck vertebrae as humans.",
+        "Bats are the only mammals capable of sustained flight.",
+        "Seahorses are the only species where males give birth.",
+        "Owls can rotate their heads 270 degrees.",
+        
+        # Programming (20 docs)
         "Python is a high-level programming language.",
+        "JavaScript runs in web browsers for interactive pages.",
+        "TypeScript adds static typing to JavaScript.",
+        "Rust ensures memory safety without garbage collection.",
+        "Go was designed for concurrent programming at Google.",
+        "C++ provides low-level memory manipulation capabilities.",
+        "Java runs on the Java Virtual Machine.",
+        "Swift is Apple's modern programming language.",
+        "Ruby emphasizes programmer happiness and productivity.",
+        "Kotlin is fully interoperable with Java code.",
+        "Scala combines object-oriented and functional programming.",
+        "Elixir runs on the Erlang virtual machine.",
+        "PHP powers many content management systems.",
+        "Perl excels at text processing and manipulation.",
+        "R is designed for statistical computing and graphics.",
+        "Julia achieves high performance for numerical computing.",
+        "Haskell is a purely functional programming language.",
+        "Clojure is a modern Lisp dialect for the JVM.",
+        "Dart is optimized for building mobile applications.",
+        "Lua is lightweight and embeddable in applications.",
+        
+        # AI & Machine Learning (25 docs)
         "Machine learning is a subset of artificial intelligence.",
         "Neural networks are inspired by the human brain.",
-        "Data science involves extracting insights from data.",
-        "Vector databases store high-dimensional embeddings.",
-        "Natural language processing enables computers to understand text.",
         "Deep learning uses multiple layers of neural networks.",
+        "Convolutional neural networks excel at image recognition.",
+        "Recurrent neural networks process sequential data effectively.",
+        "Transformers revolutionized natural language processing.",
+        "Reinforcement learning trains agents through rewards.",
+        "Supervised learning requires labeled training data.",
+        "Unsupervised learning finds patterns in unlabeled data.",
+        "Transfer learning reuses pretrained model knowledge.",
+        "Gradient descent optimizes neural network parameters.",
+        "Backpropagation calculates gradients for training networks.",
+        "Attention mechanisms help models focus on relevant information.",
+        "GANs generate realistic synthetic data samples.",
+        "Autoencoders learn compressed data representations.",
+        "BERT uses bidirectional context for language understanding.",
+        "GPT models generate coherent text sequences.",
+        "Computer vision enables machines to interpret images.",
+        "Natural language processing enables computers to understand text.",
+        "Speech recognition converts audio to text transcriptions.",
+        "Object detection identifies and locates objects in images.",
+        "Sentiment analysis determines emotional tone of text.",
+        "Named entity recognition extracts key information from text.",
+        "Machine translation converts text between languages.",
+        "Recommender systems suggest relevant items to users.",
+        
+        # Data Science (15 docs)
+        "Data science involves extracting insights from data.",
+        "Pandas provides powerful data manipulation tools.",
+        "NumPy enables efficient numerical computing in Python.",
+        "Matplotlib creates static and interactive visualizations.",
+        "Scikit-learn offers simple machine learning algorithms.",
+        "Data cleaning removes errors and inconsistencies.",
+        "Feature engineering creates useful input variables.",
+        "Cross-validation prevents overfitting in models.",
+        "A/B testing compares different versions systematically.",
+        "Time series analysis forecasts future values.",
+        "Regression predicts continuous numerical outcomes.",
+        "Classification assigns items to predefined categories.",
+        "Clustering groups similar data points together.",
+        "Dimensionality reduction simplifies high-dimensional data.",
+        "Statistical inference draws conclusions from samples.",
+        
+        # Databases & Vectors (15 docs)
+        "Vector databases store high-dimensional embeddings.",
         "Embeddings represent data in continuous vector spaces.",
         "Similarity search finds vectors close to a query vector.",
+        "SQL databases use structured query language.",
+        "NoSQL databases offer flexible schema designs.",
+        "Graph databases model relationships between entities.",
+        "Time-series databases optimize for temporal data.",
+        "ACID properties ensure reliable database transactions.",
+        "Indexing improves database query performance.",
+        "Sharding distributes data across multiple servers.",
+        "Replication creates data copies for availability.",
+        "Normalization reduces data redundancy in tables.",
+        "Denormalization optimizes for read performance.",
+        "Vector similarity uses cosine or euclidean distance.",
+        "Approximate nearest neighbor search speeds up retrieval.",
+        
+        # General Tech (10 docs)
+        "Cloud computing provides on-demand computing resources.",
+        "Microservices architecture splits applications into services.",
+        "REST APIs enable communication between systems.",
+        "GraphQL allows clients to request specific data.",
+        "Docker containers package applications with dependencies.",
+        "Kubernetes orchestrates containerized applications.",
+        "CI/CD automates software testing and deployment.",
+        "Version control tracks changes to source code.",
+        "Agile methodology emphasizes iterative development.",
+        "DevOps combines development and operations practices.",
     ]
+    
     metadatas = [
-        {"category": "animals", "length": "short"},
-        {"category": "programming", "length": "short"},
-        {"category": "ai", "length": "short"},
-        {"category": "ai", "length": "short"},
-        {"category": "data", "length": "short"},
-        {"category": "databases", "length": "short"},
-        {"category": "ai", "length": "medium"},
-        {"category": "ai", "length": "short"},
-        {"category": "vectors", "length": "short"},
-        {"category": "vectors", "length": "short"},
+        # Animals
+        {"category": "animals", "length": "short", "topic": "mammals"},
+        {"category": "animals", "length": "short", "topic": "mammals"},
+        {"category": "animals", "length": "short", "topic": "marine"},
+        {"category": "animals", "length": "short", "topic": "mammals"},
+        {"category": "animals", "length": "short", "topic": "mammals"},
+        {"category": "animals", "length": "medium", "topic": "birds"},
+        {"category": "animals", "length": "short", "topic": "marine"},
+        {"category": "animals", "length": "short", "topic": "birds"},
+        {"category": "animals", "length": "short", "topic": "mammals"},
+        {"category": "animals", "length": "short", "topic": "insects"},
+        {"category": "animals", "length": "short", "topic": "mammals"},
+        {"category": "animals", "length": "medium", "topic": "mammals"},
+        {"category": "animals", "length": "short", "topic": "mammals"},
+        {"category": "animals", "length": "short", "topic": "marine"},
+        {"category": "animals", "length": "short", "topic": "birds"},
+        
+        # Programming
+        {"category": "programming", "length": "short", "topic": "languages"},
+        {"category": "programming", "length": "short", "topic": "web"},
+        {"category": "programming", "length": "short", "topic": "web"},
+        {"category": "programming", "length": "short", "topic": "systems"},
+        {"category": "programming", "length": "short", "topic": "systems"},
+        {"category": "programming", "length": "short", "topic": "systems"},
+        {"category": "programming", "length": "short", "topic": "languages"},
+        {"category": "programming", "length": "short", "topic": "mobile"},
+        {"category": "programming", "length": "short", "topic": "languages"},
+        {"category": "programming", "length": "short", "topic": "languages"},
+        {"category": "programming", "length": "short", "topic": "languages"},
+        {"category": "programming", "length": "short", "topic": "functional"},
+        {"category": "programming", "length": "short", "topic": "web"},
+        {"category": "programming", "length": "short", "topic": "scripting"},
+        {"category": "programming", "length": "short", "topic": "statistics"},
+        {"category": "programming", "length": "short", "topic": "scientific"},
+        {"category": "programming", "length": "short", "topic": "functional"},
+        {"category": "programming", "length": "short", "topic": "functional"},
+        {"category": "programming", "length": "short", "topic": "mobile"},
+        {"category": "programming", "length": "short", "topic": "scripting"},
+        
+        # AI & ML
+        {"category": "ai", "length": "short", "topic": "machine-learning"},
+        {"category": "ai", "length": "short", "topic": "neural-networks"},
+        {"category": "ai", "length": "short", "topic": "deep-learning"},
+        {"category": "ai", "length": "short", "topic": "computer-vision"},
+        {"category": "ai", "length": "short", "topic": "sequential"},
+        {"category": "ai", "length": "short", "topic": "nlp"},
+        {"category": "ai", "length": "short", "topic": "reinforcement"},
+        {"category": "ai", "length": "short", "topic": "supervised"},
+        {"category": "ai", "length": "short", "topic": "unsupervised"},
+        {"category": "ai", "length": "short", "topic": "transfer-learning"},
+        {"category": "ai", "length": "short", "topic": "optimization"},
+        {"category": "ai", "length": "short", "topic": "training"},
+        {"category": "ai", "length": "short", "topic": "architecture"},
+        {"category": "ai", "length": "short", "topic": "generative"},
+        {"category": "ai", "length": "short", "topic": "representation"},
+        {"category": "ai", "length": "short", "topic": "nlp"},
+        {"category": "ai", "length": "short", "topic": "nlp"},
+        {"category": "ai", "length": "short", "topic": "computer-vision"},
+        {"category": "ai", "length": "medium", "topic": "nlp"},
+        {"category": "ai", "length": "short", "topic": "speech"},
+        {"category": "ai", "length": "short", "topic": "computer-vision"},
+        {"category": "ai", "length": "short", "topic": "nlp"},
+        {"category": "ai", "length": "short", "topic": "nlp"},
+        {"category": "ai", "length": "short", "topic": "nlp"},
+        {"category": "ai", "length": "short", "topic": "recommendation"},
+        
+        # Data Science
+        {"category": "data", "length": "short", "topic": "overview"},
+        {"category": "data", "length": "short", "topic": "tools"},
+        {"category": "data", "length": "short", "topic": "tools"},
+        {"category": "data", "length": "short", "topic": "visualization"},
+        {"category": "data", "length": "short", "topic": "tools"},
+        {"category": "data", "length": "short", "topic": "preprocessing"},
+        {"category": "data", "length": "short", "topic": "engineering"},
+        {"category": "data", "length": "short", "topic": "validation"},
+        {"category": "data", "length": "short", "topic": "testing"},
+        {"category": "data", "length": "short", "topic": "time-series"},
+        {"category": "data", "length": "short", "topic": "regression"},
+        {"category": "data", "length": "short", "topic": "classification"},
+        {"category": "data", "length": "short", "topic": "clustering"},
+        {"category": "data", "length": "short", "topic": "dimensionality"},
+        {"category": "data", "length": "short", "topic": "statistics"},
+        
+        # Databases
+        {"category": "databases", "length": "short", "topic": "vectors"},
+        {"category": "vectors", "length": "short", "topic": "embeddings"},
+        {"category": "vectors", "length": "short", "topic": "search"},
+        {"category": "databases", "length": "short", "topic": "sql"},
+        {"category": "databases", "length": "short", "topic": "nosql"},
+        {"category": "databases", "length": "short", "topic": "graph"},
+        {"category": "databases", "length": "short", "topic": "time-series"},
+        {"category": "databases", "length": "short", "topic": "transactions"},
+        {"category": "databases", "length": "short", "topic": "performance"},
+        {"category": "databases", "length": "short", "topic": "scaling"},
+        {"category": "databases", "length": "short", "topic": "availability"},
+        {"category": "databases", "length": "short", "topic": "design"},
+        {"category": "databases", "length": "short", "topic": "design"},
+        {"category": "vectors", "length": "short", "topic": "similarity"},
+        {"category": "vectors", "length": "short", "topic": "search"},
+        
+        # Tech
+        {"category": "tech", "length": "short", "topic": "cloud"},
+        {"category": "tech", "length": "short", "topic": "architecture"},
+        {"category": "tech", "length": "short", "topic": "api"},
+        {"category": "tech", "length": "short", "topic": "api"},
+        {"category": "tech", "length": "short", "topic": "containers"},
+        {"category": "tech", "length": "short", "topic": "orchestration"},
+        {"category": "tech", "length": "short", "topic": "devops"},
+        {"category": "tech", "length": "short", "topic": "tools"},
+        {"category": "tech", "length": "short", "topic": "methodology"},
+        {"category": "tech", "length": "short", "topic": "devops"},
     ]
+    
     ids = [f"doc_{i}" for i in range(len(documents))]
     return documents, metadatas, ids
 
@@ -118,6 +329,7 @@ def main():
     parser.add_argument("--provider", choices=["chroma", "qdrant"], default="chroma", help="Which vector DB to use")
     parser.add_argument("--host", default="localhost", help="Qdrant host (for qdrant)")
     parser.add_argument("--port", type=int, default=6333, help="Qdrant port (for qdrant)")
+    parser.add_argument("--path", default=None, help="Local Qdrant DB path (if using embedded mode)")
     parser.add_argument("--vector-size", type=int, default=384, help="Vector size for Qdrant collection")
     parser.add_argument("--collection", default="sample_documents", help="Collection name")
     args = parser.parse_args()
@@ -125,7 +337,13 @@ def main():
     if args.provider == "chroma":
         create_sample_data_chroma()
     elif args.provider == "qdrant":
-        create_sample_data_qdrant(host=args.host, port=args.port, collection_name=args.collection, vector_size=args.vector_size)
+        create_sample_data_qdrant(
+            host=args.host,
+            port=args.port,
+            collection_name=args.collection,
+            vector_size=args.vector_size,
+            path=args.path,
+        )
     else:
         print("Unknown provider.")
         sys.exit(1)

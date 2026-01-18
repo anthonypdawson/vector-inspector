@@ -19,13 +19,24 @@ pdm install -d
 
 ### 2. Create Sample Data (Optional)
 
-Run the sample data script to populate a test ChromaDB database:
+Populate a test database:
 
+- ChromaDB (local persistent):
 ```bash
-pdm run python create_sample_data.py
+pdm run python create_sample_data.py --provider chroma
 ```
 
-This will create a `./chroma_data` directory with sample documents.
+- Qdrant (remote server at localhost:6333):
+```bash
+pdm run python create_sample_data.py --provider qdrant --host localhost --port 6333
+```
+
+- Qdrant (embedded local path, persists to disk):
+```bash
+pdm run python create_sample_data.py --provider qdrant --path ./data/qdrant_local
+```
+
+The scripts create collections named `sample_documents`.
 
 ### 3. Run the Application
 
@@ -61,6 +72,13 @@ pdm run python -m vector_viewer.main
     - **HTTP (Remote Server)**: For ChromaDB server instances
     - **Ephemeral (In-Memory)**: Temporary database (data lost on disconnect)
 3. Click "Connect"
+
+### Connecting to Qdrant
+
+Choose one of the modes:
+- **Remote Server**: Host/port (e.g., `localhost:6333`)
+- **Local Path (Embedded)**: Provide a filesystem path (e.g., `./data/qdrant_local`) to persist data to disk. The app will start Qdrant in embedded mode via the Python client.
+ - The collection list will include `sample_documents` if you ran the sample script.
 
 ### Browsing Data
 

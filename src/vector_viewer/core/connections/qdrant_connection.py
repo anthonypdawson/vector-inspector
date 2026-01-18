@@ -5,7 +5,7 @@ import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance, VectorParams, PointStruct, 
-    Filter, FieldCondition, MatchValue, Range
+    Filter, FieldCondition, MatchValue, MatchText, MatchAny, MatchExcept, Range
 )
 from qdrant_client.http.models import SearchRequest
 
@@ -164,16 +164,30 @@ class QdrantConnection(VectorDBConnection):
             return None
         
         try:
-            conditions = []
+            must_conditions = []
+            must_not_conditions = []
+            
             for key, value in where.items():
                 if isinstance(value, dict):
-                    # Handle operators like $eq, $ne, $gt, $gte, $lt, $lte
+                    # Handle operators like $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $contains, $not_contains
                     for op, val in value.items():
                         if op == "$eq":
-                            conditions.append(FieldCondition(key=key, match=MatchValue(value=val)))
+                            must_conditions.append(FieldCondition(key=key, match=MatchValue(value=val)))
                         elif op == "$ne":
-                            conditions.append(FieldCondition(key=key, match=MatchValue(value=val)))
-                            # Note: Qdrant doesn't have direct "not equal", would need to use must_not
+                            # Use must_not for not-equal
+                            must_not_conditions.append(FieldCondition(key=key, match=MatchValue(value=val)))
+                        elif op == "$in":
+                            # Use MatchAny for IN operator (available since v1.1.0)
+                            must_conditions.append(FieldCondition(key=key, match=MatchAny(any=val)))
+                        elif op == "$nin":
+                            # Use MatchExcept for NOT IN operator (available since v1.2.0)
+                            must_conditions.append(FieldCondition(key=key, match=MatchExcept(**{"except": val})))
+                        elif op == "$contains":
+                            # Text matching in Qdrant (uses full-text index if available)
+                            must_conditions.append(FieldCondition(key=key, match=MatchText(text=str(val))))
+                        elif op == "$not_contains":
+                            # Negative text matching using must_not
+                            must_not_conditions.append(FieldCondition(key=key, match=MatchText(text=str(val))))
                         elif op in ["$gt", "$gte", "$lt", "$lte"]:
                             range_args = {}
                             if op == "$gt":
@@ -184,13 +198,14 @@ class QdrantConnection(VectorDBConnection):
                                 range_args["lt"] = val
                             elif op == "$lte":
                                 range_args["lte"] = val
-                            conditions.append(FieldCondition(key=key, range=Range(**range_args)))
+                            must_conditions.append(FieldCondition(key=key, range=Range(**range_args)))
                 else:
                     # Direct equality match
-                    conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
+                    must_conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
             
-            if conditions:
-                return Filter(must=conditions)
+            if must_conditions or must_not_conditions:
+                return Filter(must=must_conditions if must_conditions else None, 
+                            must_not=must_not_conditions if must_not_conditions else None)
             return None
         except Exception as e:
             print(f"Failed to build filter: {e}")
@@ -259,19 +274,36 @@ class QdrantConnection(VectorDBConnection):
                         continue
                 else:
                     query_vector = query
-                
-                # Use HTTP search API for compatibility with older Qdrant servers
-                search_result = self._client._client.http.search_api.search_points(
-                    collection_name=collection_name,
-                    search_request=SearchRequest(
-                        vector=query_vector,
+
+                search_results = None
+                # Prefer modern client method when available (works in local path mode)
+                try:
+                    res = self._client.query_points(
+                        collection_name=collection_name,
+                        query=query_vector,
                         limit=n_results,
-                        filter=qdrant_filter,
+                        query_filter=qdrant_filter,
                         with_payload=True,
-                        with_vector=True
+                        with_vectors=True,
                     )
-                )
-                search_results = search_result.result
+                    search_results = getattr(res, "points", res)
+                except Exception:
+                    # Fallback to HTTP API (works with older remote servers like 1.7.x)
+                    try:
+                        res_http = self._client._client.http.search_api.search_points(
+                            collection_name=collection_name,
+                            search_request=SearchRequest(
+                                vector=query_vector,
+                                limit=n_results,
+                                filter=qdrant_filter,
+                                with_payload=True,
+                                with_vector=True,
+                            ),
+                        )
+                        search_results = res_http.result
+                    except Exception as e2:
+                        print(f"Query failed via both client and HTTP API: {e2}")
+                        continue
                 
                 # Transform results to standard format
                 ids = []
@@ -628,3 +660,26 @@ class QdrantConnection(VectorDBConnection):
             info["mode"] = "memory"
         
         return info
+    
+    def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
+        """
+        Get filter operators supported by Qdrant.
+        
+        Qdrant has richer filtering capabilities than ChromaDB.
+        
+        Returns:
+            List of operator dictionaries
+        """
+        return [
+            {"name": "=", "server_side": True},
+            {"name": "!=", "server_side": True},
+            {"name": ">", "server_side": True},
+            {"name": ">=", "server_side": True},
+            {"name": "<", "server_side": True},
+            {"name": "<=", "server_side": True},
+            {"name": "in", "server_side": True},
+            {"name": "not in", "server_side": True},
+            # Qdrant supports text matching server-side
+            {"name": "contains", "server_side": True},
+            {"name": "not contains", "server_side": True},
+        ]

@@ -339,3 +339,24 @@ class ChromaDBConnection(VectorDBConnection):
         except Exception as e:
             print(f"Failed to delete collection: {e}")
             return False
+    
+    def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
+        """
+        Get filter operators supported by ChromaDB.
+        
+        Returns:
+            List of operator dictionaries
+        """
+        return [
+            {"name": "=", "server_side": True},
+            {"name": "!=", "server_side": True},
+            {"name": ">", "server_side": True},
+            {"name": ">=", "server_side": True},
+            {"name": "<", "server_side": True},
+            {"name": "<=", "server_side": True},
+            {"name": "in", "server_side": True},
+            {"name": "not in", "server_side": True},
+            # Client-side only operators
+            {"name": "contains", "server_side": False},
+            {"name": "not contains", "server_side": False},
+        ]

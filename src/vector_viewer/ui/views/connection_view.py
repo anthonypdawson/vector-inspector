@@ -3,7 +3,7 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QDialog, QFormLayout, QLineEdit,
-    QRadioButton, QButtonGroup, QGroupBox, QFileDialog, QComboBox, QApplication
+    QRadioButton, QButtonGroup, QGroupBox, QFileDialog, QComboBox, QApplication, QCheckBox
 )
 from PySide6.QtCore import Signal
 
@@ -11,6 +11,7 @@ from vector_viewer.core.connections.base_connection import VectorDBConnection
 from vector_viewer.core.connections.chroma_connection import ChromaDBConnection
 from vector_viewer.core.connections.qdrant_connection import QdrantConnection
 from vector_viewer.ui.components.loading_dialog import LoadingDialog
+from vector_viewer.services.settings_service import SettingsService
 
 
 class ConnectionDialog(QDialog):
@@ -21,6 +22,8 @@ class ConnectionDialog(QDialog):
         self.setWindowTitle("Connect to Vector Database")
         self.setMinimumWidth(450)
         
+        self.settings_service = SettingsService()
+        
         self.provider = "chromadb"
         self.connection_type = "persistent"
         self.path = ""
@@ -28,6 +31,7 @@ class ConnectionDialog(QDialog):
         self.port = "8000"
         
         self._setup_ui()
+        self._load_last_connection()
         
     def _setup_ui(self):
         """Setup dialog UI."""
@@ -110,6 +114,11 @@ class ConnectionDialog(QDialog):
         details_group.setLayout(form_layout)
         layout.addWidget(details_group)
         
+        # Auto-connect option
+        self.auto_connect_check = QCheckBox("Auto-connect on startup")
+        self.auto_connect_check.setChecked(False)
+        layout.addWidget(self.auto_connect_check)
+        
         # Buttons
         button_layout = QHBoxLayout()
         
@@ -180,6 +189,12 @@ class ConnectionDialog(QDialog):
         else:
             config.update({"type": "ephemeral"})
         
+        # Save auto-connect preference
+        config["auto_connect"] = self.auto_connect_check.isChecked()
+        
+        # Save this configuration for next time
+        self.settings_service.save_last_connection(config)
+        
         return config
 
     def _update_absolute_preview(self):
@@ -231,6 +246,41 @@ class ConnectionDialog(QDialog):
                 display_path = str(dir_path)
             self.path_input.setText(display_path)
             self._update_absolute_preview()
+    
+    def _load_last_connection(self):
+        """Load and populate the last connection configuration."""
+        last_config = self.settings_service.get_last_connection()
+        if not last_config:
+            return
+        
+        # Set provider
+        provider = last_config.get("provider", "chromadb")
+        index = self.provider_combo.findData(provider)
+        if index >= 0:
+            self.provider_combo.setCurrentIndex(index)
+        
+        # Set connection type
+        conn_type = last_config.get("type", "persistent")
+        if conn_type == "persistent":
+            self.persistent_radio.setChecked(True)
+            path = last_config.get("path", "")
+            if path:
+                self.path_input.setText(path)
+        elif conn_type == "http":
+            self.http_radio.setChecked(True)
+            host = last_config.get("host", "localhost")
+            port = last_config.get("port", "8000")
+            self.host_input.setText(host)
+            self.port_input.setText(str(port))
+            api_key = last_config.get("api_key")
+            if api_key:
+                self.api_key_input.setText(api_key)
+        elif conn_type == "ephemeral":
+            self.ephemeral_radio.setChecked(True)
+        
+        # Set auto-connect checkbox
+        auto_connect = last_config.get("auto_connect", False)
+        self.auto_connect_check.setChecked(auto_connect)
 
 
 class ConnectionView(QWidget):
@@ -243,7 +293,11 @@ class ConnectionView(QWidget):
         super().__init__(parent)
         self.connection = connection
         self.loading_dialog = LoadingDialog("Connecting to database...", self)
+        self.settings_service = SettingsService()
         self._setup_ui()
+        
+        # Try to auto-connect if enabled in settings
+        self._try_auto_connect()
         
     def _setup_ui(self):
         """Setup widget UI."""
@@ -257,9 +311,19 @@ class ConnectionView(QWidget):
         self.status_label = QLabel("Status: Not connected")
         group_layout.addWidget(self.status_label)
         
+        # Button layout with both connect and disconnect
+        button_layout = QHBoxLayout()
+        
         self.connect_button = QPushButton("Connect")
         self.connect_button.clicked.connect(self.show_connection_dialog)
-        group_layout.addWidget(self.connect_button)
+        button_layout.addWidget(self.connect_button)
+        
+        self.disconnect_button = QPushButton("Disconnect")
+        self.disconnect_button.clicked.connect(self._disconnect)
+        self.disconnect_button.setEnabled(False)
+        button_layout.addWidget(self.disconnect_button)
+        
+        group_layout.addLayout(button_layout)
         
         group.setLayout(group_layout)
         layout.addWidget(group)
@@ -276,38 +340,36 @@ class ConnectionView(QWidget):
         """Connect to database with given configuration."""
         self.loading_dialog.show_loading("Connecting to database...")
         QApplication.processEvents()
-        try:
-            provider = config.get("provider", "chromadb")
-            conn_type = config.get("type")
-            
-            # Create appropriate connection instance based on provider
-            if provider == "qdrant":
-                if conn_type == "persistent":
-                    self.connection = QdrantConnection(path=config.get("path"))
-                elif conn_type == "http":
-                    self.connection = QdrantConnection(
-                        host=config.get("host"),
-                        port=config.get("port"),
-                        api_key=config.get("api_key")
-                    )
-                else:  # ephemeral/memory
-                    self.connection = QdrantConnection()
-            else:  # chromadb
-                if conn_type == "persistent":
-                    self.connection = ChromaDBConnection(path=config.get("path"))
-                elif conn_type == "http":
-                    self.connection = ChromaDBConnection(
-                        host=config.get("host"),
-                        port=config.get("port")
-                    )
-                else:  # ephemeral
-                    self.connection = ChromaDBConnection()
-                    
-            # Notify parent that connection instance changed
-            self.connection_created.emit(self.connection)
-            success = self.connection.connect()
-        finally:
-            self.loading_dialog.hide_loading()
+        
+        provider = config.get("provider", "chromadb")
+        conn_type = config.get("type")
+        
+        # Create appropriate connection instance based on provider
+        if provider == "qdrant":
+            if conn_type == "persistent":
+                self.connection = QdrantConnection(path=config.get("path"))
+            elif conn_type == "http":
+                self.connection = QdrantConnection(
+                    host=config.get("host"),
+                    port=config.get("port"),
+                    api_key=config.get("api_key")
+                )
+            else:  # ephemeral/memory
+                self.connection = QdrantConnection()
+        else:  # chromadb
+            if conn_type == "persistent":
+                self.connection = ChromaDBConnection(path=config.get("path"))
+            elif conn_type == "http":
+                self.connection = ChromaDBConnection(
+                    host=config.get("host"),
+                    port=config.get("port")
+                )
+            else:  # ephemeral
+                self.connection = ChromaDBConnection()
+                
+        # Notify parent that connection instance changed
+        self.connection_created.emit(self.connection)
+        success = self.connection.connect()
             
         if success:
             # Show provider, path/host + collection count for clarity
@@ -322,19 +384,40 @@ class ConnectionView(QWidget):
             count_text = f"collections: {len(collections)}"
             info = ", ".join(details)
             self.status_label.setText(f"Status: Connected ({info}, {count_text})")
-            self.connect_button.setText("Disconnect")
-            self.connect_button.clicked.disconnect()
-            self.connect_button.clicked.connect(self._disconnect)
+            
+            # Enable disconnect, disable connect
+            self.connect_button.setEnabled(False)
+            self.disconnect_button.setEnabled(True)
+            
+            # Emit signal which triggers collection browser refresh
+            self.connection_changed.emit(True)
+            
+            # Process events to ensure collection browser is updated
+            QApplication.processEvents()
         else:
             self.status_label.setText("Status: Connection failed")
-            
-        self.connection_changed.emit(success)
+            # Enable connect, disable disconnect
+            self.connect_button.setEnabled(True)
+            self.disconnect_button.setEnabled(False)
+            self.connection_changed.emit(False)
+        
+        # Close loading dialog after everything is complete
+        self.loading_dialog.hide_loading()
         
     def _disconnect(self):
         """Disconnect from database."""
         self.connection.disconnect()
         self.status_label.setText("Status: Not connected")
-        self.connect_button.setText("Connect")
-        self.connect_button.clicked.disconnect()
-        self.connect_button.clicked.connect(self.show_connection_dialog)
+        
+        # Enable connect, disable disconnect
+        self.connect_button.setEnabled(True)
+        self.disconnect_button.setEnabled(False)
+        
         self.connection_changed.emit(False)
+    
+    def _try_auto_connect(self):
+        """Try to automatically connect if auto-connect is enabled."""
+        last_config = self.settings_service.get_last_connection()
+        if last_config and last_config.get("auto_connect", False):
+            # Auto-connect is enabled
+            self._connect_with_config(last_config)

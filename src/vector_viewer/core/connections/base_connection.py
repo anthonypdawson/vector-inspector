@@ -214,3 +214,24 @@ class VectorDBConnection(ABC):
             "provider": self.__class__.__name__,
             "connected": self.is_connected
         }
+    
+    def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
+        """
+        Get list of filter operators supported by this provider.
+        
+        Returns:
+            List of operator dictionaries with 'name' and 'server_side' keys
+        """
+        # Default operators supported by most providers
+        return [
+            {"name": "=", "server_side": True},
+            {"name": "!=", "server_side": True},
+            {"name": ">", "server_side": True},
+            {"name": ">=", "server_side": True},
+            {"name": "<", "server_side": True},
+            {"name": "<=", "server_side": True},
+            {"name": "in", "server_side": True},
+            {"name": "not in", "server_side": True},
+            {"name": "contains", "server_side": False},
+            {"name": "not contains", "server_side": False},
+        ]
