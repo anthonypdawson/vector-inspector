@@ -1,16 +1,32 @@
 # Vector Viewer - Project Status
 
-**Last Updated:** January 17, 2026  
-**Version:** 0.1.0  
-**Phase:** 1 (Complete) ✅
+**Last Updated:** January 18, 2026  
+**Version:** 0.1.1-dev  
+**Phase:** 1.5 (ChromaDB + partial Qdrant) ⚠️
 
 ## Project Overview
 
 Vector Viewer is a desktop application for visualizing, querying, and managing vector database data, starting with ChromaDB support.
 
-## Current Status: PHASE 1 COMPLETE ✅
+**Partial Qdrant support is now available (experimental, see below).**
+
+
+## Current Status: PHASE 1.5 - ChromaDB + Partial Qdrant ⚠️
 
 All Phase 1 objectives have been successfully implemented and tested.
+
+**Phase 1.5 adds experimental Qdrant support:**
+- Provider abstraction layer (ChromaDB, Qdrant)
+- Qdrant connection and collection creation
+- Qdrant search (auto-embedding, supports both new and legacy Qdrant APIs)
+- Sample data script supports Qdrant
+- UI provider selection
+
+**Limitations:**
+- Qdrant support is experimental (not production-ready)
+- Only basic CRUD/search tested
+- No advanced Qdrant features (payload filtering, geo, etc.)
+- Only local/HTTP Qdrant, no cloud auth tested
 
 ### Completed Features
 
@@ -55,6 +71,16 @@ All Phase 1 objectives have been successfully implemented and tested.
 - [x] Browser-based viewing
 
 #### ✅ CRUD Operations
+
+#### ⚠️ Qdrant (Experimental)
+- [x] Provider abstraction layer
+- [x] Qdrant connection (local/HTTP)
+- [x] Qdrant collection creation (auto vector size)
+- [x] Qdrant search (auto-embedding, new/legacy API)
+- [x] Sample data script supports Qdrant
+- [x] UI provider selection
+- [ ] Advanced Qdrant features (payload filtering, geo, etc.)
+- [ ] Qdrant cloud auth
 - [x] Create (add items)
 - [x] Read (browse & search)
 - [x] Delete (single & batch)
@@ -68,6 +94,7 @@ All Phase 1 objectives have been successfully implemented and tested.
 - **Classes:** ~10
 - **Test Coverage:** Manual (automated tests planned for Phase 2)
 
+
 ### Testing Status
 
 ✅ **Tested:**
@@ -80,21 +107,30 @@ All Phase 1 objectives have been successfully implemented and tested.
 - PCA visualization (2D & 3D)
 - t-SNE visualization (2D & 3D)
 - UMAP visualization (2D & 3D)
+- Qdrant connection (local/HTTP)
+- Qdrant collection creation
+- Qdrant search (auto-embedding, new/legacy API)
+- Sample data script (ChromaDB/Qdrant)
 
-⚠️ **Not Yet Tested:**
-- HTTP connection mode
+⚠️ **Not Yet Fully Tested:**
+- Qdrant cloud auth
+- Qdrant advanced features (payload filtering, geo, etc.)
+- HTTP connection mode (ChromaDB)
 - Large datasets (>10k items)
 - Concurrent operations
 - Error recovery scenarios
 
 ### Known Issues
 
-None critical. Minor items:
+None critical for ChromaDB. Qdrant support is experimental and may have the following issues:
 
-1. Visualization requires manual browser refresh if reopened
-2. No confirmation dialog before collection deletion in context menu
-3. Metadata editing not yet implemented (can only add new items)
-4. No search history or saved queries
+1. Qdrant: Not all features supported (payload filtering, geo, etc.)
+2. Qdrant: Only basic CRUD/search tested
+3. Qdrant: No cloud auth tested
+4. Visualization requires manual browser refresh if reopened
+5. No confirmation dialog before collection deletion in context menu
+6. Metadata editing not yet implemented (can only add new items)
+7. No search history or saved queries
 
 ### Documentation
 
@@ -107,7 +143,7 @@ None critical. Minor items:
 
 ### Dependencies
 
-**Core (8):**
+**Core (9):**
 - chromadb >= 0.4.22
 - pyside6 >= 6.6.0
 - pandas >= 2.1.0
@@ -116,6 +152,7 @@ None critical. Minor items:
 - umap-learn >= 0.5.5
 - plotly >= 5.18.0
 - sentence-transformers >= 2.2.0
+- qdrant-client >= 1.7.0
 
 **Dev (6):**
 - pytest >= 7.4.0
@@ -291,17 +328,20 @@ This approach allows safe, open development of the core platform while enabling 
 - [ ] Advanced filtering
 - [ ] Item editing
 - [ ] Import/export
-- [ ] Multiple providers
+- [ ] Multiple providers (Pinecone, Weaviate, etc.)
 - [ ] Enhanced visualization
 - [ ] Automated tests
 
 ## Conclusion
 
-**Phase 1 is complete and successful.** The application is functional, stable, and ready for user testing. The codebase is clean, well-documented, and extensible.
+**Phase 1 is complete and successful.**
+
+**Phase 1.5 adds experimental Qdrant support.**
+The application is functional, stable for ChromaDB, and ready for user testing. Qdrant support is available for early feedback and further development.
 
 **Recommended Action:** Begin Phase 2 development after collecting initial user feedback.
 
 ---
 
 *Document maintained by: GitHub Copilot & Anthony Dawson*  
-*Last Review: January 17, 2026*
+*Last Review: January 18, 2026*
