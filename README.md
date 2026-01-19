@@ -164,7 +164,7 @@ vector-inspector/
 | Provider abstraction layer                   | Free     |
 | Pinecone support                             | Free     |
 | Weaviate support                             | Free     |
-| Qdrant support                               | Pro      |
+| Qdrant support (basic/experimental)          | Free     |
 | Milvus support                               | Pro      |
 | ChromaDB advanced support                    | Pro      |
 | FAISS (local files) support                  | Pro      |
@@ -184,6 +184,8 @@ vector-inspector/
 | Custom plugin system                         | Pro      |
 | Team collaboration features                  | Pro      |
 
+> **Note:** Qdrant support is available for free users in the open source version (basic/experimental). Advanced Qdrant features (e.g., payload filtering, geo, cloud auth) may be reserved for Pro in the future.
+
 ## Planned Roadmap
 
 ### Phase 1: Foundation (MVP)
@@ -198,6 +200,7 @@ vector-inspector/
 - [x] Item editing (update metadata and documents)
 - [x] Import/export (CSV, JSON, Parquet, backup/restore)
 - [x] Provider abstraction layer (unified interface for all supported vector DBs)
+- [x] Qdrant support (basic/experimental, free)
 
 ### Phase 3: UX & Professional Polish
 - [ ] **Unified Information Panel** (new "Info" tab as default view)
