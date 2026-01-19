@@ -62,6 +62,38 @@ class VectorDBConnection(ABC):
                 - metadata_fields: List of available metadata field names
         """
         pass
+
+    @abstractmethod
+    def create_collection(self, name: str, vector_size: int, distance: str = "Cosine") -> bool:
+        """Create a collection/index with a given vector size and distance metric."""
+        pass
+
+    @abstractmethod
+    def add_items(
+        self,
+        collection_name: str,
+        documents: List[str],
+        metadatas: Optional[List[Dict[str, Any]]] = None,
+        ids: Optional[List[str]] = None,
+        embeddings: Optional[List[List[float]]] = None,
+    ) -> bool:
+        """Add items to a collection."""
+        pass
+
+    @abstractmethod
+    def get_items(self, name: str, ids: List[str]) -> Dict[str, Any]:
+        """Retrieve items by original ids. Should return a dict with 'documents' and 'metadatas'."""
+        pass
+
+    @abstractmethod
+    def delete_collection(self, name: str) -> bool:
+        """Delete a collection/index."""
+        pass
+
+    @abstractmethod
+    def count_collection(self, name: str) -> int:
+        """Return the number of items in the collection."""
+        pass
     
     @abstractmethod
     def query_collection(
@@ -121,30 +153,6 @@ class VectorDBConnection(ABC):
         pass
     
     @abstractmethod
-    def add_items(
-        self,
-        collection_name: str,
-        documents: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
-    ) -> bool:
-        """
-        Add items to a collection.
-        
-        Args:
-            collection_name: Name of collection
-            documents: Document texts
-            metadatas: Metadata for each document
-            ids: IDs for each document
-            embeddings: Pre-computed embeddings
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        pass
-    
-    @abstractmethod
     def update_items(
         self,
         collection_name: str,
@@ -188,19 +196,7 @@ class VectorDBConnection(ABC):
         """
         pass
     
-    @abstractmethod
-    def delete_collection(self, name: str) -> bool:
-        """
-        Delete an entire collection.
-        
-        Args:
-            name: Collection name
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        pass
-    
+
     # Optional: Methods that may be provider-specific but useful to define
     
     def get_connection_info(self) -> Dict[str, Any]:

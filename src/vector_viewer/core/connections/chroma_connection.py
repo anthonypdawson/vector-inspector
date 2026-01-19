@@ -1,10 +1,10 @@
 """ChromaDB connection manager."""
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, cast
 import os
 from pathlib import Path
 import chromadb
-from chromadb.api.client import Client
+from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
 
 from .base_connection import VectorDBConnection
@@ -25,7 +25,7 @@ class ChromaDBConnection(VectorDBConnection):
         self.path = path
         self.host = host
         self.port = port
-        self._client: Optional[Client] = None
+        self._client: Optional[ClientAPI] = None
         self._current_collection: Optional[Collection] = None
         
     def connect(self) -> bool:
@@ -170,13 +170,13 @@ class ChromaDBConnection(VectorDBConnection):
         try:
             results = collection.query(
                 query_texts=query_texts,
-                query_embeddings=query_embeddings,
+                query_embeddings=query_embeddings,  # type: ignore
                 n_results=n_results,
                 where=where,
-                where_document=where_document,
+                where_document=where_document,  # type: ignore
                 include=["metadatas", "documents", "distances", "embeddings"]
             )
-            return results
+            return cast(Dict[str, Any], results)
         except Exception as e:
             print(f"Query failed: {e}")
             return None
@@ -211,7 +211,7 @@ class ChromaDBConnection(VectorDBConnection):
                 where=where,
                 include=["metadatas", "documents", "embeddings"]
             )
-            return results
+            return cast(Dict[str, Any], results)
         except Exception as e:
             print(f"Failed to get items: {e}")
             return None
@@ -244,9 +244,9 @@ class ChromaDBConnection(VectorDBConnection):
         try:
             collection.add(
                 documents=documents,
-                metadatas=metadatas,
-                ids=ids,
-                embeddings=embeddings
+                metadatas=metadatas,  # type: ignore
+                ids=ids,  # type: ignore
+                embeddings=embeddings  # type: ignore
             )
             return True
         except Exception as e:
@@ -282,8 +282,8 @@ class ChromaDBConnection(VectorDBConnection):
             collection.update(
                 ids=ids,
                 documents=documents,
-                metadatas=metadatas,
-                embeddings=embeddings
+                metadatas=metadatas,  # type: ignore
+                embeddings=embeddings  # type: ignore
             )
             return True
         except Exception as e:
@@ -339,6 +339,28 @@ class ChromaDBConnection(VectorDBConnection):
         except Exception as e:
             print(f"Failed to delete collection: {e}")
             return False
+
+    # Implement base connection uniform APIs
+    def create_collection(self, name: str, vector_size: int, distance: str = "Cosine") -> bool:
+        """Create a collection. Chroma doesn't require vector size at creation."""
+        return self.get_collection(name) is not None
+
+    def get_items(self, name: str, ids: List[str]) -> Dict[str, Any]:
+        """Retrieve items by IDs."""
+        col = self.get_collection(name)
+        if not col:
+            raise RuntimeError("Collection not available")
+        return cast(Dict[str, Any], col.get(ids=ids, include=["metadatas", "documents", "embeddings"]))
+
+    def count_collection(self, name: str) -> int:
+        """Count items in a collection."""
+        col = self.get_collection(name)
+        if not col:
+            return 0
+        try:
+            return col.count()
+        except Exception:
+            return 0
     
     def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
         """

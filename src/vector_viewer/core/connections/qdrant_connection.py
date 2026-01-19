@@ -7,7 +7,6 @@ from qdrant_client.models import (
     Distance, VectorParams, PointStruct, 
     Filter, FieldCondition, MatchValue, MatchText, MatchAny, MatchExcept, Range
 )
-from qdrant_client.http.models import SearchRequest
 
 from .base_connection import VectorDBConnection
 
@@ -82,6 +81,18 @@ class QdrantConnection(VectorDBConnection):
             print(f"Connection failed: {e}")
             return False
     
+    def _to_uuid(self, id_str: str) -> uuid.UUID:
+        """Convert a string ID to a valid UUID.
+        
+        If the string is already a valid UUID, return it.
+        Otherwise, generate a deterministic UUID from the string.
+        """
+        try:
+            return uuid.UUID(id_str)
+        except (ValueError, AttributeError):
+            # Generate deterministic UUID from string
+            return uuid.uuid5(uuid.NAMESPACE_DNS, id_str)
+    
     def disconnect(self):
         """Close connection to Qdrant."""
         if self._client:
@@ -92,6 +103,45 @@ class QdrantConnection(VectorDBConnection):
     def is_connected(self) -> bool:
         """Check if connected to Qdrant."""
         return self._client is not None
+    
+    def count_collection(self, name: str) -> int:
+        """Count the number of items in a collection."""
+        if not self._client:
+            return 0
+        try:
+            res = self._client.count(collection_name=name)
+            return getattr(res, "count", 0) or 0
+        except Exception:
+            return 0
+    
+    def get_items(self, name: str, ids: List[str]) -> Dict[str, Any]:
+        """
+        Get items by IDs (implementation for compatibility).
+        
+        Note: This is a simplified implementation that retrieves items by scrolling
+        and filtering. For production use, consider using get_all_items with filters.
+        """
+        if not self._client:
+            return {"documents": [], "metadatas": []}
+        
+        try:
+            # Retrieve by scrolling and filtering
+            all_items = self.get_all_items(name, limit=1000)
+            if not all_items:
+                return {"documents": [], "metadatas": []}
+            
+            # Filter by requested IDs
+            documents = []
+            metadatas = []
+            for i, item_id in enumerate(all_items.get("ids", [])):
+                if item_id in ids:
+                    documents.append(all_items["documents"][i])
+                    metadatas.append(all_items["metadatas"][i])
+            
+            return {"documents": documents, "metadatas": metadatas}
+        except Exception as e:
+            print(f"Failed to get items: {e}")
+            return {"documents": [], "metadatas": []}
     
     def list_collections(self) -> List[str]:
         """
@@ -275,8 +325,7 @@ class QdrantConnection(VectorDBConnection):
                 else:
                     query_vector = query
 
-                search_results = None
-                # Prefer modern client method when available (works in local path mode)
+                # Use modern query_points API
                 try:
                     res = self._client.query_points(
                         collection_name=collection_name,
@@ -287,23 +336,9 @@ class QdrantConnection(VectorDBConnection):
                         with_vectors=True,
                     )
                     search_results = getattr(res, "points", res)
-                except Exception:
-                    # Fallback to HTTP API (works with older remote servers like 1.7.x)
-                    try:
-                        res_http = self._client._client.http.search_api.search_points(
-                            collection_name=collection_name,
-                            search_request=SearchRequest(
-                                vector=query_vector,
-                                limit=n_results,
-                                filter=qdrant_filter,
-                                with_payload=True,
-                                with_vector=True,
-                            ),
-                        )
-                        search_results = res_http.result
-                    except Exception as e2:
-                        print(f"Query failed via both client and HTTP API: {e2}")
-                        continue
+                except Exception as e:
+                    print(f"Query failed: {e}")
+                    continue
                 
                 # Transform results to standard format
                 ids = []
@@ -448,8 +483,11 @@ class QdrantConnection(VectorDBConnection):
                 if metadatas and i < len(metadatas):
                     payload.update(metadatas[i])
                 
+                # Convert string ID to UUID
+                point_id = self._to_uuid(doc_id)
+                
                 point = PointStruct(
-                    id=doc_id,
+                    id=point_id,
                     vector=embedding,
                     payload=payload
                 )
