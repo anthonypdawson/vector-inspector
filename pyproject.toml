@@ -1,5 +1,5 @@
 [project]
-name = "vector-viewer"
+name = "vector-inspector"
 version = "0.1.0"
 description = "A comprehensive desktop application for visualizing, querying, and managing vector database data"
 authors = [
@@ -24,7 +24,7 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [project.scripts]
-vector-viewer = "vector_viewer.main:main"
+vector-inspector = "vector_viewer.main:main"
 
 [tool.pdm]
 distribution = false

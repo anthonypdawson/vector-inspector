@@ -1,6 +1,6 @@
 # Core vs Pro Architecture Plan
 
-This document outlines the architectural approach for separating core and pro features in the Vector Viewer application.
+This document outlines the architectural approach for separating core and pro features in the Vector Inspector application.
 
 ## Overview
 

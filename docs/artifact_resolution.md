@@ -1,7 +1,7 @@
 # Text Similarity Explanations — Product Requirements Document (PRD)
 
 ## 1. Overview
-Vector Viewer needs to explain **why two text documents are similar** using natural language analysis. This goes beyond showing vector distances—it provides human-readable explanations of semantic similarity using local LLMs.
+Vector Inspector needs to explain **why two text documents are similar** using natural language analysis. This goes beyond showing vector distances—it provides human-readable explanations of semantic similarity using local LLMs.
 
 **Phase 1 Scope: Text-Only + Local Models First**
 - Focus exclusively on text documents (covers 90%+ of use cases)

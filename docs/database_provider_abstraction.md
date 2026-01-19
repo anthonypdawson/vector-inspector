@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vector Viewer now uses an abstract base class (`VectorDBConnection`) to support multiple vector database providers. This allows the application to work with different vector databases (ChromaDB, Pinecone, Weaviate, Qdrant, etc.) without modifying the core UI code.
+Vector Inspector now uses an abstract base class (`VectorDBConnection`) to support multiple vector database providers. This allows the application to work with different vector databases (ChromaDB, Pinecone, Weaviate, Qdrant, etc.) without modifying the core UI code.
 
 ## Architecture
 

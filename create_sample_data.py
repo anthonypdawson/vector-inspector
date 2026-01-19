@@ -20,7 +20,7 @@ def create_sample_data_chroma():
     print(f"Added {len(documents)} documents to collection '{collection.name}'")
     print(f"Collection now contains {collection.count()} items")
     print("\nYou can now:")
-    print("1. Run the Vector Viewer application")
+    print("1. Run the Vector Inspector application")
     print("2. Connect to Persistent storage with path: ./chroma_data")
     print("3. Select the 'sample_documents' collection")
     print("4. Browse, search, and visualize the data!")
@@ -82,7 +82,7 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
     )
     print(f"Added {len(documents)} documents to collection '{collection_name}'")
     print("\nYou can now:")
-    print(f"1. Run the Vector Viewer application")
+    print(f"1. Run the Vector Inspector application")
     if path:
         print(f"2. Connect to Qdrant (Local Path) at: {path}")
     else:
@@ -325,7 +325,7 @@ def get_sample_docs():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create sample data for Vector Viewer.")
+    parser = argparse.ArgumentParser(description="Create sample data for Vector Inspector.")
     parser.add_argument("--provider", choices=["chroma", "qdrant"], default="chroma", help="Which vector DB to use")
     parser.add_argument("--host", default="localhost", help="Qdrant host (for qdrant)")
     parser.add_argument("--port", type=int, default=6333, help="Qdrant port (for qdrant)")

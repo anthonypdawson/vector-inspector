@@ -8,8 +8,8 @@ from vector_viewer.ui.main_window import MainWindow
 def main():
     """Launch the Vector Viewer application."""
     app = QApplication(sys.argv)
-    app.setApplicationName("Vector Viewer")
-    app.setOrganizationName("Vector Viewer")
+    app.setApplicationName("Vector Inspector")
+    app.setOrganizationName("Vector Inspector")
     
     window = MainWindow()
     window.show()

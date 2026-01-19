@@ -1,10 +1,11 @@
-# Vector Viewer
+# Vector Inspector
 
-A comprehensive desktop application for visualizing, querying, and managing vector database data. Similar to SQL database viewers, Vector Viewer provides an intuitive GUI for exploring vector embeddings, metadata, and performing similarity searches across multiple vector database providers.
+
+A comprehensive desktop application for visualizing, querying, and managing vector database data. Similar to SQL database viewers, Vector Inspector provides an intuitive GUI for exploring vector embeddings, metadata, and performing similarity searches across multiple vector database providers.
 
 ## Overview
 
-Vector Viewer bridges the gap between vector databases and user-friendly data exploration tools. While vector databases are powerful for semantic search and AI applications, they often lack the intuitive inspection and management tools that traditional SQL databases have. This project aims to provide that missing layer.
+Vector Inspector bridges the gap between vector databases and user-friendly data exploration tools. While vector databases are powerful for semantic search and AI applications, they often lack the intuitive inspection and management tools that traditional SQL databases have. This project aims to provide that missing layer.
 
 ## Key Features
 
@@ -117,7 +118,7 @@ Vector Viewer bridges the gap between vector databases and user-friendly data ex
 ### Application Structure
 
 ```
-vector-viewer/
+vector-inspector/
 ├── src/
 │   ├── core/
 │   │   ├── connections/       # Connection managers for each provider
@@ -251,22 +252,22 @@ vector-viewer/
 
 ```bash
 # Install from PyPI
-pipx install vector-viewer
+pipx install vector-inspector
 
 # Or run from source
-git clone https://github.com/yourusername/vector-viewer.git
-cd vector-viewer
+git clone https://github.com/yourusername/vector-inspector.git
+cd vector-inspector
 pdm install
 
 # Launch application
-pdm run vector-viewer
+pdm run vector-inspector
 ```
 
 ## Configuration
 
 Paths are resolved relative to the project root (where `pyproject.toml` is). For example, entering `./data/chrome_db` will use the absolute path resolved from the project root.
 
-Connections can be saved (planned) in `~/.vector-viewer/connections.json`:
+Connections can be saved (planned) in `~/.vector-inspector/connections.json`:
 
 ```json
 {
@@ -303,7 +304,7 @@ pdm install -d
 pdm run pytest
 
 # Run application in development mode
-pdm run vector-viewer
+pdm run vector-inspector
 ```
 
 ## Contributing

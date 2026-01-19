@@ -8,7 +8,7 @@ class VectorDBConnection(ABC):
     """Abstract base class for vector database connections.
     
     This class defines the interface that all vector database providers
-    must implement to be compatible with Vector Viewer.
+    must implement to be compatible with Vector Inspector.
     """
     
     @abstractmethod

@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         self.connection: VectorDBConnection = ChromaDBConnection()
         self.current_collection: str = ""
         
-        self.setWindowTitle("Vector Viewer")
+        self.setWindowTitle("Vector Inspector")
         self.setGeometry(100, 100, 1400, 900)
         
         self._setup_ui()
@@ -278,8 +278,8 @@ class MainWindow(QMainWindow):
         """Show about dialog."""
         QMessageBox.about(
             self,
-            "About Vector Viewer",
-            "<h2>Vector Viewer 0.1.0</h2>"
+            "About Vector Inspector",
+            "<h2>Vector Inspector 0.1.0</h2>"
             "<p>A comprehensive desktop application for visualizing, "
             "querying, and managing vector database data.</p>"
             "<p>Built with PySide6 and ChromaDB</p>"

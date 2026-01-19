@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 2 successfully implements all core features planned for Vector Viewer, focusing on advanced data management, filtering, and import/export capabilities. All features have been integrated into the existing PySide6-based GUI application.
+Phase 2 successfully implements all core features planned for Vector Inspector, focusing on advanced data management, filtering, and import/export capabilities. All features have been integrated into the existing PySide6-based GUI application.
 
 ## Completed Features
 
@@ -221,6 +221,6 @@ Users should refer to:
 
 ## Conclusion
 
-Phase 2 successfully delivers a comprehensive data management system for Vector Viewer, transforming it from a basic browser into a powerful vector database management tool. All features are production-ready and integrate seamlessly with the existing architecture.
+Phase 2 successfully delivers a comprehensive data management system for Vector Inspector, transforming it from a basic browser into a powerful vector database management tool. All features are production-ready and integrate seamlessly with the existing architecture.
 
 **Next Phase**: Phase 3 will focus on the modular/plugin system and hybrid free/commercial model.
