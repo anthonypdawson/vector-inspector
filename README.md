@@ -5,22 +5,32 @@ A comprehensive desktop application for visualizing, querying, and managing vect
 
 ## Overview
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Application Structure](#application-structure)
+- [Use Cases](#use-cases)
+- [Feature Access (Free vs Pro)](#feature-access-free-vs-pro)
+- [Planned Roadmap](#planned-roadmap)
+- [Installation (Planned)](#installation-planned)
+- [Configuration](#configuration)
+- [Development Setup](#development-setup)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
 Vector Inspector bridges the gap between vector databases and user-friendly data exploration tools. While vector databases are powerful for semantic search and AI applications, they often lack the intuitive inspection and management tools that traditional SQL databases have. This project aims to provide that missing layer.
 
 ## Key Features
 
 ### 1. **Multi-Provider Support**
-- Connect to popular vector databases:
-  - Pinecone
-  - Weaviate
-  - Qdrant
-  - Milvus
-  - ChromaDB
-  - FAISS (local files)
-  - pgvector (PostgreSQL extension)
-  - Elasticsearch with vector search
+- Connect to vector databases:
+  - ChromaDB (persistent local storage)
+  - Qdrant (remote server or embedded local)
 - Unified interface regardless of backend provider
-- Save and manage multiple connection profiles
+- Automatically saves last connection configuration
 
 ### 2. **Data Visualization**
 - **Metadata Explorer**: Browse and filter vector entries by metadata fields
@@ -99,46 +109,47 @@ Vector Inspector bridges the gap between vector databases and user-friendly data
 - **Data Grid**: QTableView with custom models for high-performance data display
 
 #### Backend
-- **Language**: Python 3.9+
+- **Language**: Python 3.12
 - **Core Libraries**:
-  - Vector DB clients: `pinecone-client`, `weaviate-client`, `qdrant-client`, `pymilvus`, `chromadb`, etc.
-  - Embeddings: `sentence-transformers`, `openai`, `cohere`
+  - Vector DB clients: `chromadb`, `qdrant-client` (implemented), `pinecone-client`, `weaviate-client`, `pymilvus` (planned)
+  - Embeddings: `sentence-transformers`, `fastembed` (implemented), `openai`, `cohere` (planned)
   - Data processing: `pandas`, `numpy`
   - Dimensionality reduction: `scikit-learn`, `umap-learn`
-- **API Layer**: FastAPI (if separating frontend/backend) or direct Python integration
+- **API Layer**: FastAPI (planned for programmatic access) or direct Python integration
 
 #### Data Layer
-- **Connection Management**: SQLAlchemy-style connection pooling adapted for vector DBs
-- **Query Abstraction**: Unified query interface that translates to provider-specific syntax
+- **Connection Management**: Provider-specific connection classes with unified interface
+- **Query Abstraction**: Base connection interface that each provider implements
 - **Storage Modes**:
-  - Qdrant Remote: connect via host/port (e.g., localhost:6333)
-  - Qdrant Embedded: `QdrantClient(path="./data/qdrant_local")` to persist locally without a separate server
-- **Caching**: Redis or in-memory cache for frequently accessed data
+  - ChromaDB: Persistent local storage
+  - Qdrant Remote: Connect via host/port (e.g., localhost:6333)
+  - Qdrant Embedded: Local path storage without separate server
+- **Caching**: Redis or in-memory cache for frequently accessed data (planned)
+- **Settings Persistence**: User settings saved to ~/.vector-viewer/settings.json
 
 ### Application Structure
 
 ```
-vector-inspector/
+vector-viewer/
 ├── src/
-│   ├── core/
-│   │   ├── connections/       # Connection managers for each provider
-│   │   ├── query/             # Query abstraction layer
-│   │   └── models/            # Data models
-│   ├── ui/
-│   │   ├── components/        # Reusable UI components
-│   │   ├── views/             # Main application views
-│   │   └── styles/            # Styling
-│   ├── services/
-│   │   ├── embedding/         # Embedding model integrations
-│   │   ├── visualization/     # Viz engine
-│   │   └── export/            # Import/export handlers
-│   └── utils/
+│   └── vector_viewer/
+│       ├── core/
+│       │   └── connections/   # Connection managers for each provider
+│       ├── ui/
+│       │   ├── components/    # Reusable UI components
+│       │   └── views/         # Main application views
+│       ├── services/          # Business logic services
+│       └── main.py            # Application entry point
 ├── tests/
 ├── docs/
-├── config/
-│   └── connections.json       # Saved connection profiles
+├── data/                      # Local database storage
+│   ├── chroma_db/
+│   └── qdrant/
+├── run.sh / run.bat           # Launch scripts
 └── pyproject.toml
 ```
+
+User settings are saved to `~/.vector-viewer/settings.json`
 
 ## Use Cases
 
@@ -253,45 +264,39 @@ vector-inspector/
 - [ ] Audit logging
 - [ ] Advanced security features
 - [ ] Custom reporting
-- [ ] API for programmatic access
+- [ ] API for programmatic access (FastAPI backend)
+- [ ] Caching layer (Redis/in-memory) for performance
+- [ ] Connection pooling and optimization
 
-## Installation (Planned)
+## Installation
 
 ```bash
-# Install from PyPI
-pipx install vector-inspector
+# Clone the repository
+git clone https://github.com/anthonypdawson/vector-viewer.git
+cd vector-viewer
 
-# Or run from source
-git clone https://github.com/yourusername/vector-inspector.git
-cd vector-inspector
+# Install dependencies using PDM
 pdm install
 
 # Launch application
-pdm run vector-inspector
+./run.sh     # Linux/macOS
+./run.bat    # Windows
 ```
 
 ## Configuration
 
-Paths are resolved relative to the project root (where `pyproject.toml` is). For example, entering `./data/chrome_db` will use the absolute path resolved from the project root.
+Paths are resolved relative to the project root (where `pyproject.toml` is). For example, entering `./data/chroma_db` will use the absolute path resolved from the project root.
 
-Connections can be saved (planned) in `~/.vector-inspector/connections.json`:
+The application automatically saves your last connection configuration to `~/.vector-viewer/settings.json`. The next time you launch the application, it will attempt to reconnect using the last saved settings.
 
+Example settings structure:
 ```json
 {
-  "connections": [
-    {
-      "name": "Production Pinecone",
-      "provider": "pinecone",
-      "api_key": "...",
-      "environment": "us-west1-gcp",
-      "index": "my-index"
-    },
-    {
-      "name": "Local ChromaDB",
-      "provider": "chromadb",
-      "path": "/path/to/chroma/data"
-    }
-  ]
+  "last_connection": {
+    "provider": "chromadb",
+    "connection_type": "persistent",
+    "path": "./data/chroma_db"
+  }
 }
 ```
 
@@ -301,17 +306,19 @@ Connections can be saved (planned) in `~/.vector-inspector/connections.json`:
 # Install PDM if you haven't already
 pip install pdm
 
-# Install dependencies (PDM will create venv automatically)
-pdm install
-
-# Install with development dependencies
+# Install dependencies with development tools (PDM will create venv automatically)
 pdm install -d
 
 # Run tests
 pdm run pytest
 
 # Run application in development mode
-pdm run vector-inspector
+./run.sh     # Linux/macOS
+./run.bat    # Windows
+
+# Or use Python module directly from src directory:
+cd src
+pdm run python -m vector_viewer
 ```
 
 ## Contributing
