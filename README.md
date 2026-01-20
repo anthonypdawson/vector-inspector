@@ -136,8 +136,8 @@ vector-inspector
 
 ```bash
 # Clone the repository
-git clone https://github.com/anthonypdawson/vector-viewer.git
-cd vector-viewer
+git clone https://github.com/anthonypdawson/vector-inspector.git
+cd vector-inspector
 
 # Install dependencies using PDM
 pdm install
