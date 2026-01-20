@@ -66,6 +66,24 @@ jobs:
           dist/*.whl
           dist/*.tar.gz
         generate_release_notes: true
+        body: |
+          ## Installation
+
+          Download the `.whl` or `.tar.gz` file from the Assets section below, then install with:
+
+          ```bash
+          pip install <your-filename.whl>
+          # or
+          pip install <your-filename.tar.gz>
+          ```
+
+          After installation, run the application with:
+
+          ```bash
+          vector-inspector
+          ```
+
+          For more details and troubleshooting, see the [README](https://github.com/anthonypdawson/vector-inspector#installation).
 
     - name: Publish to PyPI (Trusted Publishing)
       uses: pypa/gh-action-pypi-publish@release/v1

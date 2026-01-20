@@ -122,12 +122,29 @@ See [FEATURES.md](FEATURES.md) for a complete feature comparison.
 
 See [ROADMAP.md](ROADMAP.md) for the complete development roadmap and planned features.
 
+
 ## Installation
 
 ### From PyPI (Recommended)
 
 ```bash
 pip install vector-inspector
+vector-inspector
+```
+
+### From a Downloaded Wheel or Tarball (e.g., GitHub Release)
+
+Download the `.whl` or `.tar.gz` file from the [GitHub Releases](https://github.com/anthonypdawson/vector-inspector/releases) page, then install with:
+
+```bash
+pip install <your-filename.whl>
+# or
+pip install <your-filename.tar.gz>
+```
+
+After installation, run the application with:
+
+```bash
 vector-inspector
 ```
 
