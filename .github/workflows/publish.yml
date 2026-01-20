@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Required for trusted publishing
-      contents: read
+      contents: write  # Required for creating releases and tags
 
     steps:
     - uses: actions/checkout@v4
