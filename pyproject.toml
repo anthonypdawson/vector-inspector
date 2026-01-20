@@ -23,6 +23,12 @@ requires-python = "==3.12.*"
 readme = "README.md"
 license = {text = "MIT"}
 
+[project.urls]
+Homepage = "https://github.com/anthony-dawson/vector-inspector"
+Source = "https://github.com/anthony-dawson/vector-inspector"
+Issues = "https://github.com/anthony-dawson/vector-inspector/issues"
+Documentation = "https://github.com/anthony-dawson/vector-inspector#readme"
+
 [project.scripts]
 vector-inspector = "vector_inspector.main:main"
 
