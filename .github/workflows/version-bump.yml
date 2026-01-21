@@ -11,6 +11,9 @@ concurrency:
   group: version-bump-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+  id-token: write
 jobs:
   on_version_bump:
     name: Detect version change
