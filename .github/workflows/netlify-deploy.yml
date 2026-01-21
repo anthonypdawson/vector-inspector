@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - 'site/**'
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
