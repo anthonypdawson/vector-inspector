@@ -25,7 +25,7 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [project.urls]
-Homepage = "https://github.com/anthony-dawson/vector-inspector"
+Homepage = "https://vector-inspector.divinedevops.com"
 Source = "https://github.com/anthony-dawson/vector-inspector"
 Issues = "https://github.com/anthony-dawson/vector-inspector/issues"
 Documentation = "https://github.com/anthony-dawson/vector-inspector#readme"
