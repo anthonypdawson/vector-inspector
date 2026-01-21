@@ -1,16 +1,24 @@
 name: Publish to PyPI
 
 on:
-  workflow_dispatch:  # Manual trigger
+  # Allow manual runs
+  workflow_dispatch:
     inputs:
       version:
         description: 'Version to publish (leave empty to use pyproject.toml version)'
         required: false
         default: ''
+  # Allow being called from other workflows
+  workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    if: ${{ github.event.repository.fork != true && github.event_name != 'pull_request' }}
     permissions:
       id-token: write  # Required for trusted publishing
       contents: write  # Required for creating releases and tags
@@ -51,7 +59,12 @@ jobs:
     - name: Get version
       id: get_version
       run: |
-        VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        # Prefer passed-in input when called by another workflow; fallback to pyproject
+        if [ -n "${{ inputs.version }}" ]; then
+          VERSION="${{ inputs.version }}"
+        else
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+        fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
 
