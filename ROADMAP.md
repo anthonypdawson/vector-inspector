@@ -20,28 +20,30 @@
 - [ ] Connection health and version information
 - [ ] Schema visualization and index configuration display
 
-## Phase 4: Modular/Plugin System & Hybrid Model
+## Phase 4: Data Migration & Pinecone
+- [ ] Pinecone support
+- [ ] Cross-database migration (dedicated controls for migrating collections between providers)
+
+## Phase 5: Modular/Plugin System & Hybrid Model
 - [ ] Implement modular/plugin system for feature extensions
 - [ ] Migrate paid/advanced features to commercial modules
 - [ ] Add licensing/access control for commercial features
 
-## Phase 5: Provider Expansion (Incremental)
-- [ ] Pinecone support (free)
-- [ ] Weaviate support (free)
-- [ ] Qdrant support (paid)
+## Phase 6: Provider Expansion (All Free)
+- [ ] Weaviate support
+- [ ] Milvus support
+- [ ] FAISS (local files) support
+- [ ] pgvector (PostgreSQL extension) support
+- [ ] Elasticsearch with vector search support
 
-### Future/Backlog Providers
-- [ ] Milvus support (paid)
-- [ ] ChromaDB advanced support (paid)
-- [ ] FAISS (local files) support (paid)
-- [ ] pgvector (PostgreSQL extension) support (paid)
-- [ ] Elasticsearch with vector search support (paid)
+> **All providers are available in the free tier.** Pro features focus on advanced workflows, not basic provider access.
 
 ## Phase 6A: Advanced Usability & Visualization
 - [ ] Advanced query builder (free)
 - [ ] 3D visualization (free)
-- [ ] Embedding model integration (free)
-- [ ] Query history and saved queries (free)
+- [ ] Embedding model integration (basic, free)
+- [ ] Query history (recent queries, free)
+- [ ] Saved queries (named, persistent, Pro)
 - [ ] Metadata Type Detection & Rich Media Preview (free)
 
 ## Phase 6B: Analytical & Comparison Tools
@@ -55,15 +57,29 @@
 - [ ] Cross-Collection Similarity (paid)
 
 ## Phase 6D: Experimental & Power Features
-- [ ] Vector Surgery (paid)
-- [ ] Custom plugin system (paid)
-- [ ] Team collaboration features (paid)
+- [ ] Vector Surgery (Pro)
+- [ ] Custom plugin system (Pro)
+- [ ] Team collaboration features (Pro)
+- [ ] Parquet import/export (Pro)
+- [ ] Bulk import/export pipelines (Pro)
+- [ ] Advanced embedding workflows (Pro)
+  - Large batch processing
+  - Multiple model selection
+  - GPU acceleration
+- [ ] Advanced provider features (Pro)
+  - Cloud authentication flows
+  - Hybrid search
+  - Performance profiling
+  - Index optimization tools
 
-## Phase 7: Enterprise Features
+
+## Phase 7: Enterprise Features (Pro)
 - [ ] Multi-user support with auth
 - [ ] Audit logging
 - [ ] Advanced security features
-- [ ] Custom reporting
+- [ ] Custom reporting and dashboards
 - [ ] API for programmatic access (FastAPI backend)
-- [ ] Caching layer (Redis/in-memory) for performance
-- [ ] Connection pooling and optimization
+- [ ] Cross-collection queries and analytics
+- [ ] Team workspaces and sharing
+
+> **Enterprise features enhance collaboration and scale.** All core functionality remains free.

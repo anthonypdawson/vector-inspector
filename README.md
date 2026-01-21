@@ -112,9 +112,13 @@ For detailed architecture information, see [docs/architecture.md](docs/architect
 
 ## Feature Access
 
-Vector Inspector is available in both free (open source) and Pro versions. The free version includes all core features for ChromaDB and basic Qdrant support, while Pro adds advanced analytics and additional providers.
+Vector Inspector follows a user-friendly monetization model:
 
-See [FEATURES.md](FEATURES.md) for a complete feature comparison.
+- **All vector database providers are free** — Try the full app with any database
+- **Core workflows remain free** — Connect, browse, search, visualize, and manage your data
+- **Pro adds power tools** — Advanced analytics, enterprise formats, workflow automation, and collaboration
+
+**Nothing currently in Free will ever move to Pro.** See [FEATURES.md](FEATURES.md) for a detailed comparison.
 
 ## Roadmap
 
