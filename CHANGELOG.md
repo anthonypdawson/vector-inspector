@@ -77,7 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Core Features
 - Advanced metadata filtering with customizable filter rules (AND/OR logic)
 - Item editing: double-click to edit items directly in the data browser
-- Import/export: CSV, JSON, and Parquet file support
 - Backup and restore system for collections
 - Provider abstraction layer: unified interface for ChromaDB and Qdrant
 - Query builder for advanced metadata filtering
