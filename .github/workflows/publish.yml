@@ -1,19 +1,16 @@
 name: Publish to PyPI
 
 on:
-  # Allow manual runs
+  push:
+    branches: [ master ]
+    paths:
+      - 'pyproject.toml'
   workflow_dispatch:
     inputs:
       version:
         description: 'Version to publish (leave empty to use pyproject.toml version)'
         required: false
         default: ''
-  # Allow being called from other workflows
-  workflow_call:
-    inputs:
-      version:
-        required: false
-        type: string
 
 jobs:
   build-and-publish:
@@ -56,23 +53,40 @@ jobs:
       run: |
         pdm build
 
-    - name: Get version
+    - name: Get current and previous version
       id: get_version
       run: |
-        # Prefer passed-in input when called by another workflow; fallback to pyproject
-        if [ -n "${{ inputs.version }}" ]; then
-          VERSION="${{ inputs.version }}"
+        # Current version from pyproject (supports generic 'version = "x.y.z"' anywhere)
+        curr=$(grep -Po '^\s*version\s*=\s*"\K[^"]+' pyproject.toml || true)
+
+        # Previous version from prior commit of the file (if it existed)
+        prev=$(git show HEAD^:pyproject.toml 2>/dev/null | grep -Po '^\s*version\s*=\s*"\K[^"]+' || true)
+
+        changed=false
+        if [[ -n "$curr" && "$curr" != "$prev" ]]; then changed=true; fi
+
+        echo "current=$curr" >> "$GITHUB_OUTPUT"
+        echo "previous=$prev" >> "$GITHUB_OUTPUT"
+        echo "changed=$changed" >> "$GITHUB_OUTPUT"
+        echo "Current: $curr"
+        echo "Previous: $prev"
+        echo "Changed: $changed"
+
+    - name: Check if version changed
+      id: check_bump
+      run: |
+        if [[ "${{ steps.get_version.outputs.changed }}" == "true" ]]; then
+          echo "bump=true" >> "$GITHUB_OUTPUT"
         else
-          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "bump=false" >> "$GITHUB_OUTPUT"
         fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Version: $VERSION"
 
     - name: Create GitHub Release
+      if: steps.check_bump.outputs.bump == 'true' || github.event_name == 'workflow_dispatch'
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ steps.get_version.outputs.version }}
-        name: Release v${{ steps.get_version.outputs.version }}
+        tag_name: v${{ steps.get_version.outputs.current }}
+        name: Release v${{ steps.get_version.outputs.current }}
         draft: false
         prerelease: false
         files: |
@@ -99,6 +113,7 @@ jobs:
           For more details and troubleshooting, see the [README](https://github.com/anthonypdawson/vector-inspector#installation).
 
     - name: Publish to PyPI (Trusted Publishing)
+      if: steps.check_bump.outputs.bump == 'true' || github.event_name == 'workflow_dispatch'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: dist/
