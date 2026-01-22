@@ -10,7 +10,7 @@ class SettingsService:
     
     def __init__(self):
         """Initialize settings service."""
-        self.settings_dir = Path.home() / ".vector-viewer"
+        self.settings_dir = Path.home() / ".vector-inspector"
         self.settings_file = self.settings_dir / "settings.json"
         self.settings: Dict[str, Any] = {}
         self._load_settings()

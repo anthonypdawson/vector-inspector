@@ -5,13 +5,35 @@ from PySide6.QtWidgets import (
     QPushButton, QDialog, QFormLayout, QLineEdit,
     QRadioButton, QButtonGroup, QGroupBox, QFileDialog, QComboBox, QApplication, QCheckBox
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QThread
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.connections.chroma_connection import ChromaDBConnection
 from vector_inspector.core.connections.qdrant_connection import QdrantConnection
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
 from vector_inspector.services.settings_service import SettingsService
+
+
+class ConnectionThread(QThread):
+    """Background thread for connecting to database."""
+    
+    finished = Signal(bool, list)  # success, collections
+    
+    def __init__(self, connection):
+        super().__init__()
+        self.connection = connection
+        
+    def run(self):
+        """Connect to database and get collections."""
+        try:
+            success = self.connection.connect()
+            if success:
+                collections = self.connection.list_collections()
+                self.finished.emit(True, collections)
+            else:
+                self.finished.emit(False, [])
+        except Exception:
+            self.finished.emit(False, [])
 
 
 class ConnectionDialog(QDialog):
@@ -175,6 +197,9 @@ class ConnectionDialog(QDialog):
         
     def get_connection_config(self):
         """Get connection configuration from dialog."""
+        # Get current provider from combo box to ensure it's up to date
+        self.provider = self.provider_combo.currentData()
+        
         config = {"provider": self.provider}
         
         if self.persistent_radio.isChecked():
@@ -294,6 +319,7 @@ class ConnectionView(QWidget):
         self.connection = connection
         self.loading_dialog = LoadingDialog("Connecting to database...", self)
         self.settings_service = SettingsService()
+        self.connection_thread = None
         self._setup_ui()
         
         # Try to auto-connect if enabled in settings
@@ -339,7 +365,6 @@ class ConnectionView(QWidget):
     def _connect_with_config(self, config: dict):
         """Connect to database with given configuration."""
         self.loading_dialog.show_loading("Connecting to database...")
-        QApplication.processEvents()
         
         provider = config.get("provider", "chromadb")
         conn_type = config.get("type")
@@ -367,11 +392,25 @@ class ConnectionView(QWidget):
             else:  # ephemeral
                 self.connection = ChromaDBConnection()
                 
+        # Store config for later use
+        self._pending_config = config
+        
         # Notify parent that connection instance changed
         self.connection_created.emit(self.connection)
-        success = self.connection.connect()
-            
+        
+        # Start background thread to connect
+        self.connection_thread = ConnectionThread(self.connection)
+        self.connection_thread.finished.connect(self._on_connection_finished)
+        self.connection_thread.start()
+    
+    def _on_connection_finished(self, success: bool, collections: list):
+        """Handle connection thread completion."""
+        self.loading_dialog.hide_loading()
+        
         if success:
+            config = self._pending_config
+            provider = config.get("provider", "chromadb")
+            
             # Show provider, path/host + collection count for clarity
             details = []
             details.append(f"provider: {provider}")
@@ -380,7 +419,6 @@ class ConnectionView(QWidget):
             if hasattr(self.connection, 'host') and self.connection.host:
                 port = getattr(self.connection, 'port', None)
                 details.append(f"host: {self.connection.host}:{port}")
-            collections = self.connection.list_collections()
             count_text = f"collections: {len(collections)}"
             info = ", ".join(details)
             self.status_label.setText(f"Status: Connected ({info}, {count_text})")
@@ -400,9 +438,6 @@ class ConnectionView(QWidget):
             self.connect_button.setEnabled(True)
             self.disconnect_button.setEnabled(False)
             self.connection_changed.emit(False)
-        
-        # Close loading dialog after everything is complete
-        self.loading_dialog.hide_loading()
         
     def _disconnect(self):
         """Disconnect from database."""

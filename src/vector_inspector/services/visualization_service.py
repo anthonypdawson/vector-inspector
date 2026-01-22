@@ -1,6 +1,7 @@
 """Visualization service for dimensionality reduction."""
 
 from typing import Optional, List, Tuple, Any
+import warnings
 
 
 class VisualizationService:
@@ -40,7 +41,7 @@ class VisualizationService:
                 reducer = PCA(n_components=n_components)
                 reduced = reducer.fit_transform(X)
                 
-            elif method.lower() == "t-sne":
+            elif method.lower() in ["t-sne", "tsne"]:
                 TSNE = get_sklearn_model('TSNE')
                 perplexity = kwargs.get("perplexity", min(30, len(embeddings) - 1))
                 reducer = TSNE(
@@ -53,12 +54,15 @@ class VisualizationService:
             elif method.lower() == "umap":
                 UMAP = get_sklearn_model('UMAP')
                 n_neighbors = kwargs.get("n_neighbors", min(15, len(embeddings) - 1))
-                reducer = UMAP(
-                    n_components=n_components,
-                    n_neighbors=n_neighbors,
-                    random_state=42
-                )
-                reduced = reducer.fit_transform(X)
+                # Suppress n_jobs warning when using random_state
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*n_jobs.*overridden.*")
+                    reducer = UMAP(
+                        n_components=n_components,
+                        n_neighbors=n_neighbors,
+                        random_state=42
+                    )
+                    reduced = reducer.fit_transform(X)
                 
             else:
                 print(f"Unknown method: {method}")

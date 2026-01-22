@@ -56,18 +56,6 @@ class InfoPanel(QWidget):
         self.db_group.setLayout(db_layout)
         container_layout.addWidget(self.db_group)
         
-        # Collections List Section
-        self.collections_group = QGroupBox("Available Collections")
-        collections_layout = QVBoxLayout()
-        
-        self.collections_list_label = QLabel("No collections")
-        self.collections_list_label.setWordWrap(True)
-        self.collections_list_label.setStyleSheet("color: gray; padding: 10px;")
-        collections_layout.addWidget(self.collections_list_label)
-        
-        self.collections_group.setLayout(collections_layout)
-        container_layout.addWidget(self.collections_group)
-        
         # Collection Information Section
         self.collection_group = QGroupBox("Collection Information")
         collection_layout = QVBoxLayout()
@@ -141,8 +129,6 @@ class InfoPanel(QWidget):
             self._update_label(self.api_key_label, "N/A")
             self._update_label(self.status_label, "Disconnected")
             self._update_label(self.collections_count_label, "0")
-            self.collections_list_label.setText("No collections")
-            self.collections_list_label.setStyleSheet("color: gray; padding: 10px;")
             # Also clear collection info
             self._update_label(self.collection_name_label, "No collection selected")
             self._update_label(self.vector_dim_label, "N/A")
@@ -195,22 +181,12 @@ class InfoPanel(QWidget):
         # Status
         self._update_label(self.status_label, "Connected" if self.connection.is_connected else "Disconnected")
         
-        # List collections
+        # Count collections
         try:
             collections = self.connection.list_collections()
             self._update_label(self.collections_count_label, str(len(collections)))
-            
-            if collections:
-                collections_text = "\n".join([f"• {name}" for name in sorted(collections)])
-                self.collections_list_label.setText(collections_text)
-                self.collections_list_label.setStyleSheet("color: white; padding: 10px; font-family: monospace;")
-            else:
-                self.collections_list_label.setText("No collections found")
-                self.collections_list_label.setStyleSheet("color: gray; padding: 10px;")
         except Exception as e:
             self._update_label(self.collections_count_label, "Error")
-            self.collections_list_label.setText(f"Error loading collections: {str(e)}")
-            self.collections_list_label.setStyleSheet("color: red; padding: 10px;")
     
     def refresh_collection_info(self):
         """Refresh collection-specific information."""

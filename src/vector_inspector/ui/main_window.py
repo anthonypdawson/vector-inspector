@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QSplitter, QTabWidget, QStatusBar, QToolBar,
     QMessageBox, QInputDialog, QFileDialog
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QAction
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
@@ -16,6 +16,7 @@ from vector_inspector.ui.views.info_panel import InfoPanel
 from vector_inspector.ui.views.metadata_view import MetadataView
 from vector_inspector.ui.views.search_view import SearchView
 from vector_inspector.ui.components.backup_restore_dialog import BackupRestoreDialog
+from vector_inspector.ui.components.loading_dialog import LoadingDialog
 
 
 class MainWindow(QMainWindow):
@@ -27,6 +28,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.connection: VectorDBConnection = ChromaDBConnection()
         self.current_collection: str = ""
+        self.loading_dialog = LoadingDialog("Loading collection...", self)
         
         self.setWindowTitle("Vector Inspector")
         self.setGeometry(100, 100, 1400, 900)
@@ -241,6 +243,14 @@ class MainWindow(QMainWindow):
         self.current_collection = collection_name
         self.statusBar.showMessage(f"Collection: {collection_name}")
         
+        # Show loading dialog immediately
+        self.loading_dialog.show_loading(f"Loading collection '{collection_name}'...")
+        
+        # Update views with new collection - use QTimer to allow loading dialog to appear first
+        QTimer.singleShot(10, lambda: self._update_views_for_collection(collection_name))
+    
+    def _update_views_for_collection(self, collection_name: str):
+        """Update all views with the selected collection."""
         # Update all views with new collection
         self.info_panel.set_collection(collection_name)
         self.metadata_view.set_collection(collection_name)
@@ -248,6 +258,9 @@ class MainWindow(QMainWindow):
         # Only update visualization if it's been created
         if self.visualization_view is not None:
             self.visualization_view.set_collection(collection_name)
+        
+        # Hide loading dialog
+        self.loading_dialog.hide_loading()
         
     def _on_refresh_collections(self):
         """Refresh collection list."""

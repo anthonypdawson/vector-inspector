@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QLineEdit, QComboBox, QGroupBox, QHeaderView, QMessageBox, QDialog,
     QFileDialog, QMenu
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QThread, Signal
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.ui.components.item_dialog import ItemDialog
@@ -17,6 +17,37 @@ from vector_inspector.services.import_export_service import ImportExportService
 from vector_inspector.services.filter_service import apply_client_side_filters
 from vector_inspector.services.settings_service import SettingsService
 from PySide6.QtWidgets import QApplication
+
+
+class DataLoadThread(QThread):
+    """Background thread for loading collection data."""
+    
+    finished = Signal(dict)
+    error = Signal(str)
+    
+    def __init__(self, connection, collection, page_size, offset, server_filter):
+        super().__init__()
+        self.connection = connection
+        self.collection = collection
+        self.page_size = page_size
+        self.offset = offset
+        self.server_filter = server_filter
+        
+    def run(self):
+        """Load data from database."""
+        try:
+            data = self.connection.get_all_items(
+                self.collection,
+                limit=self.page_size,
+                offset=self.offset,
+                where=self.server_filter
+            )
+            if data:
+                self.finished.emit(data)
+            else:
+                self.error.emit("Failed to load data")
+        except Exception as e:
+            self.error.emit(str(e))
 
 
 class MetadataView(QWidget):
@@ -31,6 +62,7 @@ class MetadataView(QWidget):
         self.current_page = 0
         self.loading_dialog = LoadingDialog("Loading data...", self)
         self.settings_service = SettingsService()
+        self.load_thread: Optional[DataLoadThread] = None
         
         # Debounce timer for filter changes
         self.filter_reload_timer = QTimer()
@@ -145,21 +177,11 @@ class MetadataView(QWidget):
         self.current_collection = collection_name
         self.current_page = 0
         
-        # Show loading dialog at the start
-        self.loading_dialog.show_loading("Loading collection data...")
-        QApplication.processEvents()
+        # Update filter builder with supported operators
+        operators = self.connection.get_supported_filter_operators()
+        self.filter_builder.set_operators(operators)
         
-        try:
-            # Update filter builder with supported operators
-            operators = self.connection.get_supported_filter_operators()
-            self.filter_builder.set_operators(operators)
-            
-            self._load_data_internal()
-            
-            # Ensure UI is fully updated before hiding loading dialog
-            QApplication.processEvents()
-        finally:
-            self.loading_dialog.hide_loading()
+        self._load_data_internal()
         
     def _load_data(self):
         """Load data from current collection (with loading dialog)."""
@@ -182,35 +204,53 @@ class MetadataView(QWidget):
             self.table.setRowCount(0)
             return
         
+        # Cancel any existing load thread
+        if self.load_thread and self.load_thread.isRunning():
+            self.load_thread.quit()
+            self.load_thread.wait()
+        
         offset = self.current_page * self.page_size
         
         # Get filters split into server-side and client-side
         server_filter = None
-        client_filters = []
+        self.client_filters = []
         if self.filter_group.isChecked() and self.filter_builder.has_filters():
-            server_filter, client_filters = self.filter_builder.get_filters_split()
+            server_filter, self.client_filters = self.filter_builder.get_filters_split()
         
-        data = self.connection.get_all_items(
+        # Start background thread to load data
+        self.load_thread = DataLoadThread(
+            self.connection,
             self.current_collection,
-            limit=self.page_size,
-            offset=offset,
-            where=server_filter
+            self.page_size,
+            offset,
+            server_filter
         )
-        
+        self.load_thread.finished.connect(self._on_data_loaded)
+        self.load_thread.error.connect(self._on_load_error)
+        self.load_thread.start()
+    
+    def _on_data_loaded(self, data: Dict[str, Any]):
+        """Handle data loaded from background thread."""
         # Apply client-side filters if any
-        if client_filters and data:
-            data = apply_client_side_filters(data, client_filters)
+        if self.client_filters and data:
+            data = apply_client_side_filters(data, self.client_filters)
         
         if not data:
-            self.status_label.setText("Failed to load data")
+            self.status_label.setText("No data after filtering")
             self.table.setRowCount(0)
             return
+            
         self.current_data = data
         self._populate_table(data)
         self._update_pagination_controls()
         
         # Update filter builder with available metadata fields
         self._update_filter_fields(data)
+    
+    def _on_load_error(self, error_msg: str):
+        """Handle error from background thread."""
+        self.status_label.setText(f"Failed to load data: {error_msg}")
+        self.table.setRowCount(0)
         
     def _update_filter_fields(self, data: Dict[str, Any]):
         """Update filter builder with available metadata field names."""
