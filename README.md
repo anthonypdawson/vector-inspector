@@ -1,7 +1,7 @@
 
 # Vector Inspector
 
-> **Disclaimer:** This tool is currently under active development and is **not production ready**. Not all features have been thoroughly tested. Use with caution in critical or production environments.
+> **Disclaimer:** This tool is currently under active development and is **not production ready**. Not all features have been thoroughly tested and code is released frequently. Use with caution in critical or production environments.
 
 ![PyPI](https://img.shields.io/pypi/v/vector-inspector)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/vector-inspector?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/vector-inspector)
