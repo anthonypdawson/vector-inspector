@@ -116,6 +116,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Testing
 - All changes validated: no syntax or lint errors, type-safe, and tested with sample data
 
+## [0.2.7] - 2026-01-23
+
+### Added
+- **Comprehensive caching system** for database browser, search panel, and info panel
+  - Cache keyed by (database_id, collection_name) for instant collection switching
+  - Restores scroll position, selected items, search queries, and UI state
+  - Optional toggle: View menu → Enable/Disable Caching
+  - Cache automatically invalidates on data modifications and settings changes
+- **Embedding model configuration UI** in Info Panel
+  - Configure embedding models per collection via "Configure..." button
+  - Support for sentence-transformers and CLIP multi-modal models
+  - Visual indicators: green (stored in metadata), blue (user configured), orange (auto-detect)
+  - Settings persisted to ~/.vector-inspector/settings.json
+- **Dimension-aware embedding model selection**
+  - Automatic model selection based on collection vector dimensions
+  - Supports 384d (all-MiniLM-L6-v2), 512d (CLIP), 768d (all-mpnet-base-v2), 1024d, 1536d
+  - Shared embedding utilities (embedding_utils.py) for all database providers
+  - ChromaDB: Custom DimensionAwareEmbeddingFunction for query-time model selection
+  - Qdrant: Dynamic model loading based on collection metadata or user settings
+
+### Fixed
+- **Vector dimension mismatch errors** when switching between collections with different dimensions
+- Incorrect dimension-to-model mapping (768d now correctly maps to all-mpnet-base-v2, not 512d)
+- ChromaDB query failures with non-default embedding dimensions
+- Import errors in embedding configuration dialog
+- Text readability in embedding model configuration dialog (black text on light background)
+- Connection ID attribute errors in Info Panel
+- Database name tracking for cache keys
+
+### Changed
+- All database providers now support dimension-aware embedding model selection
+- Cache manager integrated across MetadataView, SearchView, and InfoPanel
+- Settings service extended with cache_enabled toggle and collection_embedding_models storage
+- Info Panel displays current embedding model configuration with color-coded status
+
+### Performance
+- Collection switching now near-instant when cached (no database queries)
+- Reduced redundant metadata queries via InfoPanel caching
+- Embedding models loaded on-demand and reused per collection
+
+
 ---
 
 [0.1.0]: https://github.com/yourusername/vector-viewer/releases/tag/v0.1.0
