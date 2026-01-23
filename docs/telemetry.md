@@ -117,4 +117,52 @@ Complete telemetry event with all fields:
 - Use hashing approaches to de-duplicate without exposing full model details if desired.
 - When implementing, capture all fields during model load/inference and queue the event only if telemetry is enabled.
 
-If you'd like, I can scaffold a `TelemetryService` (client-side) and add the Settings UI entries next.
+## Manual Export for Model Registry Contribution
+
+Before implementing an automated telemetry backend, users can manually export their model metadata to contribute to the registry.
+
+### Export Workflow
+1. User clicks "Export Model Metadata" button in Settings
+2. Application generates a JSON file with all queued telemetry events
+3. User can review the file and manually submit it via GitHub issue, email, or other channel
+4. Maintainers can aggregate these contributions into the known_embedding_models registry
+
+### Export File Format
+
+Example `model_telemetry_export.json`:
+
+```json
+{
+  "export_version": "1.0",
+  "export_timestamp": "2026-01-23T14:22:10Z",
+  "client_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "events": [
+    {
+      "event_type": "model_registration",
+      "model_name": "sentence-transformers/all-mpnet-base-v2",
+      "model_source": "sentence-transformers",
+      "model_version": "2.1.0",
+      "embedding_dimension": 768,
+      "modalities": ["text"],
+      "distance_metric": "cosine",
+      "normalization": "l2",
+      "load_success": true,
+      "inference_success": true,
+      "device_type": "cpu",
+      "local_path_hash": null,
+      "timestamp": "2026-01-23T12:34:56Z",
+      "client_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    }
+  ]
+}
+```
+
+### Implementation Updates
+
+Add to `TelemetryService`:
+- `export_to_file(path)` method that writes queued events to JSON file with export metadata
+
+Add to Settings UI:
+- "Export Model Metadata" button that saves export file via file dialog
+- Clear indication that this is for manual contribution before automated backend is available
+
