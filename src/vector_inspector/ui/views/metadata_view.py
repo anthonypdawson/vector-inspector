@@ -16,6 +16,7 @@ from vector_inspector.ui.components.filter_builder import FilterBuilder
 from vector_inspector.services.import_export_service import ImportExportService
 from vector_inspector.services.filter_service import apply_client_side_filters
 from vector_inspector.services.settings_service import SettingsService
+from vector_inspector.core.cache_manager import get_cache_manager, CacheEntry
 from PySide6.QtWidgets import QApplication
 
 
@@ -57,12 +58,14 @@ class MetadataView(QWidget):
         super().__init__(parent)
         self.connection = connection
         self.current_collection: str = ""
+        self.current_database: str = ""
         self.current_data: Optional[Dict[str, Any]] = None
         self.page_size = 50
         self.current_page = 0
         self.loading_dialog = LoadingDialog("Loading data...", self)
         self.settings_service = SettingsService()
         self.load_thread: Optional[DataLoadThread] = None
+        self.cache_manager = get_cache_manager()
         
         # Debounce timer for filter changes
         self.filter_reload_timer = QTimer()
@@ -107,8 +110,9 @@ class MetadataView(QWidget):
         controls_layout.addStretch()
         
         # Refresh button
-        self.refresh_button = QPushButton("Refresh")
-        self.refresh_button.clicked.connect(self._load_data)
+        self.refresh_button = QPushButton("🔄 Refresh")
+        self.refresh_button.clicked.connect(self._refresh_data)
+        self.refresh_button.setToolTip("Refresh data and clear cache")
         controls_layout.addWidget(self.refresh_button)
         
         # Add/Delete buttons
@@ -172,9 +176,40 @@ class MetadataView(QWidget):
         self.status_label.setStyleSheet("color: gray;")
         layout.addWidget(self.status_label)
         
-    def set_collection(self, collection_name: str):
+    def set_collection(self, collection_name: str, database_name: str = ""):
         """Set the current collection to display."""
         self.current_collection = collection_name
+        # Always update database_name if provided (even if empty string on first call)
+        if database_name:  # Only update if non-empty
+            self.current_database = database_name
+        
+        # Debug: Check cache status
+        print(f"[MetadataView] Setting collection: db='{self.current_database}', coll='{collection_name}'")
+        print(f"[MetadataView] Cache enabled: {self.cache_manager.is_enabled()}")
+        
+        # Check cache first
+        cached = self.cache_manager.get(self.current_database, self.current_collection)
+        if cached and cached.data:
+            print(f"[MetadataView] ✓ Cache HIT! Loading from cache.")
+            # Restore from cache
+            self.current_page = 0
+            self.current_data = cached.data
+            self._populate_table(cached.data)
+            self._update_pagination_controls()
+            self._update_filter_fields(cached.data)
+            
+            # Restore UI state
+            if cached.scroll_position:
+                self.table.verticalScrollBar().setValue(cached.scroll_position)
+            if cached.search_query:
+                # Restore filter state if applicable
+                pass
+            
+            self.status_label.setText(f"✓ Loaded from cache - {len(cached.data.get('ids', []))} items")
+            return
+        
+        print(f"[MetadataView] ✗ Cache MISS. Loading from database...")
+        # Not in cache, load from database
         self.current_page = 0
         
         # Update filter builder with supported operators
@@ -246,6 +281,19 @@ class MetadataView(QWidget):
         
         # Update filter builder with available metadata fields
         self._update_filter_fields(data)
+        
+        # Save to cache
+        if self.current_database and self.current_collection:
+            print(f"[MetadataView] Saving to cache: db='{self.current_database}', coll='{self.current_collection}'")
+            cache_entry = CacheEntry(
+                data=data,
+                scroll_position=self.table.verticalScrollBar().value(),
+                search_query=self.filter_builder.to_dict() if hasattr(self.filter_builder, 'to_dict') else ""
+            )
+            self.cache_manager.set(self.current_database, self.current_collection, cache_entry)
+            print(f"[MetadataView] ✓ Saved to cache. Total entries: {len(self.cache_manager._cache)}")
+        else:
+            print(f"[MetadataView] ✗ NOT saving to cache - db='{self.current_database}', coll='{self.current_collection}'")
     
     def _on_load_error(self, error_msg: str):
         """Handle error from background thread."""
@@ -365,6 +413,9 @@ class MetadataView(QWidget):
             )
             
             if success:
+                # Invalidate cache after adding item
+                if self.current_database and self.current_collection:
+                    self.cache_manager.invalidate(self.current_database, self.current_collection)
                 QMessageBox.information(self, "Success", "Item added successfully.")
                 self._load_data()
             else:
@@ -399,6 +450,9 @@ class MetadataView(QWidget):
         if reply == QMessageBox.Yes:
             success = self.connection.delete_items(self.current_collection, ids=ids_to_delete)
             if success:
+                # Invalidate cache after deletion
+                if self.current_database and self.current_collection:
+                    self.cache_manager.invalidate(self.current_database, self.current_collection)
                 QMessageBox.information(self, "Success", "Items deleted successfully.")
                 self._load_data()
             else:
@@ -421,6 +475,13 @@ class MetadataView(QWidget):
         if self.filter_group.isChecked() and self.current_collection:
             self.current_page = 0
             self._load_data()
+    
+    def _refresh_data(self):
+        """Refresh data and invalidate cache."""
+        if self.current_database and self.current_collection:
+            self.cache_manager.invalidate(self.current_database, self.current_collection)
+        self.current_page = 0
+        self._load_data()
     
     def _on_row_double_clicked(self, index):
         """Handle double-click on a row to edit item."""
@@ -462,6 +523,9 @@ class MetadataView(QWidget):
             )
             
             if success:
+                # Invalidate cache after updating item
+                if self.current_database and self.current_collection:
+                    self.cache_manager.invalidate(self.current_database, self.current_collection)
                 QMessageBox.information(self, "Success", "Item updated successfully.")
                 self._load_data()
             else:
@@ -653,6 +717,10 @@ class MetadataView(QWidget):
             self.loading_dialog.hide_loading()
             
         if success:
+            # Invalidate cache after import
+            if self.current_database and self.current_collection:
+                self.cache_manager.invalidate(self.current_database, self.current_collection)
+            
             # Save the directory for next time
             from pathlib import Path
             self.settings_service.set("last_import_export_dir", str(Path(file_path).parent))

@@ -66,7 +66,7 @@ def apply_client_side_filters(data: Dict[str, Any], filters: List[Dict[str, Any]
         "metadatas": [metadatas[i] for i in keep_indices if i < len(metadatas)],
     }
     
-    if embeddings:
+    if embeddings is not None and len(embeddings) > 0:
         filtered_data["embeddings"] = [embeddings[i] for i in keep_indices if i < len(embeddings)]
     
     return filtered_data

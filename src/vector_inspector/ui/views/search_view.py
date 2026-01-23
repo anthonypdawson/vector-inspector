@@ -12,6 +12,7 @@ from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.ui.components.filter_builder import FilterBuilder
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
 from vector_inspector.services.filter_service import apply_client_side_filters
+from vector_inspector.core.cache_manager import get_cache_manager, CacheEntry
 
 
 class SearchView(QWidget):
@@ -21,8 +22,10 @@ class SearchView(QWidget):
         super().__init__(parent)
         self.connection = connection
         self.current_collection: str = ""
+        self.current_database: str = ""
         self.search_results: Optional[Dict[str, Any]] = None
         self.loading_dialog = LoadingDialog("Searching...", self)
+        self.cache_manager = get_cache_manager()
         
         self._setup_ui()
         
@@ -112,12 +115,30 @@ class SearchView(QWidget):
         
         layout.addWidget(splitter)
         
-    def set_collection(self, collection_name: str):
+    def set_collection(self, collection_name: str, database_name: str = ""):
         """Set the current collection to search."""
         self.current_collection = collection_name
-        self.search_results = None
+        # Always update database_name if provided (even if empty string on first call)
+        if database_name:  # Only update if non-empty
+            self.current_database = database_name
         
-        # Clear search form inputs
+        print(f"[SearchView] Setting collection: db='{self.current_database}', coll='{collection_name}'")
+        
+        # Check cache first
+        cached = self.cache_manager.get(self.current_database, self.current_collection)
+        if cached:
+            print(f"[SearchView] ✓ Cache HIT! Restoring search state.")
+            # Restore search query and results from cache
+            if cached.search_query:
+                self.query_input.setPlainText(cached.search_query)
+            if cached.search_results:
+                self.search_results = cached.search_results
+                self._display_results(cached.search_results)
+                return
+        
+        print(f"[SearchView] ✗ Cache MISS or no cached search.")
+        # Not in cache, clear form
+        self.search_results = None
         self.query_input.clear()
         self.results_table.setRowCount(0)
         self.results_status.setText(f"Collection: {collection_name}")
@@ -196,6 +217,12 @@ class SearchView(QWidget):
             self.results_table.setRowCount(0)
             return
         
+        # Check if results have the expected structure
+        if not results.get("ids") or not isinstance(results["ids"], list) or len(results["ids"]) == 0:
+            self.results_status.setText("No results found or query failed")
+            self.results_table.setRowCount(0)
+            return
+        
         # Apply client-side filters if any
         if client_filters and results:
             # Restructure results for filtering
@@ -218,6 +245,19 @@ class SearchView(QWidget):
             
         self.search_results = results
         self._display_results(results)
+        
+        # Save to cache
+        if self.current_database and self.current_collection:
+            self.cache_manager.update(
+                self.current_database,
+                self.current_collection,
+                search_query=query_text,
+                search_results=results,
+                user_inputs={
+                    'n_results': n_results,
+                    'filters': self.filter_builder.to_dict() if hasattr(self.filter_builder, 'to_dict') else {}
+                }
+            )
         
     def _display_results(self, results: Dict[str, Any]):
         """Display search results in table."""

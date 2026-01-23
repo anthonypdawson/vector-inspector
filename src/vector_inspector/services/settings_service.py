@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional
+from vector_inspector.core.cache_manager import invalidate_cache_on_settings_change
 
 
 class SettingsService:
@@ -49,10 +50,28 @@ class SettingsService:
         """Get a setting value."""
         return self.settings.get(key, default)
     
+    def get_cache_enabled(self) -> bool:
+        """Get whether caching is enabled (default: True)."""
+        return self.settings.get("cache_enabled", True)
+    
+    def set_cache_enabled(self, enabled: bool):
+        """Set whether caching is enabled."""
+        self.set("cache_enabled", enabled)
+        # Update cache manager state
+        from vector_inspector.core.cache_manager import get_cache_manager
+        cache = get_cache_manager()
+        if enabled:
+            cache.enable()
+        else:
+            cache.disable()
+    
     def set(self, key: str, value: Any):
         """Set a setting value."""
         self.settings[key] = value
         self._save_settings()
+        # Invalidate cache when settings change (only if cache is enabled)
+        if key != "cache_enabled":  # Don't invalidate when toggling cache itself
+            invalidate_cache_on_settings_change()
     
     def clear(self):
         """Clear all settings."""

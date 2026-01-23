@@ -3,13 +3,15 @@
 from typing import Optional, Dict, Any
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QGroupBox, QScrollArea, QFrame
+    QGroupBox, QScrollArea, QFrame, QPushButton
 )
 from PySide6.QtCore import Qt, QObject
+from PySide6.QtWidgets import QDialog
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.connections.chroma_connection import ChromaDBConnection
 from vector_inspector.core.connections.qdrant_connection import QdrantConnection
+from vector_inspector.core.cache_manager import get_cache_manager
 
 
 class InfoPanel(QWidget):
@@ -18,7 +20,10 @@ class InfoPanel(QWidget):
     def __init__(self, connection: VectorDBConnection, parent=None):
         super().__init__(parent)
         self.connection = connection
+        self.connection_id: str = ""  # Will be set when collection is set
         self.current_collection: str = ""
+        self.current_database: str = ""
+        self.cache_manager = get_cache_manager()
         self._setup_ui()
         
     def _setup_ui(self):
@@ -65,10 +70,31 @@ class InfoPanel(QWidget):
         self.distance_metric_label = self._create_info_row("Distance Metric:", "N/A")
         self.total_points_label = self._create_info_row("Total Points:", "0")
         
+        # Embedding model row with configure button
+        embedding_row = QWidget()
+        embedding_layout = QHBoxLayout(embedding_row)
+        embedding_layout.setContentsMargins(0, 2, 0, 2)
+        
+        embedding_label = QLabel("<b>Embedding Model:</b>")
+        embedding_label.setMinimumWidth(150)
+        self.embedding_model_label = QLabel("Auto-detect")
+        self.embedding_model_label.setStyleSheet("color: gray;")
+        self.embedding_model_label.setWordWrap(True)
+        
+        self.configure_embedding_btn = QPushButton("Configure...")
+        self.configure_embedding_btn.setMaximumWidth(100)
+        self.configure_embedding_btn.clicked.connect(self._configure_embedding_model)
+        self.configure_embedding_btn.setEnabled(False)
+        
+        embedding_layout.addWidget(embedding_label)
+        embedding_layout.addWidget(self.embedding_model_label, 1)
+        embedding_layout.addWidget(self.configure_embedding_btn)
+        
         collection_layout.addWidget(self.collection_name_label)
         collection_layout.addWidget(self.vector_dim_label)
         collection_layout.addWidget(self.distance_metric_label)
         collection_layout.addWidget(self.total_points_label)
+        collection_layout.addWidget(embedding_row)
         
         # Payload Schema subsection
         schema_label = QLabel("<b>Payload Schema:</b>")
@@ -200,7 +226,7 @@ class InfoPanel(QWidget):
             return
             
         try:
-            # Get collection info
+            # Get collection info from database
             collection_info = self.connection.get_collection_info(self.current_collection)
             
             if not collection_info:
@@ -212,59 +238,18 @@ class InfoPanel(QWidget):
                 self.provider_details_label.setText("N/A")
                 return
             
-            # Update basic info
-            self._update_label(self.collection_name_label, self.current_collection)
+            # Display the info
+            self._display_collection_info(collection_info)
             
-            # Vector dimension
-            vector_dim = collection_info.get("vector_dimension", "Unknown")
-            self._update_label(self.vector_dim_label, str(vector_dim))
-            
-            # Distance metric
-            distance = collection_info.get("distance_metric", "Unknown")
-            self._update_label(self.distance_metric_label, distance)
-            
-            # Total points
-            count = collection_info.get("count", 0)
-            self._update_label(self.total_points_label, f"{count:,}")
-            
-            # Metadata schema
-            metadata_fields = collection_info.get("metadata_fields", [])
-            if metadata_fields:
-                schema_text = "\n".join([f"• {field}" for field in sorted(metadata_fields)])
-                self.schema_label.setText(schema_text)
-                self.schema_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
-            else:
-                self.schema_label.setText("No metadata fields found")
-                self.schema_label.setStyleSheet("color: gray; padding-left: 20px;")
-            
-            # Provider-specific details
-            details_list = []
-            
-            if isinstance(self.connection, ChromaDBConnection):
-                details_list.append("• Provider: ChromaDB")
-                details_list.append("• Supports: Documents, Metadata, Embeddings")
-                details_list.append("• Default embedding: all-MiniLM-L6-v2")
-                
-            elif isinstance(self.connection, QdrantConnection):
-                details_list.append("• Provider: Qdrant")
-                details_list.append("• Supports: Points, Payload, Vectors")
-                # Get additional Qdrant-specific info if available
-                if "config" in collection_info:
-                    config = collection_info["config"]
-                    if "hnsw_config" in config:
-                        hnsw = config["hnsw_config"]
-                        details_list.append(f"• HNSW M: {hnsw.get('m', 'N/A')}")
-                        details_list.append(f"• HNSW ef_construct: {hnsw.get('ef_construct', 'N/A')}")
-                    if "optimizer_config" in config:
-                        opt = config["optimizer_config"]
-                        details_list.append(f"• Indexing threshold: {opt.get('indexing_threshold', 'N/A')}")
-            
-            if details_list:
-                self.provider_details_label.setText("\n".join(details_list))
-                self.provider_details_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
-            else:
-                self.provider_details_label.setText("No additional details available")
-                self.provider_details_label.setStyleSheet("color: gray; padding-left: 20px;")
+            # Save to cache
+            if self.current_database and self.current_collection:
+                print(f"[InfoPanel] Saving collection info to cache: db='{self.current_database}', coll='{self.current_collection}'")
+                self.cache_manager.update(
+                    self.current_database,
+                    self.current_collection,
+                    user_inputs={'collection_info': collection_info}
+                )
+                print(f"[InfoPanel] ✓ Saved collection info to cache.")
                 
         except Exception as e:
             self._update_label(self.collection_name_label, self.current_collection)
@@ -275,9 +260,89 @@ class InfoPanel(QWidget):
             self.schema_label.setStyleSheet("color: red; padding-left: 20px;")
             self.provider_details_label.setText("N/A")
     
-    def set_collection(self, collection_name: str):
+    def _display_collection_info(self, collection_info: Dict[str, Any]):
+        """Display collection information (from cache or fresh query)."""
+        # Update basic info
+        self._update_label(self.collection_name_label, self.current_collection)
+        
+        # Vector dimension
+        vector_dim = collection_info.get("vector_dimension", "Unknown")
+        self._update_label(self.vector_dim_label, str(vector_dim))
+        
+        # Enable configure button if we have a valid dimension
+        self.configure_embedding_btn.setEnabled(
+            vector_dim != "Unknown" and isinstance(vector_dim, int)
+        )
+        
+        # Update embedding model display
+        self._update_embedding_model_display(collection_info)
+        
+        # Distance metric
+        distance = collection_info.get("distance_metric", "Unknown")
+        self._update_label(self.distance_metric_label, distance)
+        
+        # Total points
+        count = collection_info.get("count", 0)
+        self._update_label(self.total_points_label, f"{count:,}")
+        
+        # Metadata schema
+        metadata_fields = collection_info.get("metadata_fields", [])
+        if metadata_fields:
+            schema_text = "\n".join([f"• {field}" for field in sorted(metadata_fields)])
+            self.schema_label.setText(schema_text)
+            self.schema_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
+        else:
+            self.schema_label.setText("No metadata fields found")
+            self.schema_label.setStyleSheet("color: gray; padding-left: 20px;")
+        
+        # Provider-specific details
+        details_list = []
+        
+        if isinstance(self.connection, ChromaDBConnection):
+            details_list.append("• Provider: ChromaDB")
+            details_list.append("• Supports: Documents, Metadata, Embeddings")
+            details_list.append("• Default embedding: all-MiniLM-L6-v2")
+            
+        elif isinstance(self.connection, QdrantConnection):
+            details_list.append("• Provider: Qdrant")
+            details_list.append("• Supports: Points, Payload, Vectors")
+            # Get additional Qdrant-specific info if available
+            if "config" in collection_info:
+                config = collection_info["config"]
+                if "hnsw_config" in config:
+                    hnsw = config["hnsw_config"]
+                    details_list.append(f"• HNSW M: {hnsw.get('m', 'N/A')}")
+                    details_list.append(f"• HNSW ef_construct: {hnsw.get('ef_construct', 'N/A')}")
+                if "optimizer_config" in config:
+                    opt = config["optimizer_config"]
+                    details_list.append(f"• Indexing threshold: {opt.get('indexing_threshold', 'N/A')}")
+        
+        if details_list:
+            self.provider_details_label.setText("\n".join(details_list))
+            self.provider_details_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
+        else:
+            self.provider_details_label.setText("No additional details available")
+            self.provider_details_label.setStyleSheet("color: gray; padding-left: 20px;")
+    
+    def set_collection(self, collection_name: str, database_name: str = ""):
         """Set the current collection and refresh its information."""
         self.current_collection = collection_name
+        # Always update database_name if provided
+        if database_name:
+            self.current_database = database_name
+            self.connection_id = database_name  # database_name is the connection ID
+        
+        print(f"[InfoPanel] Setting collection: db='{self.current_database}', coll='{collection_name}'")
+        
+        # Check cache first for collection info
+        cached = self.cache_manager.get(self.current_database, self.current_collection)
+        if cached and hasattr(cached, 'user_inputs') and cached.user_inputs.get('collection_info'):
+            print(f"[InfoPanel] ✓ Cache HIT! Loading collection info from cache.")
+            collection_info = cached.user_inputs['collection_info']
+            self._display_collection_info(collection_info)
+            return
+        
+        print(f"[InfoPanel] ✗ Cache MISS. Loading collection info from database...")
         self.refresh_collection_info()
     
     def _update_label(self, row_widget: QWidget, value: str):
@@ -285,3 +350,108 @@ class InfoPanel(QWidget):
         value_label = row_widget.property("value_label")
         if value_label and isinstance(value_label, QLabel):
             value_label.setText(value)
+    
+    def _update_embedding_model_display(self, collection_info: Dict[str, Any]):
+        """Update the embedding model label based on current configuration."""
+        from ...services.settings_service import SettingsService
+        
+        # Check if stored in collection metadata
+        if 'embedding_model' in collection_info:
+            model_name = collection_info['embedding_model']
+            model_type = collection_info.get('embedding_model_type', 'unknown')
+            self.embedding_model_label.setText(f"{model_name} ({model_type})")
+            self.embedding_model_label.setStyleSheet("color: lightgreen;")
+            return
+        
+        # Check user settings
+        settings = SettingsService()
+        collection_models = settings.get('collection_embedding_models', {})
+        collection_key = f"{self.connection_id}:{self.current_collection}"
+        
+        if collection_key in collection_models:
+            model_info = collection_models[collection_key]
+            model_name = model_info['model']
+            model_type = model_info.get('type', 'unknown')
+            self.embedding_model_label.setText(f"{model_name} ({model_type})")
+            self.embedding_model_label.setStyleSheet("color: lightblue;")
+            return
+        
+        # No configuration - using auto-detect
+        self.embedding_model_label.setText("Auto-detect (dimension-based)")
+        self.embedding_model_label.setStyleSheet("color: orange;")
+    
+    def _configure_embedding_model(self):
+        """Open dialog to configure embedding model for current collection."""
+        if not self.current_collection:
+            return
+        
+        from ..dialogs.embedding_config_dialog import EmbeddingConfigDialog
+        from ...services.settings_service import SettingsService
+        
+        # Get current collection info
+        collection_info = self.connection.get_collection_info(self.current_collection)
+        if not collection_info:
+            return
+        
+        vector_dim = collection_info.get("vector_dimension")
+        if not vector_dim or vector_dim == "Unknown":
+            return
+        
+        # Get current configuration if any
+        settings = SettingsService()
+        collection_models = settings.get('collection_embedding_models', {})
+        collection_key = f"{self.connection_id}:{self.current_collection}"
+        
+        current_model = None
+        current_type = None
+        
+        # Check metadata first
+        if 'embedding_model' in collection_info:
+            current_model = collection_info['embedding_model']
+            current_type = collection_info.get('embedding_model_type')
+        # Then check settings
+        elif collection_key in collection_models:
+            model_info = collection_models[collection_key]
+            current_model = model_info.get('model')
+            current_type = model_info.get('type')
+        
+        # Open dialog
+        dialog = EmbeddingConfigDialog(
+            self.current_collection,
+            vector_dim,
+            current_model,
+            current_type,
+            self
+        )
+        
+        result = dialog.exec()
+        
+        if result == QDialog.DialogCode.Accepted:
+            # Save the configuration
+            selection = dialog.get_selection()
+            if selection:
+                model_name, model_type = selection
+                
+                if collection_key not in collection_models:
+                    collection_models[collection_key] = {}
+                
+                collection_models[collection_key]['model'] = model_name
+                collection_models[collection_key]['type'] = model_type
+                
+                settings.set('collection_embedding_models', collection_models)
+                
+                # Refresh display
+                self._update_embedding_model_display(collection_info)
+                
+                print(f"✓ Configured embedding model for '{self.current_collection}': {model_name} ({model_type})")
+                
+        elif result == 2:  # Clear configuration
+            # Remove from settings
+            if collection_key in collection_models:
+                del collection_models[collection_key]
+                settings.set('collection_embedding_models', collection_models)
+                
+                # Refresh display
+                self._update_embedding_model_display(collection_info)
+                
+                print(f"✓ Cleared embedding model configuration for '{self.current_collection}'")
