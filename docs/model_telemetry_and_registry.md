@@ -117,10 +117,6 @@ Complete telemetry event with all fields:
 - Use hashing approaches to de-duplicate without exposing full model details if desired.
 - When implementing, capture all fields during model load/inference and queue the event only if telemetry is enabled.
 
-## Manual Export for Model Registry Contribution
-
-Before implementing an automated telemetry backend, users can manually export their model metadata to contribute to the registry.
-
 ### Export Workflow
 1. User clicks "Export Model Metadata" button in Settings
 2. Application generates a JSON file with all queued telemetry events
