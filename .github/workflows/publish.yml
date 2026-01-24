@@ -36,8 +36,12 @@ jobs:
     - name: Cache PDM packages
       uses: actions/cache@v4
       with:
-        path: ~/.cache/pdm
-        key: ${{ runner.os }}-pdm-${{ hashFiles('**/pdm.lock') }}
+        path: |
+          ~/.cache/pdm
+          ~/.cache/pip
+          .venv
+
+        key: ${{ runner.os }}-pdm-${{ hashFiles('**/pdm.lock', '**/pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-pdm-
 

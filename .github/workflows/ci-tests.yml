@@ -1,4 +1,14 @@
+name: CI - Unit Tests
 
+on:
+  workflow_dispatch: {}
+  pull_request:
+    types: [closed]
+  push:
+    paths:
+      - 'project.yaml'
+
+jobs:
   test:
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     name: Test on Python ${{ matrix.python-version }}
@@ -21,17 +31,17 @@
           python -m pip install --upgrade pip
           pip install pdm
 
-      - name: Cache PDM packages
+      - name: Cache PDM virtualenv and pip
         uses: actions/cache@v4
         with:
           path: |
+            .venv
             ~/.cache/pdm
             ~/.cache/pip
-            .venv
-
           key: ${{ runner.os }}-pdm-${{ hashFiles('**/pdm.lock', '**/pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pdm-
+            ${{ runner.os }}-
 
       - name: Install dependencies (dev)
         run: pdm install -d
