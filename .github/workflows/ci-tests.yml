@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.10", "3.11"]
 
     steps:
       - name: Check out repository
@@ -39,8 +39,7 @@ jobs:
       - name: Cache PDM virtualenv and pip
         uses: actions/cache@v4
         with:
-          path: |
-            .venv
+          path: |            
             ~/.cache/pdm
             ~/.cache/pip
           key: ${{ runner.os }}-pdm-${{ hashFiles('**/pdm.lock', '**/pyproject.toml') }}

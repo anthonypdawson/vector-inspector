@@ -38,8 +38,7 @@ jobs:
       with:
         path: |
           ~/.cache/pdm
-          ~/.cache/pip
-          .venv
+          ~/.cache/pip          
 
         key: ${{ runner.os }}-pdm-${{ hashFiles('**/pdm.lock', '**/pyproject.toml') }}
         restore-keys: |
