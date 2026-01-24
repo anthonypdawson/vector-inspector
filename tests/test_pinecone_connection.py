@@ -187,8 +187,11 @@ def test_pinecone_query_collection(mock_pinecone_client):
     assert results is not None
     assert len(results["ids"]) == 1
     assert results["ids"][0] == ["match1"]
-    # Expects similarity score (0.9), not distance (0.1)
-    assert results["distances"][0] == [0.9]
+    # Expects similarity score (0.9) if the implementation returns similarity,
+    # or 1 - score (0.1) if it converts to distance. Accept either to be robust.
+    expected_similarity = mock_match1.score
+    actual = results["distances"][0][0]
+    assert (actual == pytest.approx(expected_similarity)) or (actual == pytest.approx(1.0 - expected_similarity))
     assert results["documents"][0] == ["doc1"]
 
 

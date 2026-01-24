@@ -33,7 +33,7 @@ def test_last_connection_roundtrip(temp_home):
     assert svc2.get_last_connection() == config
 
     # Validate file exists with expected content
-    settings_file = temp_home / ".vector-viewer" / "settings.json"
+    settings_file = temp_home / ".vector-inspector" / "settings.json"
     assert settings_file.exists()
     data = json.loads(settings_file.read_text(encoding="utf-8"))
     assert data["last_connection"] == config
@@ -47,7 +47,7 @@ def test_set_get_and_clear(temp_home):
     assert svc.get("theme") == "dark"
 
     # Ensure persisted
-    settings_file = temp_home / ".vector-viewer" / "settings.json"
+    settings_file = temp_home / ".vector-inspector" / "settings.json"
     data = json.loads(settings_file.read_text(encoding="utf-8"))
     assert data["theme"] == "dark"
 
@@ -63,7 +63,7 @@ def test_set_get_and_clear(temp_home):
 def test_missing_settings_file(temp_home):
     svc = SettingsService()
     # Remove file if exists
-    settings_file = temp_home / ".vector-viewer" / "settings.json"
+    settings_file = temp_home / ".vector-inspector" / "settings.json"
     if settings_file.exists():
         settings_file.unlink()
     svc._load_settings()
@@ -71,7 +71,7 @@ def test_missing_settings_file(temp_home):
 
 
 def test_invalid_json_file(temp_home):
-    settings_file = temp_home / ".vector-viewer" / "settings.json"
+    settings_file = temp_home / ".vector-inspector" / "settings.json"
     settings_file.parent.mkdir(parents=True, exist_ok=True)
     settings_file.write_text("{ invalid json }", encoding="utf-8")
     svc = SettingsService()
@@ -95,7 +95,7 @@ def test_unicode_and_large_value(temp_home):
     assert svc.get("greeting") == unicode_val
     assert svc.get("blob") == large_val
     # Validate persistence
-    settings_file = temp_home / ".vector-viewer" / "settings.json"
+    settings_file = temp_home / ".vector-inspector" / "settings.json"
     data = json.loads(settings_file.read_text(encoding="utf-8"))
     assert data["greeting"] == unicode_val
     assert data["blob"] == large_val

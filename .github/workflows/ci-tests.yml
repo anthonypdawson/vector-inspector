@@ -55,4 +55,4 @@ jobs:
         env:
           PYTHONPATH: ./src
           QT_QPA_PLATFORM: offscreen
-        run: pdm run pytest -q
+        run: pdm run pytest -q tests
