@@ -34,7 +34,7 @@ jobs:
       - name: Install system dependencies (Qt/OpenGL libs)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libgl1-mesa-glx libgl1-mesa-dri libxkbcommon0 libxcb-xinerama0
+          sudo apt-get install -y freeglut3-dev
 
       - name: Cache PDM virtualenv and pip
         uses: actions/cache@v4
