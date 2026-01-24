@@ -212,27 +212,37 @@ class ChromaDBConnection(VectorDBConnection):
             # ChromaDB uses cosine distance by default (or can be configured)
             # Try to get metadata from collection if available
             distance_metric = "Cosine (default)"
+            embedding_model = None
             try:
                 # ChromaDB collections may have metadata about distance function
                 col_metadata = collection.metadata
-                if col_metadata and "hnsw:space" in col_metadata:
-                    space = col_metadata["hnsw:space"]
-                    if space == "l2":
-                        distance_metric = "Euclidean (L2)"
-                    elif space == "ip":
-                        distance_metric = "Inner Product"
-                    elif space == "cosine":
-                        distance_metric = "Cosine"
+                if col_metadata:
+                    if "hnsw:space" in col_metadata:
+                        space = col_metadata["hnsw:space"]
+                        if space == "l2":
+                            distance_metric = "Euclidean (L2)"
+                        elif space == "ip":
+                            distance_metric = "Inner Product"
+                        elif space == "cosine":
+                            distance_metric = "Cosine"
+                    # Get embedding model if stored
+                    if "embedding_model" in col_metadata:
+                        embedding_model = col_metadata["embedding_model"]
             except:
                 pass  # Use default if unable to determine
             
-            return {
+            result = {
                 "name": name,
                 "count": count,
                 "metadata_fields": metadata_fields,
                 "vector_dimension": vector_dimension,
                 "distance_metric": distance_metric,
             }
+            
+            if embedding_model:
+                result["embedding_model"] = embedding_model
+            
+            return result
         except Exception as e:
             print(f"Failed to get collection info: {e}")
             return None

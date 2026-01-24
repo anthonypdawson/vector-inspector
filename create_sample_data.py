@@ -5,6 +5,9 @@ from chromadb.utils import embedding_functions
 import argparse
 import sys
 
+# Embedding model used for all sample data
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
 
 def create_sample_data_chroma():
     """Create sample data for ChromaDB."""
@@ -13,10 +16,16 @@ def create_sample_data_chroma():
     client = chromadb.PersistentClient(path="./chroma_data")
     collection = client.get_or_create_collection(
         name="sample_documents",
-        metadata={"description": "Sample documents for testing"}
+        metadata={
+            "description": "Sample documents for testing",
+            "embedding_model": EMBEDDING_MODEL
+        }
     )
     documents, metadatas, ids = get_sample_docs()
-    collection.add(documents=documents, metadatas=metadatas, ids=ids)
+    # Add model metadata to each document
+    for metadata in metadatas:
+        metadata["_embedding_model"] = EMBEDDING_MODEL
+    collection.add(documents=documents, metadatas=metadatas, ids=ids)  # type: ignore
     print(f"Added {len(documents)} documents to collection '{collection.name}'")
     print(f"Collection now contains {collection.count()} items")
     print("\nYou can now:")
@@ -69,6 +78,7 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
             payload={
                 "doc_id": ids[i],  # Store original string ID in payload
                 "document": documents[i],
+                "_embedding_model": EMBEDDING_MODEL,  # Store model used
                 **metadatas[i]
             }
         )
@@ -88,6 +98,89 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
     else:
         print(f"2. Connect to Qdrant at {host}:{port}")
     print(f"3. Select the '{collection_name}' collection")
+    print("4. Browse, search, and visualize the data!")
+
+
+def create_sample_data_pinecone(api_key: str, index_name: str = "sample-documents", environment: str | None = None):
+    """Create sample data for Pinecone."""
+    from pinecone import Pinecone, ServerlessSpec
+    from sentence_transformers import SentenceTransformer
+    import time
+
+    print(f"Creating sample Pinecone data in index '{index_name}'...")
+    
+    # Initialize Pinecone
+    pc = Pinecone(api_key=api_key)
+    
+    # Check if index exists
+    existing_indexes = [idx.name for idx in pc.list_indexes()]
+    
+    if index_name not in existing_indexes:
+        print(f"Creating new index '{index_name}'...")
+        # Create index with 384 dimensions (all-MiniLM-L6-v2)
+        pc.create_index(
+            name=index_name,
+            dimension=384,
+            metric="cosine",
+            spec=ServerlessSpec(
+                cloud='aws',
+                region='us-east-1'
+            )
+        )
+        
+        # Wait for index to be ready
+        print("Waiting for index to be ready...")
+        max_wait = 60
+        start_time = time.time()
+        while time.time() - start_time < max_wait:
+            desc = pc.describe_index(index_name)
+            status = desc.status.get('state', 'unknown') if hasattr(desc.status, 'get') else str(desc.status)  # type: ignore
+            if status.lower() == 'ready':
+                break
+            time.sleep(2)
+        print(f"Index '{index_name}' is ready!")
+    else:
+        print(f"Using existing index '{index_name}'")
+    
+    # Get index
+    index = pc.Index(index_name)
+    
+    documents, metadatas, ids = get_sample_docs()
+    
+    # Generate embeddings
+    print("Generating embeddings with sentence-transformers (all-MiniLM-L6-v2)...")
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    embeddings = model.encode(documents, show_progress_bar=True).tolist()
+    
+    # Build vectors for Pinecone
+    vectors = []
+    for i in range(len(documents)):
+        metadata = metadatas[i].copy()
+        metadata['document'] = documents[i]  # Store document text in metadata
+        metadata['_embedding_model'] = EMBEDDING_MODEL  # Store model used
+        
+        vectors.append({
+            'id': ids[i],
+            'values': embeddings[i],
+            'metadata': metadata
+        })
+    
+    # Upsert in batches of 100 (Pinecone limit)
+    print(f"Upserting {len(vectors)} vectors to Pinecone...")
+    batch_size = 100
+    for i in range(0, len(vectors), batch_size):
+        batch = vectors[i:i + batch_size]
+        index.upsert(vectors=batch)
+        print(f"  Upserted batch {i//batch_size + 1}/{(len(vectors)-1)//batch_size + 1}")
+    
+    # Get stats
+    stats = index.describe_index_stats()
+    print(f"\nAdded {len(documents)} documents to index '{index_name}'")
+    print(f"Index now contains {stats.get('total_vector_count', 0)} vectors")
+    print("\nYou can now:")
+    print("1. Run the Vector Inspector application")
+    print("2. Connect to Pinecone with your API key")
+    print(f"3. Select the '{index_name}' index")
     print("4. Browse, search, and visualize the data!")
 
 
@@ -326,12 +419,15 @@ def get_sample_docs():
 
 def main():
     parser = argparse.ArgumentParser(description="Create sample data for Vector Inspector.")
-    parser.add_argument("--provider", choices=["chroma", "qdrant"], default="chroma", help="Which vector DB to use")
+    parser.add_argument("--provider", choices=["chroma", "qdrant", "pinecone"], default="chroma", help="Which vector DB to use")
     parser.add_argument("--host", default="localhost", help="Qdrant host (for qdrant)")
     parser.add_argument("--port", type=int, default=6333, help="Qdrant port (for qdrant)")
     parser.add_argument("--path", default=None, help="Local Qdrant DB path (if using embedded mode)")
     parser.add_argument("--vector-size", type=int, default=384, help="Vector size for Qdrant collection")
     parser.add_argument("--collection", default="sample_documents", help="Collection name")
+    parser.add_argument("--api-key", default=None, help="Pinecone API key (for pinecone)")
+    parser.add_argument("--index", default="sample-documents", help="Pinecone index name (for pinecone)")
+    parser.add_argument("--environment", default=None, help="Pinecone environment (for pinecone, optional)")
     args = parser.parse_args()
 
     if args.provider == "chroma":
@@ -343,6 +439,16 @@ def main():
             collection_name=args.collection,
             vector_size=args.vector_size,
             path=args.path,
+        )
+    elif args.provider == "pinecone":
+        if not args.api_key:
+            print("Error: --api-key is required for Pinecone provider")
+            print("Usage: python create_sample_data.py --provider pinecone --api-key YOUR_API_KEY")
+            sys.exit(1)
+        create_sample_data_pinecone(
+            api_key=args.api_key,
+            index_name=args.index,
+            environment=args.environment,
         )
     else:
         print("Unknown provider.")
