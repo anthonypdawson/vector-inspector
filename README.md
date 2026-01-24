@@ -3,7 +3,7 @@
 
 > **Disclaimer:** This tool is currently under active development and is **not production ready**. Not all features have been thoroughly tested and code is released frequently. Use with caution in critical or production environments.
 
-![PyPI](https://img.shields.io/pypi/v/vector-inspector)
+[![PyPI Version](https://img.shields.io/pypi/v/vector-inspector.svg?cacheSeconds=300)](https://pypi.org/project/vector-inspector/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/vector-inspector?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/vector-inspector)
 
 
@@ -34,8 +34,10 @@ Vector Inspector bridges the gap between vector databases and user-friendly data
 - Connect to vector databases:
   - ChromaDB (persistent local storage)
   - Qdrant (remote server or embedded local)
+  - Pinecone (cloud-hosted)
 - Unified interface regardless of backend provider
 - Automatically saves last connection configuration
+- Secure API key storage for cloud providers
 
 ### 2. **Data Visualization**
 - **Metadata Explorer**: Browse and filter vector entries by metadata fields
