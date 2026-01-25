@@ -1,6 +1,5 @@
 """Service for secure credential storage using system keychains."""
 
-from typing import Optional
 import json
 from vector_inspector.core.logging import log_info, log_error
 
@@ -55,7 +54,7 @@ class CredentialService:
             log_error("Failed to store credentials: %s", e)
             return False
 
-    def get_credentials(self, profile_id: str) -> Optional[dict]:
+    def get_credentials(self, profile_id: str) -> dict | None:
         """
         Retrieve credentials for a profile.
 

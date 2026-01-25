@@ -1,9 +1,9 @@
 """Service for applying client-side filters to data."""
 
-from typing import Dict, Any, List
+from typing import Any
 
 
-def apply_client_side_filters(data: Dict[str, Any], filters: List[Dict[str, Any]]) -> Dict[str, Any]:
+def apply_client_side_filters(data: dict[str, Any], filters: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Apply client-side filters to fetched data.
     
@@ -16,24 +16,24 @@ def apply_client_side_filters(data: Dict[str, Any], filters: List[Dict[str, Any]
     """
     if not filters:
         return data
-    
+
     ids = data.get("ids", [])
     documents = data.get("documents", [])
     metadatas = data.get("metadatas", [])
     embeddings = data.get("embeddings", [])
-    
+
     # Track which indices to keep
     keep_indices = []
-    
+
     for i in range(len(ids)):
         # Check if this item passes all client-side filters
         passes = True
-        
+
         for filt in filters:
             field = filt.get("field", "")
             op = filt.get("op", "")
             value = filt.get("value", "")
-            
+
             # Special handling for document field
             if field.lower() == "document":
                 item_value = documents[i] if i < len(documents) else ""
@@ -41,11 +41,11 @@ def apply_client_side_filters(data: Dict[str, Any], filters: List[Dict[str, Any]
                 # Get from metadata
                 metadata = metadatas[i] if i < len(metadatas) else {}
                 item_value = metadata.get(field, "")
-            
+
             # Convert to string for text operations
             item_value_str = str(item_value).lower()
             search_value = str(value).lower()
-            
+
             # Apply operator
             if op == "contains":
                 if search_value not in item_value_str:
@@ -55,18 +55,18 @@ def apply_client_side_filters(data: Dict[str, Any], filters: List[Dict[str, Any]
                 if search_value in item_value_str:
                     passes = False
                     break
-        
+
         if passes:
             keep_indices.append(i)
-    
+
     # Filter the data
     filtered_data = {
         "ids": [ids[i] for i in keep_indices],
         "documents": [documents[i] for i in keep_indices if i < len(documents)],
         "metadatas": [metadatas[i] for i in keep_indices if i < len(metadatas)],
     }
-    
+
     if embeddings is not None and len(embeddings) > 0:
         filtered_data["embeddings"] = [embeddings[i] for i in keep_indices if i < len(embeddings)]
-    
+
     return filtered_data

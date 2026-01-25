@@ -1,9 +1,8 @@
 """Pinecone connection manager."""
 
-from typing import Optional, List, Dict, Any
+from typing import Any
 import time
 from pinecone import Pinecone, ServerlessSpec
-from pinecone.exceptions import PineconeException
 
 from .base_connection import VectorDBConnection
 from vector_inspector.core.logging import log_error
@@ -13,7 +12,7 @@ class PineconeConnection(VectorDBConnection):
     """Manages connection to Pinecone and provides query interface."""
 
     def __init__(
-        self, api_key: str, environment: Optional[str] = None, index_host: Optional[str] = None
+        self, api_key: str, environment: str | None = None, index_host: str | None = None
     ):
         """
         Initialize Pinecone connection.
@@ -26,9 +25,9 @@ class PineconeConnection(VectorDBConnection):
         self.api_key = api_key
         self.environment = environment
         self.index_host = index_host
-        self._client: Optional[Pinecone] = None
+        self._client: Pinecone | None = None
         self._current_index = None
-        self._current_index_name: Optional[str] = None
+        self._current_index_name: str | None = None
 
     def connect(self) -> bool:
         """
@@ -60,7 +59,7 @@ class PineconeConnection(VectorDBConnection):
         """Check if connected to Pinecone."""
         return self._client is not None
 
-    def list_collections(self) -> List[str]:
+    def list_collections(self) -> list[str]:
         """
         Get list of all indexes (collections in Pinecone terminology).
 
@@ -91,7 +90,7 @@ class PineconeConnection(VectorDBConnection):
             log_error("Failed to get index: %s", e)
             return None
 
-    def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_collection_info(self, name: str) -> dict[str, Any] | None:
         """
         Get index metadata and statistics.
 
@@ -211,10 +210,10 @@ class PineconeConnection(VectorDBConnection):
     def add_items(
         self,
         collection_name: str,
-        documents: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        documents: list[str],
+        metadatas: list[dict[str, Any]] | None = None,
+        ids: list[str] | None = None,
+        embeddings: list[list[float]] | None = None,
     ) -> bool:
         """
         Add items to an index.
@@ -266,7 +265,7 @@ class PineconeConnection(VectorDBConnection):
             log_error("Failed to add items: %s", e)
             return False
 
-    def get_items(self, name: str, ids: List[str]) -> Dict[str, Any]:
+    def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:
         """
         Retrieve items by IDs.
 
@@ -394,12 +393,12 @@ class PineconeConnection(VectorDBConnection):
     def query_collection(
         self,
         collection_name: str,
-        query_texts: Optional[List[str]] = None,
-        query_embeddings: Optional[List[List[float]]] = None,
+        query_texts: list[str] | None = None,
+        query_embeddings: list[list[float]] | None = None,
         n_results: int = 10,
-        where: Optional[Dict[str, Any]] = None,
-        where_document: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        where: dict[str, Any] | None = None,
+        where_document: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """
         Query an index for similar vectors.
 
@@ -496,7 +495,7 @@ class PineconeConnection(VectorDBConnection):
             log_error("Query failed: %s\n%s", e, traceback.format_exc())
             return None
 
-    def _convert_filter(self, where: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_filter(self, where: dict[str, Any]) -> dict[str, Any]:
         """
         Convert generic filter to Pinecone filter format.
 
@@ -519,10 +518,10 @@ class PineconeConnection(VectorDBConnection):
     def get_all_items(
         self,
         collection_name: str,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        where: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        limit: int | None = None,
+        offset: int | None = None,
+        where: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """
         Get all items from an index using pagination.
 
@@ -612,10 +611,10 @@ class PineconeConnection(VectorDBConnection):
     def update_items(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        ids: list[str],
+        documents: list[str] | None = None,
+        metadatas: list[dict[str, Any]] | None = None,
+        embeddings: list[list[float]] | None = None,
     ) -> bool:
         """
         Update items in an index.
@@ -678,8 +677,8 @@ class PineconeConnection(VectorDBConnection):
     def delete_items(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None,
+        ids: list[str] | None = None,
+        where: dict[str, Any] | None = None,
     ) -> bool:
         """
         Delete items from an index.
@@ -713,7 +712,7 @@ class PineconeConnection(VectorDBConnection):
             log_error("Failed to delete items: %s", e)
             return False
 
-    def get_connection_info(self) -> Dict[str, Any]:
+    def get_connection_info(self) -> dict[str, Any]:
         """
         Get information about the current connection.
 
@@ -732,7 +731,7 @@ class PineconeConnection(VectorDBConnection):
 
         return info
 
-    def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
+    def get_supported_filter_operators(self) -> list[dict[str, Any]]:
         """
         Get filter operators supported by Pinecone.
 

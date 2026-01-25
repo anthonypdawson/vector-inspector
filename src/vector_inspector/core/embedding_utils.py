@@ -1,6 +1,5 @@
 """Utilities for managing embedding models and vector dimensions."""
 
-from typing import Optional, Union, Tuple
 from sentence_transformers import SentenceTransformer
 from vector_inspector.core.logging import log_info
 
@@ -31,7 +30,7 @@ def _get_dimension_to_model_dict():
 DIMENSION_TO_MODEL = _get_dimension_to_model_dict()
 
 
-def get_model_for_dimension(dimension: int, prefer_multimodal: bool = True) -> Tuple[str, str]:
+def get_model_for_dimension(dimension: int, prefer_multimodal: bool = True) -> tuple[str, str]:
     """
     Get the appropriate embedding model name and type for a given vector dimension.
 
@@ -101,7 +100,7 @@ def get_available_models_for_dimension(dimension: int) -> list:
     return models
 
 
-def load_embedding_model(model_name: str, model_type: str) -> Union[SentenceTransformer, any]:
+def load_embedding_model(model_name: str, model_type: str) -> SentenceTransformer | any:
     """
     Load an embedding model (sentence-transformer or CLIP).
 
@@ -118,11 +117,10 @@ def load_embedding_model(model_name: str, model_type: str) -> Union[SentenceTran
         model = CLIPModel.from_pretrained(model_name)
         processor = CLIPProcessor.from_pretrained(model_name)
         return (model, processor)
-    else:
-        return SentenceTransformer(model_name)
+    return SentenceTransformer(model_name)
 
 
-def encode_text(text: str, model: Union[SentenceTransformer, Tuple], model_type: str) -> list:
+def encode_text(text: str, model: SentenceTransformer | tuple, model_type: str) -> list:
     """
     Encode text using the appropriate model.
 
@@ -144,15 +142,14 @@ def encode_text(text: str, model: Union[SentenceTransformer, Tuple], model_type:
         # Normalize the features (CLIP embeddings are typically normalized)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
         return text_features[0].cpu().numpy().tolist()
-    else:
-        # sentence-transformer
-        embedding = model.encode(text)
-        return embedding.tolist()
+    # sentence-transformer
+    embedding = model.encode(text)
+    return embedding.tolist()
 
 
 def get_embedding_model_for_dimension(
     dimension: int,
-) -> Tuple[Union[SentenceTransformer, Tuple], str, str]:
+) -> tuple[SentenceTransformer | tuple, str, str]:
     """
     Get a loaded embedding model for a specific dimension.
 

@@ -1,5 +1,3 @@
-from pathlib import Path
-import json
 
 from vector_inspector.services.backup_helpers import write_backup_zip
 from vector_inspector.services.backup_restore_service import BackupRestoreService

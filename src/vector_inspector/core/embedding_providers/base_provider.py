@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Union, Optional, Any
+from typing import Any
 from enum import Enum
 import numpy as np
 
@@ -29,9 +29,9 @@ class EmbeddingMetadata:
     normalization: Normalization  # none or l2
     model_type: str  # sentence-transformer, clip, openai, etc.
     source: str = "unknown"  # hf, local, custom, cloud
-    version: Optional[str] = None  # Model version if available
-    max_sequence_length: Optional[int] = None  # Maximum input length
-    description: Optional[str] = None  # Human-readable description
+    version: str | None = None  # Model version if available
+    max_sequence_length: int | None = None  # Maximum input length
+    description: str | None = None  # Human-readable description
 
 
 class EmbeddingProvider(ABC):
@@ -40,7 +40,7 @@ class EmbeddingProvider(ABC):
     Providers handle loading, encoding, and metadata extraction for embedding models.
     They implement lazy-loading to avoid UI freezes when working with large models.
     """
-    
+
     def __init__(self, model_name: str):
         """Initialize provider with a model name.
         
@@ -50,7 +50,7 @@ class EmbeddingProvider(ABC):
         self.model_name = model_name
         self._model = None  # Lazy-loaded model instance
         self._is_loaded = False
-        
+
     @abstractmethod
     def get_metadata(self) -> EmbeddingMetadata:
         """Get metadata about the embedding model.
@@ -61,11 +61,11 @@ class EmbeddingProvider(ABC):
             EmbeddingMetadata with model information
         """
         pass
-    
+
     @abstractmethod
     def encode(
-        self, 
-        inputs: Union[str, List[str], Any],
+        self,
+        inputs: str | list[str] | Any,
         normalize: bool = True,
         show_progress: bool = False
     ) -> np.ndarray:
@@ -80,7 +80,7 @@ class EmbeddingProvider(ABC):
             numpy array of embeddings, shape (n_inputs, dimension)
         """
         pass
-    
+
     def warmup(self, progress_callback=None):
         """Load and initialize the model (warm up for faster subsequent calls).
         
@@ -89,21 +89,21 @@ class EmbeddingProvider(ABC):
         """
         if self._is_loaded:
             return
-            
+
         if progress_callback:
             progress_callback(f"Loading {self.model_name}...", 0.0)
-        
+
         self._load_model()
         self._is_loaded = True
-        
+
         if progress_callback:
             progress_callback(f"Model {self.model_name} loaded", 1.0)
-    
+
     @abstractmethod
     def _load_model(self):
         """Internal method to load the actual model. Override in subclasses."""
         pass
-    
+
     def close(self):
         """Release model resources and cleanup."""
         if self._model is not None:
@@ -111,17 +111,17 @@ class EmbeddingProvider(ABC):
             del self._model
             self._model = None
             self._is_loaded = False
-    
+
     @property
     def is_loaded(self) -> bool:
         """Check if model is currently loaded in memory."""
         return self._is_loaded
-    
+
     def __enter__(self):
         """Context manager support."""
         self.warmup()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager cleanup."""
         self.close()

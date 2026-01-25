@@ -1,25 +1,22 @@
 """Service for backing up and restoring collections."""
 
-import json
-from typing import Dict, Any, Optional
 from pathlib import Path
 from datetime import datetime
-import shutil
 
-from ..core.logging import log_info, log_error, log_debug
+from ..core.logging import log_info, log_error
 from .backup_helpers import write_backup_zip, read_backup_zip, normalize_embeddings
 
 
 class BackupRestoreService:
     """Handles backup and restore operations for vector database collections."""
-    
+
     @staticmethod
     def backup_collection(
         connection,
         collection_name: str,
         backup_dir: str,
         include_embeddings: bool = True
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Backup a collection to a directory.
         
@@ -69,12 +66,12 @@ class BackupRestoreService:
         except Exception as e:
             log_error("Backup failed: %s", e)
             return None
-    
+
     @staticmethod
     def restore_collection(
         connection,
         backup_file: str,
-        collection_name: Optional[str] = None,
+        collection_name: str | None = None,
         overwrite: bool = False
     ) -> bool:
         """
@@ -99,8 +96,7 @@ class BackupRestoreService:
                 if not overwrite:
                     log_info("Collection %s already exists. Use overwrite=True to replace it.", restore_collection_name)
                     return False
-                else:
-                    connection.delete_collection(restore_collection_name)
+                connection.delete_collection(restore_collection_name)
 
             # Provider-specific preparation hook
             if hasattr(connection, "prepare_restore"):
@@ -144,7 +140,7 @@ class BackupRestoreService:
             except Exception as cleanup_error:
                 log_error("Warning: Failed to clean up collection: %s", cleanup_error)
             return False
-    
+
     @staticmethod
     def list_backups(backup_dir: str) -> list:
         """
@@ -177,7 +173,7 @@ class BackupRestoreService:
 
         backups.sort(key=lambda x: x["timestamp"], reverse=True)
         return backups
-    
+
     @staticmethod
     def delete_backup(backup_file: str) -> bool:
         """

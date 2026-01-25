@@ -1,7 +1,7 @@
 """Connection manager for handling multiple vector database connections."""
 
 import uuid
-from typing import Dict, Optional, List, Any
+from typing import Any
 from enum import Enum
 from PySide6.QtCore import QObject, Signal
 
@@ -27,7 +27,7 @@ class ConnectionInstance:
         name: str,
         provider: str,
         connection: VectorDBConnection,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ):
         """
         Initialize a connection instance.
@@ -45,9 +45,9 @@ class ConnectionInstance:
         self.connection = connection
         self.config = config
         self.state = ConnectionState.DISCONNECTED
-        self.active_collection: Optional[str] = None
-        self.collections: List[str] = []
-        self.error_message: Optional[str] = None
+        self.active_collection: str | None = None
+        self.collections: list[str] = []
+        self.error_message: str | None = None
 
     def get_display_name(self) -> str:
         """Get a display-friendly connection name."""
@@ -85,11 +85,11 @@ class ConnectionManager(QObject):
     def __init__(self):
         """Initialize the connection manager."""
         super().__init__()
-        self._connections: Dict[str, ConnectionInstance] = {}
-        self._active_connection_id: Optional[str] = None
+        self._connections: dict[str, ConnectionInstance] = {}
+        self._active_connection_id: str | None = None
 
     def create_connection(
-        self, name: str, provider: str, connection: VectorDBConnection, config: Dict[str, Any]
+        self, name: str, provider: str, connection: VectorDBConnection, config: dict[str, Any]
     ) -> str:
         """
         Create a new connection instance (not yet connected).
@@ -131,17 +131,17 @@ class ConnectionManager(QObject):
         if connection_id in self._connections:
             self.connection_opened.emit(connection_id)
 
-    def get_connection(self, connection_id: str) -> Optional[ConnectionInstance]:
+    def get_connection(self, connection_id: str) -> ConnectionInstance | None:
         """Get a connection instance by ID."""
         return self._connections.get(connection_id)
 
-    def get_active_connection(self) -> Optional[ConnectionInstance]:
+    def get_active_connection(self) -> ConnectionInstance | None:
         """Get the currently active connection instance."""
         if self._active_connection_id:
             return self._connections.get(self._active_connection_id)
         return None
 
-    def get_active_connection_id(self) -> Optional[str]:
+    def get_active_connection_id(self) -> str | None:
         """Get the currently active connection ID."""
         return self._active_connection_id
 
@@ -199,7 +199,7 @@ class ConnectionManager(QObject):
         return True
 
     def update_connection_state(
-        self, connection_id: str, state: ConnectionState, error: Optional[str] = None
+        self, connection_id: str, state: ConnectionState, error: str | None = None
     ):
         """
         Update the state of a connection.
@@ -218,7 +218,7 @@ class ConnectionManager(QObject):
                 instance.error_message = None
             self.connection_state_changed.emit(connection_id, state)
 
-    def update_collections(self, connection_id: str, collections: List[str]):
+    def update_collections(self, connection_id: str, collections: list[str]):
         """
         Update the collections list for a connection.
 
@@ -231,7 +231,7 @@ class ConnectionManager(QObject):
             instance.collections = collections
             self.collections_updated.emit(connection_id, collections)
 
-    def set_active_collection(self, connection_id: str, collection_name: Optional[str]):
+    def set_active_collection(self, connection_id: str, collection_name: str | None):
         """
         Set the active collection for a connection.
 
@@ -244,7 +244,7 @@ class ConnectionManager(QObject):
             instance.active_collection = collection_name
             self.active_collection_changed.emit(connection_id, collection_name)
 
-    def get_all_connections(self) -> List[ConnectionInstance]:
+    def get_all_connections(self) -> list[ConnectionInstance]:
         """Get list of all connection instances."""
         return list(self._connections.values())
 

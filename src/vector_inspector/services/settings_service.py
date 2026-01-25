@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any
 from vector_inspector.core.cache_manager import invalidate_cache_on_settings_change
 from vector_inspector.core.logging import log_error
 
@@ -14,14 +14,14 @@ class SettingsService:
         """Initialize settings service."""
         self.settings_dir = Path.home() / ".vector-inspector"
         self.settings_file = self.settings_dir / "settings.json"
-        self.settings: Dict[str, Any] = {}
+        self.settings: dict[str, Any] = {}
         self._load_settings()
 
     def _load_settings(self):
         """Load settings from file."""
         try:
             if self.settings_file.exists():
-                with open(self.settings_file, "r", encoding="utf-8") as f:
+                with open(self.settings_file, encoding="utf-8") as f:
                     self.settings = json.load(f)
         except Exception as e:
             log_error("Failed to load settings: %s", e)
@@ -38,11 +38,11 @@ class SettingsService:
         except Exception as e:
             log_error("Failed to save settings: %s", e)
 
-    def get_last_connection(self) -> Optional[Dict[str, Any]]:
+    def get_last_connection(self) -> dict[str, Any] | None:
         """Get the last connection configuration."""
         return self.settings.get("last_connection")
 
-    def save_last_connection(self, config: Dict[str, Any]):
+    def save_last_connection(self, config: dict[str, Any]):
         """Save the last connection configuration."""
         self.settings["last_connection"] = config
         self._save_settings()
@@ -108,7 +108,7 @@ class SettingsService:
 
     def get_embedding_model(
         self, connection_id: str, collection_name: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Get embedding model mapping for a collection.
 
         Args:
@@ -183,7 +183,7 @@ class SettingsService:
         )
         self._save_settings()
 
-    def get_custom_embedding_models(self, dimension: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_custom_embedding_models(self, dimension: int | None = None) -> list[dict[str, Any]]:
         """Get list of custom embedding models.
 
         Args:

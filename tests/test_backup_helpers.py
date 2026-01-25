@@ -1,5 +1,3 @@
-import json
-from pathlib import Path
 
 from vector_inspector.services.backup_helpers import write_backup_zip, read_backup_zip, normalize_embeddings
 

@@ -6,9 +6,9 @@ from .clip_provider import CLIPProvider
 from .provider_factory import ProviderFactory
 
 __all__ = [
-    'EmbeddingProvider',
-    'EmbeddingMetadata',
-    'SentenceTransformerProvider',
     'CLIPProvider',
+    'EmbeddingMetadata',
+    'EmbeddingProvider',
     'ProviderFactory',
+    'SentenceTransformerProvider',
 ]

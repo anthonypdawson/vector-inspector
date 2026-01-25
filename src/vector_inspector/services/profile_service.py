@@ -3,7 +3,7 @@
 import json
 import uuid
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any
 from PySide6.QtCore import QObject, Signal
 from vector_inspector.core.logging import log_error
 
@@ -18,8 +18,8 @@ class ConnectionProfile:
         profile_id: str,
         name: str,
         provider: str,
-        config: Dict[str, Any],
-        credential_fields: Optional[List[str]] = None,
+        config: dict[str, Any],
+        credential_fields: list[str] | None = None,
     ):
         """
         Initialize a connection profile.
@@ -37,7 +37,7 @@ class ConnectionProfile:
         self.config = config
         self.credential_fields = credential_fields or []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert profile to dictionary (without credentials)."""
         return {
             "id": self.id,
@@ -48,7 +48,7 @@ class ConnectionProfile:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ConnectionProfile":
+    def from_dict(cls, data: dict[str, Any]) -> "ConnectionProfile":
         """Create profile from dictionary."""
         return cls(
             profile_id=data["id"],
@@ -79,15 +79,15 @@ class ProfileService(QObject):
         self.profiles_dir = Path.home() / ".vector-inspector"
         self.profiles_file = self.profiles_dir / "profiles.json"
         self.credential_service = CredentialService()
-        self._profiles: Dict[str, ConnectionProfile] = {}
-        self._last_active_connections: List[str] = []
+        self._profiles: dict[str, ConnectionProfile] = {}
+        self._last_active_connections: list[str] = []
         self._load_profiles()
 
     def _load_profiles(self):
         """Load profiles from disk."""
         try:
             if self.profiles_file.exists():
-                with open(self.profiles_file, "r", encoding="utf-8") as f:
+                with open(self.profiles_file, encoding="utf-8") as f:
                     data = json.load(f)
 
                     # Load profiles
@@ -124,8 +124,8 @@ class ProfileService(QObject):
         self,
         name: str,
         provider: str,
-        config: Dict[str, Any],
-        credentials: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any],
+        credentials: dict[str, Any] | None = None,
     ) -> str:
         """
         Create a new connection profile.
@@ -161,20 +161,20 @@ class ProfileService(QObject):
 
         return profile_id
 
-    def get_profile(self, profile_id: str) -> Optional[ConnectionProfile]:
+    def get_profile(self, profile_id: str) -> ConnectionProfile | None:
         """Get a profile by ID."""
         return self._profiles.get(profile_id)
 
-    def get_all_profiles(self) -> List[ConnectionProfile]:
+    def get_all_profiles(self) -> list[ConnectionProfile]:
         """Get all saved profiles."""
         return list(self._profiles.values())
 
     def update_profile(
         self,
         profile_id: str,
-        name: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None,
-        credentials: Optional[Dict[str, Any]] = None,
+        name: str | None = None,
+        config: dict[str, Any] | None = None,
+        credentials: dict[str, Any] | None = None,
     ) -> bool:
         """
         Update an existing profile.
@@ -235,7 +235,7 @@ class ProfileService(QObject):
 
         return True
 
-    def duplicate_profile(self, profile_id: str, new_name: str) -> Optional[str]:
+    def duplicate_profile(self, profile_id: str, new_name: str) -> str | None:
         """
         Duplicate an existing profile.
 
@@ -263,7 +263,7 @@ class ProfileService(QObject):
 
         return new_id
 
-    def get_profile_with_credentials(self, profile_id: str) -> Optional[Dict[str, Any]]:
+    def get_profile_with_credentials(self, profile_id: str) -> dict[str, Any] | None:
         """
         Get a profile along with its credentials.
 
@@ -287,7 +287,7 @@ class ProfileService(QObject):
             "credentials": credentials or {},
         }
 
-    def export_profiles(self, include_credentials: bool = False) -> List[Dict[str, Any]]:
+    def export_profiles(self, include_credentials: bool = False) -> list[dict[str, Any]]:
         """
         Export all profiles for backup/sharing.
 
@@ -308,8 +308,8 @@ class ProfileService(QObject):
         return exported
 
     def import_profiles(
-        self, profiles_data: List[Dict[str, Any]], overwrite: bool = False
-    ) -> Dict[str, str]:
+        self, profiles_data: list[dict[str, Any]], overwrite: bool = False
+    ) -> dict[str, str]:
         """
         Import profiles from exported data.
 
@@ -354,7 +354,7 @@ class ProfileService(QObject):
 
         return id_mapping
 
-    def save_last_active_connections(self, connection_ids: List[str]):
+    def save_last_active_connections(self, connection_ids: list[str]):
         """
         Save list of last active connection profile IDs for session restore.
 
@@ -364,11 +364,11 @@ class ProfileService(QObject):
         self._last_active_connections = connection_ids
         self._save_profiles()
 
-    def get_last_active_connections(self) -> List[str]:
+    def get_last_active_connections(self) -> list[str]:
         """Get list of last active connection profile IDs."""
         return self._last_active_connections.copy()
 
-    def migrate_legacy_connection(self, config: Dict[str, Any]) -> str:
+    def migrate_legacy_connection(self, config: dict[str, Any]) -> str:
         """
         Migrate a legacy single-connection configuration to a profile.
 
@@ -392,7 +392,7 @@ class ProfileService(QObject):
 
         # Extract credentials if any
         credentials = {}
-        if "api_key" in config and config["api_key"]:
+        if config.get("api_key"):
             credentials["api_key"] = config["api_key"]
             del config["api_key"]  # Remove from config
 
