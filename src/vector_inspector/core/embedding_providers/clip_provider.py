@@ -1,6 +1,6 @@
 """CLIP embedding provider for multimodal (text + image) embeddings."""
 
-from typing import List, Union, Optional, Any
+from typing import Any
 import numpy as np
 from pathlib import Path
 
@@ -22,7 +22,7 @@ class CLIPProvider(EmbeddingProvider):
     - laion/CLIP-ViT-B-32-laion2B-s34B-b79K
     - And other CLIP-compatible models
     """
-    
+
     def __init__(self, model_name: str):
         """Initialize CLIP provider.
         
@@ -32,15 +32,15 @@ class CLIPProvider(EmbeddingProvider):
         super().__init__(model_name)
         self._processor = None
         self._metadata = None
-    
+
     def get_metadata(self) -> EmbeddingMetadata:
         """Get metadata about the CLIP model."""
         if self._metadata is not None:
             return self._metadata
-        
+
         try:
             from transformers import CLIPConfig
-            
+
             # Try to get config without loading full model
             try:
                 config = CLIPConfig.from_pretrained(self.model_name)
@@ -56,7 +56,7 @@ class CLIPProvider(EmbeddingProvider):
                 }
                 dimension = dimension_map.get(self.model_name, 512)
                 max_length = 77  # Standard CLIP text length
-            
+
             self._metadata = EmbeddingMetadata(
                 name=self.model_name,
                 dimension=dimension,
@@ -67,13 +67,13 @@ class CLIPProvider(EmbeddingProvider):
                 max_sequence_length=max_length,
                 description=f"CLIP multimodal model: {self.model_name}"
             )
-            
+
         except ImportError:
             raise ImportError(
                 "transformers library not installed. "
                 "Install with: pip install transformers"
             )
-        except Exception as e:
+        except Exception:
             # Fallback metadata
             self._metadata = EmbeddingMetadata(
                 name=self.model_name,
@@ -84,9 +84,9 @@ class CLIPProvider(EmbeddingProvider):
                 source="huggingface",
                 description=f"CLIP model: {self.model_name} (dimension not verified)"
             )
-        
+
         return self._metadata
-    
+
     def _load_model(self):
         """Load the CLIP model and processor."""
         try:
@@ -96,10 +96,10 @@ class CLIPProvider(EmbeddingProvider):
                 "transformers library not installed. "
                 "Install with: pip install transformers"
             )
-        
+
         self._model = CLIPModel.from_pretrained(self.model_name)
         self._processor = CLIPProcessor.from_pretrained(self.model_name)
-        
+
         # Move to GPU if available
         try:
             import torch
@@ -107,10 +107,10 @@ class CLIPProvider(EmbeddingProvider):
                 self._model = self._model.to('cuda')
         except ImportError:
             pass  # PyTorch not available, stay on CPU
-    
+
     def encode(
         self,
-        inputs: Union[str, List[str], Any],
+        inputs: str | list[str] | Any,
         normalize: bool = True,
         show_progress: bool = False,
         input_type: str = "text"
@@ -128,19 +128,19 @@ class CLIPProvider(EmbeddingProvider):
         """
         if not self._is_loaded:
             self.warmup()
-        
+
         try:
             import torch
         except ImportError:
             raise ImportError("PyTorch required for CLIP. Install with: pip install torch")
-        
+
         # Convert single input to list
         if isinstance(inputs, str) or not isinstance(inputs, list):
             inputs = [inputs]
-        
+
         if self._processor is None:
             raise RuntimeError("Model not loaded. Call warmup() first.")
-        
+
         with torch.no_grad():
             if input_type == "text":
                 # Process text
@@ -150,14 +150,14 @@ class CLIPProvider(EmbeddingProvider):
                     padding=True,
                     truncation=True
                 )
-                
+
                 # Move to same device as model
                 if next(self._model.parameters()).is_cuda:
                     processed = {k: v.cuda() for k, v in processed.items()}
-                
+
                 # Get text embeddings
                 embeddings = self._model.get_text_features(**processed)
-                
+
             elif input_type == "image":
                 # Load images if they're paths
                 images = []
@@ -167,35 +167,35 @@ class CLIPProvider(EmbeddingProvider):
                         images.append(Image.open(inp))
                     else:
                         images.append(inp)  # Assume already PIL Image
-                
+
                 # Process images
                 processed = self._processor(
                     images=images,
                     return_tensors="pt"
                 )
-                
+
                 # Move to same device as model
                 if next(self._model.parameters()).is_cuda:
                     processed = {k: v.cuda() for k, v in processed.items()}
-                
+
                 # Get image embeddings
                 embeddings = self._model.get_image_features(**processed)
             else:
                 raise ValueError(f"Unknown input_type: {input_type}. Use 'text' or 'image'")
-            
+
             # Convert to numpy
             embeddings = embeddings.cpu().numpy()
-            
+
             # Normalize if requested (CLIP typically normalizes, but we can ensure it)
             if normalize:
                 norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
                 embeddings = embeddings / norms
-        
+
         return embeddings
-    
+
     def encode_text(
         self,
-        texts: Union[str, List[str]],
+        texts: str | list[str],
         normalize: bool = True
     ) -> np.ndarray:
         """Encode text inputs into embeddings.
@@ -208,10 +208,10 @@ class CLIPProvider(EmbeddingProvider):
             numpy array of text embeddings
         """
         return self.encode(texts, normalize=normalize, input_type="text")
-    
+
     def encode_image(
         self,
-        images: Union[str, Path, Any, List],
+        images: str | Path | Any | list,
         normalize: bool = True
     ) -> np.ndarray:
         """Encode images into embeddings.
@@ -224,11 +224,11 @@ class CLIPProvider(EmbeddingProvider):
             numpy array of image embeddings
         """
         return self.encode(images, normalize=normalize, input_type="image")
-    
+
     def similarity(
         self,
-        query: Union[str, np.ndarray],
-        corpus: List[str],
+        query: str | np.ndarray,
+        corpus: list[str],
         query_type: str = "text",
         corpus_type: str = "text"
     ) -> np.ndarray:
@@ -245,16 +245,16 @@ class CLIPProvider(EmbeddingProvider):
         """
         if not self._is_loaded:
             self.warmup()
-        
+
         # Get embeddings
         if isinstance(query, np.ndarray):
             query_emb = query
         else:
             query_emb = self.encode(query, normalize=True, input_type=query_type)
-        
+
         corpus_emb = self.encode(corpus, normalize=True, input_type=corpus_type)
-        
+
         # Compute cosine similarity (dot product if normalized)
         similarities = np.dot(corpus_emb, query_emb.T).squeeze()
-        
+
         return similarities

@@ -1,9 +1,9 @@
 """Sample script to populate ChromaDB with test data."""
 
-import chromadb
-from chromadb.utils import embedding_functions
 import argparse
 import sys
+
+import chromadb
 
 # Embedding model used for all sample data
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -12,7 +12,6 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 def create_sample_data_chroma():
     """Create sample data for ChromaDB."""
     print("Creating sample ChromaDB data...")
-    import chromadb
     client = chromadb.PersistentClient(path="./chroma_data")
     collection = client.get_or_create_collection(
         name="sample_documents",
@@ -38,7 +37,7 @@ def create_sample_data_chroma():
 def create_sample_data_qdrant(host="localhost", port=6333, collection_name="sample_documents", vector_size=384, path: str | None = None):
     """Create sample data for Qdrant (remote or local path)."""
     from qdrant_client import QdrantClient
-    from qdrant_client.models import Distance, VectorParams, PointStruct
+    from qdrant_client.models import Distance, PointStruct, VectorParams
     from sentence_transformers import SentenceTransformer
 
     if path:
@@ -62,13 +61,13 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
         print(f"Created collection '{collection_name}' with vector size {vector_size}")
     except Exception as e:
         print(f"Collection may already exist: {e}")
-    
+
     documents, metadatas, ids = get_sample_docs()
     # Generate embeddings
     print("Generating embeddings with sentence-transformers (all-MiniLM-L6-v2)...")
     model = SentenceTransformer("all-MiniLM-L6-v2")
     embeddings = model.encode(documents, show_progress_bar=True).tolist()
-    
+
     # Build points list
     points = []
     for i in range(len(documents)):
@@ -83,7 +82,7 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
             }
         )
         points.append(point)
-    
+
     # Add to Qdrant
     print(f"Upserting {len(points)} points to Qdrant...")
     client.upsert(
@@ -92,7 +91,7 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
     )
     print(f"Added {len(documents)} documents to collection '{collection_name}'")
     print("\nYou can now:")
-    print(f"1. Run the Vector Inspector application")
+    print("1. Run the Vector Inspector application")
     if path:
         print(f"2. Connect to Qdrant (Local Path) at: {path}")
     else:
@@ -103,18 +102,19 @@ def create_sample_data_qdrant(host="localhost", port=6333, collection_name="samp
 
 def create_sample_data_pinecone(api_key: str, index_name: str = "sample-documents", environment: str | None = None):
     """Create sample data for Pinecone."""
-    from pinecone import Pinecone, ServerlessSpec
-    from sentence_transformers import SentenceTransformer
     import time
 
+    from pinecone import Pinecone, ServerlessSpec
+    from sentence_transformers import SentenceTransformer
+
     print(f"Creating sample Pinecone data in index '{index_name}'...")
-    
+
     # Initialize Pinecone
     pc = Pinecone(api_key=api_key)
-    
+
     # Check if index exists
     existing_indexes = [idx.name for idx in pc.list_indexes()]
-    
+
     if index_name not in existing_indexes:
         print(f"Creating new index '{index_name}'...")
         # Create index with 384 dimensions (all-MiniLM-L6-v2)
@@ -127,7 +127,7 @@ def create_sample_data_pinecone(api_key: str, index_name: str = "sample-document
                 region='us-east-1'
             )
         )
-        
+
         # Wait for index to be ready
         print("Waiting for index to be ready...")
         max_wait = 60
@@ -141,30 +141,30 @@ def create_sample_data_pinecone(api_key: str, index_name: str = "sample-document
         print(f"Index '{index_name}' is ready!")
     else:
         print(f"Using existing index '{index_name}'")
-    
+
     # Get index
     index = pc.Index(index_name)
-    
+
     documents, metadatas, ids = get_sample_docs()
-    
+
     # Generate embeddings
     print("Generating embeddings with sentence-transformers (all-MiniLM-L6-v2)...")
     model = SentenceTransformer("all-MiniLM-L6-v2")
     embeddings = model.encode(documents, show_progress_bar=True).tolist()
-    
+
     # Build vectors for Pinecone
     vectors = []
     for i in range(len(documents)):
         metadata = metadatas[i].copy()
         metadata['document'] = documents[i]  # Store document text in metadata
         metadata['_embedding_model'] = EMBEDDING_MODEL  # Store model used
-        
+
         vectors.append({
             'id': ids[i],
             'values': embeddings[i],
             'metadata': metadata
         })
-    
+
     # Upsert in batches of 100 (Pinecone limit)
     print(f"Upserting {len(vectors)} vectors to Pinecone...")
     batch_size = 100
@@ -172,7 +172,7 @@ def create_sample_data_pinecone(api_key: str, index_name: str = "sample-document
         batch = vectors[i:i + batch_size]
         index.upsert(vectors=batch)
         print(f"  Upserted batch {i//batch_size + 1}/{(len(vectors)-1)//batch_size + 1}")
-    
+
     # Get stats
     stats = index.describe_index_stats()
     print(f"\nAdded {len(documents)} documents to index '{index_name}'")
@@ -202,7 +202,7 @@ def get_sample_docs():
         "Bats are the only mammals capable of sustained flight.",
         "Seahorses are the only species where males give birth.",
         "Owls can rotate their heads 270 degrees.",
-        
+
         # Programming (20 docs)
         "Python is a high-level programming language.",
         "JavaScript runs in web browsers for interactive pages.",
@@ -224,7 +224,7 @@ def get_sample_docs():
         "Clojure is a modern Lisp dialect for the JVM.",
         "Dart is optimized for building mobile applications.",
         "Lua is lightweight and embeddable in applications.",
-        
+
         # AI & Machine Learning (25 docs)
         "Machine learning is a subset of artificial intelligence.",
         "Neural networks are inspired by the human brain.",
@@ -251,7 +251,7 @@ def get_sample_docs():
         "Named entity recognition extracts key information from text.",
         "Machine translation converts text between languages.",
         "Recommender systems suggest relevant items to users.",
-        
+
         # Data Science (15 docs)
         "Data science involves extracting insights from data.",
         "Pandas provides powerful data manipulation tools.",
@@ -268,7 +268,7 @@ def get_sample_docs():
         "Clustering groups similar data points together.",
         "Dimensionality reduction simplifies high-dimensional data.",
         "Statistical inference draws conclusions from samples.",
-        
+
         # Databases & Vectors (15 docs)
         "Vector databases store high-dimensional embeddings.",
         "Embeddings represent data in continuous vector spaces.",
@@ -285,7 +285,7 @@ def get_sample_docs():
         "Denormalization optimizes for read performance.",
         "Vector similarity uses cosine or euclidean distance.",
         "Approximate nearest neighbor search speeds up retrieval.",
-        
+
         # General Tech (10 docs)
         "Cloud computing provides on-demand computing resources.",
         "Microservices architecture splits applications into services.",
@@ -298,7 +298,7 @@ def get_sample_docs():
         "Agile methodology emphasizes iterative development.",
         "DevOps combines development and operations practices.",
     ]
-    
+
     metadatas = [
         # Animals
         {"category": "animals", "length": "short", "topic": "mammals"},
@@ -316,7 +316,7 @@ def get_sample_docs():
         {"category": "animals", "length": "short", "topic": "mammals"},
         {"category": "animals", "length": "short", "topic": "marine"},
         {"category": "animals", "length": "short", "topic": "birds"},
-        
+
         # Programming
         {"category": "programming", "length": "short", "topic": "languages"},
         {"category": "programming", "length": "short", "topic": "web"},
@@ -338,7 +338,7 @@ def get_sample_docs():
         {"category": "programming", "length": "short", "topic": "functional"},
         {"category": "programming", "length": "short", "topic": "mobile"},
         {"category": "programming", "length": "short", "topic": "scripting"},
-        
+
         # AI & ML
         {"category": "ai", "length": "short", "topic": "machine-learning"},
         {"category": "ai", "length": "short", "topic": "neural-networks"},
@@ -365,7 +365,7 @@ def get_sample_docs():
         {"category": "ai", "length": "short", "topic": "nlp"},
         {"category": "ai", "length": "short", "topic": "nlp"},
         {"category": "ai", "length": "short", "topic": "recommendation"},
-        
+
         # Data Science
         {"category": "data", "length": "short", "topic": "overview"},
         {"category": "data", "length": "short", "topic": "tools"},
@@ -382,7 +382,7 @@ def get_sample_docs():
         {"category": "data", "length": "short", "topic": "clustering"},
         {"category": "data", "length": "short", "topic": "dimensionality"},
         {"category": "data", "length": "short", "topic": "statistics"},
-        
+
         # Databases
         {"category": "databases", "length": "short", "topic": "vectors"},
         {"category": "vectors", "length": "short", "topic": "embeddings"},
@@ -399,7 +399,7 @@ def get_sample_docs():
         {"category": "databases", "length": "short", "topic": "design"},
         {"category": "vectors", "length": "short", "topic": "similarity"},
         {"category": "vectors", "length": "short", "topic": "search"},
-        
+
         # Tech
         {"category": "tech", "length": "short", "topic": "cloud"},
         {"category": "tech", "length": "short", "topic": "architecture"},
@@ -412,7 +412,7 @@ def get_sample_docs():
         {"category": "tech", "length": "short", "topic": "methodology"},
         {"category": "tech", "length": "short", "topic": "devops"},
     ]
-    
+
     ids = [f"doc_{i}" for i in range(len(documents))]
     return documents, metadatas, ids
 

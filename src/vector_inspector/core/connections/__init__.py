@@ -5,4 +5,4 @@ from .chroma_connection import ChromaDBConnection
 from .qdrant_connection import QdrantConnection
 from .pinecone_connection import PineconeConnection
 
-__all__ = ["VectorDBConnection", "ChromaDBConnection", "QdrantConnection", "PineconeConnection"]
+__all__ = ["ChromaDBConnection", "PineconeConnection", "QdrantConnection", "VectorDBConnection"]

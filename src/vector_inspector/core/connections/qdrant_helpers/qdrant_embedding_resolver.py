@@ -1,9 +1,8 @@
-from typing import Tuple
 
 from vector_inspector.core.embedding_utils import get_model_for_dimension, load_embedding_model, DEFAULT_MODEL
 
 
-def resolve_embedding_model(connection, collection_name: str) -> Tuple[object, str, str]:
+def resolve_embedding_model(connection, collection_name: str) -> tuple[object, str, str]:
     """Resolve an embedding model for a collection.
 
     Returns (model, model_name, model_type). This encapsulates the previous

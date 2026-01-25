@@ -1,4 +1,3 @@
-import pytest
 from vector_inspector.services.filter_service import apply_client_side_filters
 
 def sample_data():

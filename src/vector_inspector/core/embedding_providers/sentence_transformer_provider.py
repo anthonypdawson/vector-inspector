@@ -1,12 +1,11 @@
 """Sentence Transformer embedding provider with lazy loading."""
 
-from typing import List, Union, Optional
 import numpy as np
 
 from .base_provider import (
-    EmbeddingProvider, 
-    EmbeddingMetadata, 
-    Modality, 
+    EmbeddingProvider,
+    EmbeddingMetadata,
+    Modality,
     Normalization
 )
 
@@ -21,7 +20,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
     - BGE, GTE, E5 families
     - Multilingual variants
     """
-    
+
     def __init__(self, model_name: str, trust_remote_code: bool = False):
         """Initialize sentence-transformer provider.
         
@@ -32,7 +31,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
         super().__init__(model_name)
         self.trust_remote_code = trust_remote_code
         self._metadata = None
-    
+
     def get_metadata(self) -> EmbeddingMetadata:
         """Get metadata about the sentence-transformer model.
         
@@ -40,13 +39,13 @@ class SentenceTransformerProvider(EmbeddingProvider):
         """
         if self._metadata is not None:
             return self._metadata
-        
+
         # Try to get metadata without loading full model
         try:
             # Import config utilities
             from sentence_transformers import SentenceTransformer
             from transformers import AutoConfig
-            
+
             # Try to get config without loading weights
             try:
                 config = AutoConfig.from_pretrained(self.model_name)
@@ -56,14 +55,14 @@ class SentenceTransformerProvider(EmbeddingProvider):
                 # If config fails, we'll need to load the model
                 dimension = None
                 max_length = None
-            
+
             # If we couldn't get dimension from config, load model
             if dimension is None:
                 if not self._is_loaded:
                     self._load_model()
                 dimension = self._model.get_sentence_embedding_dimension()
                 max_length = self._model.max_seq_length
-            
+
             self._metadata = EmbeddingMetadata(
                 name=self.model_name,
                 dimension=int(dimension) if dimension is not None else 768,
@@ -74,14 +73,14 @@ class SentenceTransformerProvider(EmbeddingProvider):
                 max_sequence_length=max_length,
                 description=f"Sentence-Transformer model: {self.model_name}"
             )
-            
+
         except ImportError:
             # sentence-transformers not installed
             raise ImportError(
                 "sentence-transformers library not installed. "
                 "Install with: pip install sentence-transformers"
             )
-        except Exception as e:
+        except Exception:
             # Fallback metadata if we can't determine dimension
             self._metadata = EmbeddingMetadata(
                 name=self.model_name,
@@ -92,9 +91,9 @@ class SentenceTransformerProvider(EmbeddingProvider):
                 source="huggingface",
                 description=f"Sentence-Transformer model: {self.model_name} (dimension not verified)"
             )
-        
+
         return self._metadata
-    
+
     def _load_model(self):
         """Load the sentence-transformer model."""
         try:
@@ -104,16 +103,16 @@ class SentenceTransformerProvider(EmbeddingProvider):
                 "sentence-transformers library not installed. "
                 "Install with: pip install sentence-transformers"
             )
-        
+
         # Load model with optional trust_remote_code
         self._model = SentenceTransformer(
             self.model_name,
             trust_remote_code=self.trust_remote_code
         )
-    
+
     def encode(
         self,
-        inputs: Union[str, List[str]],
+        inputs: str | list[str],
         normalize: bool = True,
         show_progress: bool = False
     ) -> np.ndarray:
@@ -130,11 +129,11 @@ class SentenceTransformerProvider(EmbeddingProvider):
         # Ensure model is loaded
         if not self._is_loaded:
             self.warmup()
-        
+
         # Convert single string to list
         if isinstance(inputs, str):
             inputs = [inputs]
-        
+
         # Encode
         embeddings = self._model.encode(
             inputs,
@@ -142,12 +141,12 @@ class SentenceTransformerProvider(EmbeddingProvider):
             show_progress_bar=show_progress,
             convert_to_numpy=True
         )
-        
+
         return embeddings
-    
+
     def encode_batch(
         self,
-        inputs: List[str],
+        inputs: list[str],
         batch_size: int = 32,
         normalize: bool = True,
         show_progress: bool = True
@@ -165,7 +164,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
         """
         if not self._is_loaded:
             self.warmup()
-        
+
         embeddings = self._model.encode(
             inputs,
             batch_size=batch_size,
@@ -173,10 +172,10 @@ class SentenceTransformerProvider(EmbeddingProvider):
             show_progress_bar=show_progress,
             convert_to_numpy=True
         )
-        
+
         return embeddings
-    
-    def similarity(self, query: Union[str, np.ndarray], corpus: List[str]) -> np.ndarray:
+
+    def similarity(self, query: str | np.ndarray, corpus: list[str]) -> np.ndarray:
         """Compute similarity between query and corpus.
         
         Args:
@@ -188,16 +187,16 @@ class SentenceTransformerProvider(EmbeddingProvider):
         """
         if not self._is_loaded:
             self.warmup()
-        
+
         # Get embeddings
         if isinstance(query, str):
             query_emb = self.encode(query, normalize=True)
         else:
             query_emb = query
-        
+
         corpus_emb = self.encode(corpus, normalize=True)
-        
+
         # Compute cosine similarity (dot product if normalized)
         similarities = np.dot(corpus_emb, query_emb.T).squeeze()
-        
+
         return similarities

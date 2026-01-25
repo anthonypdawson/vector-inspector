@@ -1,13 +1,13 @@
 """Vector visualization view with dimensionality reduction."""
 
 from __future__ import annotations
-from typing import Optional, Dict, Any
+from typing import Any
 import traceback
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QComboBox, QSpinBox, QGroupBox, QMessageBox, QApplication
 )
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWebEngineWidgets import QWebEngineView
 import numpy as np
 
@@ -19,16 +19,16 @@ from vector_inspector.core.logging import log_error
 
 class VisualizationThread(QThread):
     """Background thread for dimensionality reduction."""
-    
+
     finished = Signal(np.ndarray)
     error = Signal(str)
-    
+
     def __init__(self, embeddings, method, n_components):
         super().__init__()
         self.embeddings = embeddings
         self.method = method
         self.n_components = n_components
-        
+
     def run(self):
         """Run dimensionality reduction."""
         try:
@@ -48,37 +48,37 @@ class VisualizationThread(QThread):
 
 class VisualizationView(QWidget):
     """View for visualizing vectors in 2D/3D."""
-    
+
     def __init__(self, connection: VectorDBConnection, parent=None):
         super().__init__(parent)
         self.connection = connection
         self.current_collection: str = ""
-        self.current_data: Optional[Dict[str, Any]] = None
-        self.reduced_data: Optional[np.ndarray] = None
-        self.visualization_thread: Optional[VisualizationThread] = None
-        
+        self.current_data: dict[str, Any] | None = None
+        self.reduced_data: np.ndarray | None = None
+        self.visualization_thread: VisualizationThread | None = None
+
         self._setup_ui()
-        
+
     def _setup_ui(self):
         """Setup widget UI."""
         layout = QVBoxLayout(self)
-        
+
         # Controls
         controls_group = QGroupBox("Visualization Settings")
         controls_layout = QHBoxLayout()
-        
+
         # Method selection
         controls_layout.addWidget(QLabel("Method:"))
         self.method_combo = QComboBox()
         self.method_combo.addItems(["PCA", "t-SNE", "UMAP"])
         controls_layout.addWidget(self.method_combo)
-        
+
         # Dimensions
         controls_layout.addWidget(QLabel("Dimensions:"))
         self.dimensions_combo = QComboBox()
         self.dimensions_combo.addItems(["2D", "3D"])
         controls_layout.addWidget(self.dimensions_combo)
-        
+
         # Sample size
         controls_layout.addWidget(QLabel("Sample size:"))
         self.sample_spin = QSpinBox()
@@ -87,43 +87,43 @@ class VisualizationView(QWidget):
         self.sample_spin.setValue(500)
         self.sample_spin.setSingleStep(100)
         controls_layout.addWidget(self.sample_spin)
-        
+
         controls_layout.addStretch()
-        
+
         # Generate button
         self.generate_button = QPushButton("Generate Visualization")
         self.generate_button.clicked.connect(self._generate_visualization)
         controls_layout.addWidget(self.generate_button)
-        
+
         controls_group.setLayout(controls_layout)
         layout.addWidget(controls_group)
-        
+
         # Embedded web view for Plotly
         self.web_view = QWebEngineView()
         layout.addWidget(self.web_view, stretch=10)
-        
+
         # Status
         self.status_label = QLabel("No collection selected")
         self.status_label.setStyleSheet("color: gray;")
         self.status_label.setMaximumHeight(30)
         layout.addWidget(self.status_label)
-        
+
         # Loading dialog for data fetch and reduction
         self.loading_dialog = LoadingDialog("Loading visualization...", self)
-        
+
     def set_collection(self, collection_name: str):
         """Set the current collection to visualize."""
         self.current_collection = collection_name
         self.current_data = None
         self.reduced_data = None
         self.status_label.setText(f"Collection: {collection_name}")
-        
+
     def _generate_visualization(self):
         """Generate visualization of vectors."""
         if not self.current_collection:
             QMessageBox.warning(self, "No Collection", "Please select a collection first.")
             return
-            
+
         # Load data with embeddings (show loading immediately)
         self.loading_dialog.show_loading("Loading data for visualization...")
         QApplication.processEvents()
@@ -135,7 +135,7 @@ class VisualizationView(QWidget):
             )
         finally:
             self.loading_dialog.hide_loading()
-        
+
         if data is None or not data or "embeddings" not in data or data["embeddings"] is None or len(data["embeddings"]) == 0:
             QMessageBox.warning(
                 self,
@@ -143,17 +143,17 @@ class VisualizationView(QWidget):
                 "No embeddings found in collection. Make sure the collection contains vector embeddings."
             )
             return
-            
+
         self.current_data = data
         self.status_label.setText("Reducing dimensions...")
         self.generate_button.setEnabled(False)
-        
+
         # Get parameters
         method = self.method_combo.currentText().lower()
         if method == "t-sne":
             method = "tsne"
         n_components = 2 if self.dimensions_combo.currentText() == "2D" else 3
-        
+
         # Run dimensionality reduction in background thread
         self.visualization_thread = VisualizationThread(
             data["embeddings"],
@@ -166,7 +166,7 @@ class VisualizationView(QWidget):
         self.loading_dialog.show_loading("Reducing dimensions...")
         QApplication.processEvents()
         self.visualization_thread.start()
-        
+
     def _on_reduction_finished(self, reduced_data: Any):
         """Handle dimensionality reduction completion."""
         self.loading_dialog.hide_loading()
@@ -174,7 +174,7 @@ class VisualizationView(QWidget):
         self._create_plot()
         self.generate_button.setEnabled(True)
         self.status_label.setText("Visualization complete")
-        
+
     def _on_reduction_error(self, error_msg: str):
         """Handle dimensionality reduction error."""
         self.loading_dialog.hide_loading()
@@ -182,26 +182,26 @@ class VisualizationView(QWidget):
         QMessageBox.warning(self, "Error", f"Visualization failed: {error_msg}")
         self.generate_button.setEnabled(True)
         self.status_label.setText("Visualization failed")
-        
+
     def _create_plot(self):
         """Create plotly visualization."""
         if self.reduced_data is None or self.current_data is None:
             return
-        
+
         # Lazy import plotly
         from vector_inspector.utils.lazy_imports import get_plotly
         go = get_plotly()
-            
+
         ids = self.current_data.get("ids", [])
         documents = self.current_data.get("documents", [])
         metadatas = self.current_data.get("metadatas", [])
-        
+
         # Prepare hover text
         hover_texts = []
         for i, (id_val, doc) in enumerate(zip(ids, documents)):
             doc_preview = str(doc)[:100] if doc else "No document"
             hover_texts.append(f"ID: {id_val}<br>Doc: {doc_preview}")
-        
+
         # Create plot
         if self.reduced_data.shape[1] == 2:
             # 2D plot
@@ -220,7 +220,7 @@ class VisualizationView(QWidget):
                     hoverinfo='text'
                 )
             ])
-            
+
             fig.update_layout(
                 title=f"Vector Visualization - {self.method_combo.currentText()}",
                 xaxis_title="Component 1",
@@ -247,7 +247,7 @@ class VisualizationView(QWidget):
                     hoverinfo='text'
                 )
             ])
-            
+
             fig.update_layout(
                 title=f"Vector Visualization - {self.method_combo.currentText()}",
                 scene=dict(
@@ -258,7 +258,7 @@ class VisualizationView(QWidget):
                 height=800,
                 width=1200
             )
-        
+
         # Display in embedded web view
         html = fig.to_html(include_plotlyjs='cdn')
         self.web_view.setHtml(html)

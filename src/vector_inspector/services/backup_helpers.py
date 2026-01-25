@@ -4,10 +4,10 @@ Minimal, well-tested helpers to keep `BackupRestoreService` concise.
 """
 import json
 import zipfile
-from typing import Tuple, Dict, Any
+from typing import Any
 
 
-def write_backup_zip(path, metadata: Dict[str, Any], data: Dict[str, Any]):
+def write_backup_zip(path, metadata: dict[str, Any], data: dict[str, Any]):
     """Write metadata and data into a zip file at `path`.
 
     `path` may be a pathlib.Path or string.
@@ -17,7 +17,7 @@ def write_backup_zip(path, metadata: Dict[str, Any], data: Dict[str, Any]):
         zipf.writestr('data.json', json.dumps(data, indent=2))
 
 
-def read_backup_zip(path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def read_backup_zip(path) -> tuple[dict[str, Any], dict[str, Any]]:
     """Read metadata.json and data.json from a backup zip and return them.
 
     Returns (metadata, data).
@@ -30,7 +30,7 @@ def read_backup_zip(path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return metadata, data
 
 
-def normalize_embeddings(data: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_embeddings(data: dict[str, Any]) -> dict[str, Any]:
     """Ensure embeddings in `data` are plain python lists (no numpy objects).
 
     This mutates and returns the same `data` dict for convenience.

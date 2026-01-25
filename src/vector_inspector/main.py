@@ -10,10 +10,10 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Vector Inspector")
     app.setOrganizationName("Vector Inspector")
-    
+
     window = MainWindow()
     window.show()
-    
+
     sys.exit(app.exec())
 
 

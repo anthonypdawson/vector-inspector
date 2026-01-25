@@ -1,29 +1,29 @@
 """Qdrant connection manager."""
 
-from typing import Optional, List, Dict, Any
+from typing import Any
 import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
-    Distance, VectorParams, PointStruct, 
-    Filter, FieldCondition, MatchValue, MatchText, MatchAny, MatchExcept, Range
+    Distance, VectorParams, PointStruct,
+    Filter
 )
 
 from .base_connection import VectorDBConnection
-from vector_inspector.core.logging import log_info, log_error, log_debug
+from vector_inspector.core.logging import log_info, log_error
 from vector_inspector.core.connections.qdrant_helpers.qdrant_filter_builder import build_filter
 from vector_inspector.core.connections.qdrant_helpers.qdrant_embedding_resolver import resolve_embedding_model
 
 
 class QdrantConnection(VectorDBConnection):
     """Manages connection to Qdrant and provides query interface."""
-    
+
     def __init__(
-        self, 
-        path: Optional[str] = None, 
-        url: Optional[str] = None,
-        host: Optional[str] = None, 
-        port: Optional[int] = None,
-        api_key: Optional[str] = None,
+        self,
+        path: str | None = None,
+        url: str | None = None,
+        host: str | None = None,
+        port: int | None = None,
+        api_key: str | None = None,
         prefer_grpc: bool = False
     ):
         """
@@ -43,8 +43,8 @@ class QdrantConnection(VectorDBConnection):
         self.port = port or 6333
         self.api_key = api_key
         self.prefer_grpc = prefer_grpc
-        self._client: Optional[QdrantClient] = None
-        
+        self._client: QdrantClient | None = None
+
     def connect(self) -> bool:
         """
         Establish connection to Qdrant.
@@ -58,7 +58,7 @@ class QdrantConnection(VectorDBConnection):
                 'check_compatibility': False,
                 'timeout': 300,  # 5 minutes timeout for long operations
             }
-            
+
             if self.path:
                 # Local/embedded mode
                 self._client = QdrantClient(path=self.path, **common_params)
@@ -82,14 +82,14 @@ class QdrantConnection(VectorDBConnection):
             else:
                 # Default to in-memory client
                 self._client = QdrantClient(":memory:", **common_params)
-            
+
             # Test connection
             self._client.get_collections()
             return True
         except Exception as e:
             log_error("Connection failed: %s", e)
             return False
-    
+
     def _to_uuid(self, id_str: str) -> uuid.UUID:
         """Convert a string ID to a valid UUID.
         
@@ -101,18 +101,18 @@ class QdrantConnection(VectorDBConnection):
         except (ValueError, AttributeError):
             # Generate deterministic UUID from string
             return uuid.uuid5(uuid.NAMESPACE_DNS, id_str)
-    
+
     def disconnect(self):
         """Close connection to Qdrant."""
         if self._client:
             self._client.close()
         self._client = None
-    
+
     @property
     def is_connected(self) -> bool:
         """Check if connected to Qdrant."""
         return self._client is not None
-    
+
     def count_collection(self, name: str) -> int:
         """Count the number of items in a collection."""
         if not self._client:
@@ -122,8 +122,8 @@ class QdrantConnection(VectorDBConnection):
             return getattr(res, "count", 0) or 0
         except Exception:
             return 0
-    
-    def get_items(self, name: str, ids: List[str]) -> Dict[str, Any]:
+
+    def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:
         """
         Get items by IDs (implementation for compatibility).
         
@@ -132,13 +132,13 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return {"documents": [], "metadatas": []}
-        
+
         try:
             # Retrieve by scrolling and filtering
             all_items = self.get_all_items(name, limit=1000)
             if not all_items:
                 return {"documents": [], "metadatas": []}
-            
+
             # Filter by requested IDs
             documents = []
             metadatas = []
@@ -146,13 +146,13 @@ class QdrantConnection(VectorDBConnection):
                 if item_id in ids:
                     documents.append(all_items["documents"][i])
                     metadatas.append(all_items["metadatas"][i])
-            
+
             return {"documents": documents, "metadatas": metadatas}
         except Exception as e:
             log_error("Failed to get items: %s", e)
             return {"documents": [], "metadatas": []}
-    
-    def list_collections(self) -> List[str]:
+
+    def list_collections(self) -> list[str]:
         """
         Get list of all collections.
         
@@ -167,8 +167,8 @@ class QdrantConnection(VectorDBConnection):
         except Exception as e:
             log_error("Failed to list collections: %s", e)
             return []
-    
-    def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
+
+    def get_collection_info(self, name: str) -> dict[str, Any] | None:
         """
         Get collection metadata and statistics.
         
@@ -180,11 +180,11 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return None
-        
+
         try:
             # Get collection info
             collection_info = self._client.get_collection(name)
-            
+
             # Get a sample point to determine metadata fields
             sample = self._client.scroll(
                 collection_name=name,
@@ -192,19 +192,19 @@ class QdrantConnection(VectorDBConnection):
                 with_payload=True,
                 with_vectors=False
             )
-            
+
             metadata_fields = []
             if sample[0] and len(sample[0]) > 0:
                 point = sample[0][0]
                 if point.payload:
                     # Extract metadata fields, excluding 'document' if present
                     metadata_fields = [k for k in point.payload.keys() if k != 'document']
-            
+
             # Extract vector configuration
             vector_dimension = "Unknown"
             distance_metric = "Unknown"
             config_details = {}
-            
+
             if collection_info.config:
                 # Get vector parameters
                 if hasattr(collection_info.config, 'params'):
@@ -222,7 +222,7 @@ class QdrantConnection(VectorDBConnection):
                             # Single vector config
                             vector_dimension = getattr(vectors, 'size', 'Unknown')
                             distance = getattr(vectors, 'distance', None)
-                        
+
                         # Map distance enum to readable name
                         if distance:
                             distance_str = str(distance)
@@ -236,7 +236,7 @@ class QdrantConnection(VectorDBConnection):
                                 distance_metric = "Manhattan"
                             else:
                                 distance_metric = distance_str
-                
+
                 # Get HNSW config if available
                 if hasattr(collection_info.config, 'hnsw_config'):
                     hnsw = collection_info.config.hnsw_config
@@ -244,14 +244,14 @@ class QdrantConnection(VectorDBConnection):
                         'm': getattr(hnsw, 'm', None),
                         'ef_construct': getattr(hnsw, 'ef_construct', None),
                     }
-                
+
                 # Get optimizer config if available
                 if hasattr(collection_info.config, 'optimizer_config'):
                     opt = collection_info.config.optimizer_config
                     config_details['optimizer_config'] = {
                         'indexing_threshold': getattr(opt, 'indexing_threshold', None),
                     }
-            
+
             result = {
                 "name": name,
                 "count": collection_info.points_count,
@@ -259,7 +259,7 @@ class QdrantConnection(VectorDBConnection):
                 "vector_dimension": vector_dimension,
                 "distance_metric": distance_metric,
             }
-            
+
             # Check for embedding model metadata (if collection creator stored it)
             if hasattr(collection_info.config, 'metadata') and collection_info.config.metadata:
                 metadata = collection_info.config.metadata
@@ -267,16 +267,16 @@ class QdrantConnection(VectorDBConnection):
                     result['embedding_model'] = metadata['embedding_model']
                 if 'embedding_model_type' in metadata:
                     result['embedding_model_type'] = metadata['embedding_model_type']
-            
+
             if config_details:
                 result['config'] = config_details
-            
+
             return result
-            
+
         except Exception as e:
             log_error("Failed to get collection info: %s", e)
             return None
-    
+
     def _get_embedding_model_for_collection(self, collection_name: str):
         """Delegate embedding-model selection to helper resolver."""
         try:
@@ -287,24 +287,24 @@ class QdrantConnection(VectorDBConnection):
             model_name, model_type = DEFAULT_MODEL
             model = load_embedding_model(model_name, model_type)
             return (model, model_name, model_type)
-    
-    def _build_qdrant_filter(self, where: Optional[Dict[str, Any]] = None) -> Optional[Filter]:
+
+    def _build_qdrant_filter(self, where: dict[str, Any] | None = None) -> Filter | None:
         """Delegate filter construction to helper module."""
         try:
             return build_filter(where)
         except Exception as e:
             log_error("Failed to build filter: %s", e)
             return None
-    
+
     def query_collection(
         self,
         collection_name: str,
-        query_texts: Optional[List[str]] = None,
-        query_embeddings: Optional[List[List[float]]] = None,
+        query_texts: list[str] | None = None,
+        query_embeddings: list[list[float]] | None = None,
         n_results: int = 10,
-        where: Optional[Dict[str, Any]] = None,
-        where_document: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        where: dict[str, Any] | None = None,
+        where_document: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """
         Query a collection for similar vectors.
         
@@ -321,15 +321,15 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return None
-        
+
         if not query_texts and not query_embeddings:
             log_error("Either query_texts or query_embeddings required")
             return None
-        
+
         try:
             # Build filter
             qdrant_filter = self._build_qdrant_filter(where)
-            
+
             # Perform search for each query
             all_results = {
                 "ids": [],
@@ -338,14 +338,14 @@ class QdrantConnection(VectorDBConnection):
                 "metadatas": [],
                 "embeddings": []
             }
-            
+
             # Use query_texts if provided (Qdrant handles embedding)
             queries = query_texts if query_texts else []
-            
+
             # If embeddings provided instead, use them
             if query_embeddings and not query_texts:
                 queries = query_embeddings
-            
+
             for query in queries:
                 # Embed text queries if needed
                 if isinstance(query, str):
@@ -374,47 +374,47 @@ class QdrantConnection(VectorDBConnection):
                 except Exception as e:
                     log_error("Query failed: %s", e)
                     continue
-                
+
                 # Transform results to standard format
                 ids = []
                 distances = []
                 documents = []
                 metadatas = []
                 embeddings = []
-                
+
                 for result in search_results:
                     ids.append(str(result.id))
                     distances.append(result.score)
-                    
+
                     # Extract document and metadata from payload
                     payload = result.payload or {}
                     documents.append(payload.get('document', ''))
-                    
+
                     # Metadata is everything except 'document'
                     metadata = {k: v for k, v in payload.items() if k != 'document'}
                     metadatas.append(metadata)
-                    
+
                     # Extract embedding
                     embeddings.append(result.vector if result.vector else [])
-                
+
                 all_results["ids"].append(ids)
                 all_results["distances"].append(distances)
                 all_results["documents"].append(documents)
                 all_results["metadatas"].append(metadatas)
                 all_results["embeddings"].append(embeddings)
-            
+
             return all_results
         except Exception as e:
             log_error("Query failed: %s", e)
             return None
-    
+
     def get_all_items(
         self,
         collection_name: str,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        where: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        limit: int | None = None,
+        offset: int | None = None,
+        where: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """
         Get all items from a collection.
         
@@ -429,11 +429,11 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return None
-        
+
         try:
             # Build filter
             qdrant_filter = self._build_qdrant_filter(where)
-            
+
             # Use scroll to retrieve items
             points, next_offset = self._client.scroll(
                 collection_name=collection_name,
@@ -443,30 +443,30 @@ class QdrantConnection(VectorDBConnection):
                 with_payload=True,
                 with_vectors=True
             )
-            
+
             # Transform to standard format
             ids = []
             documents = []
             metadatas = []
             embeddings = []
-            
+
             for point in points:
                 ids.append(str(point.id))
-                
+
                 payload = point.payload or {}
                 documents.append(payload.get('document', ''))
-                
+
                 # Metadata is everything except 'document'
                 metadata = {k: v for k, v in payload.items() if k != 'document'}
                 metadatas.append(metadata)
-                
+
                 # Extract embedding
                 if isinstance(point.vector, dict):
                     # Named vectors - use the first one
                     embeddings.append(list(point.vector.values())[0] if point.vector else [])
                 else:
                     embeddings.append(point.vector if point.vector else [])
-            
+
             return {
                 "ids": ids,
                 "documents": documents,
@@ -476,14 +476,14 @@ class QdrantConnection(VectorDBConnection):
         except Exception as e:
             log_error("Failed to get items: %s", e)
             return None
-    
+
     def add_items(
         self,
         collection_name: str,
-        documents: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        documents: list[str],
+        metadatas: list[dict[str, Any]] | None = None,
+        ids: list[str] | None = None,
+        embeddings: list[list[float]] | None = None,
     ) -> bool:
         """
         Add items to a collection.
@@ -500,16 +500,16 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return False
-        
+
         if not embeddings:
             log_error("Embeddings are required for Qdrant")
             return False
-        
+
         try:
             # Generate IDs if not provided
             if not ids:
                 ids = [str(uuid.uuid4()) for _ in documents]
-            
+
             # Build points
             points = []
             for i, (doc_id, document, embedding) in enumerate(zip(ids, documents, embeddings)):
@@ -517,17 +517,17 @@ class QdrantConnection(VectorDBConnection):
                 payload = {"document": document}
                 if metadatas and i < len(metadatas):
                     payload.update(metadatas[i])
-                
+
                 # Convert string ID to UUID
                 point_id = self._to_uuid(doc_id)
-                
+
                 point = PointStruct(
                     id=point_id,
                     vector=embedding,
                     payload=payload
                 )
                 points.append(point)
-            
+
             # Upsert points
             self._client.upsert(
                 collection_name=collection_name,
@@ -537,14 +537,14 @@ class QdrantConnection(VectorDBConnection):
         except Exception as e:
             log_error("Failed to add items: %s", e)
             return False
-    
+
     def update_items(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        ids: list[str],
+        documents: list[str] | None = None,
+        metadatas: list[dict[str, Any]] | None = None,
+        embeddings: list[list[float]] | None = None,
     ) -> bool:
         """
         Update items in a collection.
@@ -561,7 +561,7 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return False
-        
+
         try:
             # For Qdrant, we need to retrieve existing points, update them, and upsert
             for i, point_id in enumerate(ids):
@@ -572,43 +572,43 @@ class QdrantConnection(VectorDBConnection):
                     with_payload=True,
                     with_vectors=True
                 )
-                
+
                 if not existing:
                     continue
-                
+
                 point = existing[0]
                 payload = point.payload or {}
                 vector = point.vector
-                
+
                 # Update fields as provided
                 if documents and i < len(documents):
                     payload['document'] = documents[i]
-                
+
                 if metadatas and i < len(metadatas):
                     # Update metadata, keeping 'document' field
                     doc = payload.get('document', '')
                     payload = metadatas[i].copy()
                     payload['document'] = doc
-                
+
                 if embeddings and i < len(embeddings):
                     vector = embeddings[i]
-                
+
                 # Upsert updated point
                 self._client.upsert(
                     collection_name=collection_name,
                     points=[PointStruct(id=point_id, vector=vector, payload=payload)]
                 )
-            
+
             return True
         except Exception as e:
             log_error("Failed to update items: %s", e)
             return False
-    
+
     def delete_items(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None,
+        ids: list[str] | None = None,
+        where: dict[str, Any] | None = None,
     ) -> bool:
         """
         Delete items from a collection.
@@ -623,7 +623,7 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return False
-        
+
         try:
             if ids:
                 # Delete by IDs
@@ -643,7 +643,7 @@ class QdrantConnection(VectorDBConnection):
         except Exception as e:
             log_error("Failed to delete items: %s", e)
             return False
-    
+
     def delete_collection(self, name: str) -> bool:
         """
         Delete an entire collection.
@@ -656,17 +656,17 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return False
-        
+
         try:
             self._client.delete_collection(collection_name=name)
             return True
         except Exception as e:
             log_error("Failed to delete collection: %s", e)
             return False
-    
+
     def create_collection(
-        self, 
-        name: str, 
+        self,
+        name: str,
         vector_size: int,
         distance: str = "Cosine"
     ) -> bool:
@@ -683,7 +683,7 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return False
-        
+
         try:
             # Map distance string to Qdrant Distance enum
             distance_map = {
@@ -692,9 +692,9 @@ class QdrantConnection(VectorDBConnection):
                 "Euclidean": Distance.EUCLID,
                 "Dot": Distance.DOT,
             }
-            
+
             qdrant_distance = distance_map.get(distance, Distance.COSINE)
-            
+
             self._client.create_collection(
                 collection_name=name,
                 vectors_config=VectorParams(
@@ -707,7 +707,7 @@ class QdrantConnection(VectorDBConnection):
             log_error(f"Failed to create collection: {e}")
             return False
 
-    def prepare_restore(self, metadata: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    def prepare_restore(self, metadata: dict[str, Any], data: dict[str, Any]) -> bool:
         """Provider-specific hook invoked before restoring data.
 
         The connection can use metadata and data to pre-create collections,
@@ -783,9 +783,9 @@ class QdrantConnection(VectorDBConnection):
             log_error("prepare_restore failed: %s", e)
             return False
 
-    def get_connection_info(self) -> Dict[str, Any]:
+    def get_connection_info(self) -> dict[str, Any]:
         """Get information about the current connection."""
-        info: Dict[str, Any] = {
+        info: dict[str, Any] = {
             "provider": "Qdrant",
             "connected": self.is_connected,
         }
@@ -803,7 +803,7 @@ class QdrantConnection(VectorDBConnection):
             info["mode"] = "memory"
         return info
 
-    def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
+    def get_supported_filter_operators(self) -> list[dict[str, Any]]:
         """Get filter operators supported by Qdrant."""
         return [
             {"name": "=", "server_side": True},
