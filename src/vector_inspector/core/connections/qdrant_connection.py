@@ -9,6 +9,9 @@ from qdrant_client.models import (
 )
 
 from .base_connection import VectorDBConnection
+from vector_inspector.core.logging import log_info, log_error, log_debug
+from vector_inspector.core.connections.qdrant_helpers.qdrant_filter_builder import build_filter
+from vector_inspector.core.connections.qdrant_helpers.qdrant_embedding_resolver import resolve_embedding_model
 
 
 class QdrantConnection(VectorDBConnection):
@@ -84,7 +87,7 @@ class QdrantConnection(VectorDBConnection):
             self._client.get_collections()
             return True
         except Exception as e:
-            print(f"Connection failed: {e}")
+            log_error("Connection failed: %s", e)
             return False
     
     def _to_uuid(self, id_str: str) -> uuid.UUID:
@@ -146,7 +149,7 @@ class QdrantConnection(VectorDBConnection):
             
             return {"documents": documents, "metadatas": metadatas}
         except Exception as e:
-            print(f"Failed to get items: {e}")
+            log_error("Failed to get items: %s", e)
             return {"documents": [], "metadatas": []}
     
     def list_collections(self) -> List[str]:
@@ -162,7 +165,7 @@ class QdrantConnection(VectorDBConnection):
             collections = self._client.get_collections()
             return [col.name for col in collections.collections]
         except Exception as e:
-            print(f"Failed to list collections: {e}")
+            log_error("Failed to list collections: %s", e)
             return []
     
     def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
@@ -271,108 +274,26 @@ class QdrantConnection(VectorDBConnection):
             return result
             
         except Exception as e:
-            print(f"Failed to get collection info: {e}")
+            log_error("Failed to get collection info: %s", e)
             return None
     
     def _get_embedding_model_for_collection(self, collection_name: str):
-        """Get the appropriate embedding model for a collection based on stored metadata, settings, or dimension."""
-        from ..embedding_utils import get_model_for_dimension, load_embedding_model, DEFAULT_MODEL
-        
-        # Get collection info to determine vector dimension and check metadata
-        collection_info = self.get_collection_info(collection_name)
-        if not collection_info:
-            # Default if we can't determine
-            print(f"Warning: Could not determine collection info for {collection_name}, using default")
+        """Delegate embedding-model selection to helper resolver."""
+        try:
+            return resolve_embedding_model(self, collection_name)
+        except Exception as e:
+            log_error("Failed to resolve embedding model for %s: %s", collection_name, e)
+            from ..embedding_utils import DEFAULT_MODEL, load_embedding_model
             model_name, model_type = DEFAULT_MODEL
             model = load_embedding_model(model_name, model_type)
             return (model, model_name, model_type)
-        
-        # Priority 1: Check if collection metadata has embedding model info (most reliable)
-        if 'embedding_model' in collection_info:
-            model_name = collection_info['embedding_model']
-            model_type = collection_info.get('embedding_model_type', 'sentence-transformer')
-            print(f"Using stored embedding model '{model_name}' ({model_type}) for collection '{collection_name}'")
-            model = load_embedding_model(model_name, model_type)
-            return (model, model_name, model_type)
-        
-        # Priority 2: Check user settings for manual override (skip in connection class)
-        # Settings lookup is done in the UI layer where connection_id is available
-        
-        # Priority 3: Fall back to dimension-based guessing (least reliable)
-        vector_dim = collection_info.get("vector_dimension")
-        if not vector_dim or vector_dim == "Unknown":
-            print(f"Warning: No vector dimension in collection info, using default")
-            model_name, model_type = DEFAULT_MODEL
-            model = load_embedding_model(model_name, model_type)
-            return (model, model_name, model_type)
-        
-        # Get the appropriate model for this dimension
-        model_name, model_type = get_model_for_dimension(vector_dim)
-        model = load_embedding_model(model_name, model_type)
-        
-        print(f"⚠️ Guessing {model_type} model '{model_name}' based on dimension {vector_dim} for '{collection_name}'")
-        print(f"   To specify the correct model, use Settings > Configure Collection Embedding Models")
-        return (model, model_name, model_type)
     
     def _build_qdrant_filter(self, where: Optional[Dict[str, Any]] = None) -> Optional[Filter]:
-        """
-        Build Qdrant filter from ChromaDB-style where clause.
-        
-        Args:
-            where: ChromaDB-style filter dictionary
-            
-        Returns:
-            Qdrant Filter object or None
-        """
-        if not where:
-            return None
-        
+        """Delegate filter construction to helper module."""
         try:
-            must_conditions = []
-            must_not_conditions = []
-            
-            for key, value in where.items():
-                if isinstance(value, dict):
-                    # Handle operators like $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $contains, $not_contains
-                    for op, val in value.items():
-                        if op == "$eq":
-                            must_conditions.append(FieldCondition(key=key, match=MatchValue(value=val)))
-                        elif op == "$ne":
-                            # Use must_not for not-equal
-                            must_not_conditions.append(FieldCondition(key=key, match=MatchValue(value=val)))
-                        elif op == "$in":
-                            # Use MatchAny for IN operator (available since v1.1.0)
-                            must_conditions.append(FieldCondition(key=key, match=MatchAny(any=val)))
-                        elif op == "$nin":
-                            # Use MatchExcept for NOT IN operator (available since v1.2.0)
-                            must_conditions.append(FieldCondition(key=key, match=MatchExcept(**{"except": val})))
-                        elif op == "$contains":
-                            # Text matching in Qdrant (uses full-text index if available)
-                            must_conditions.append(FieldCondition(key=key, match=MatchText(text=str(val))))
-                        elif op == "$not_contains":
-                            # Negative text matching using must_not
-                            must_not_conditions.append(FieldCondition(key=key, match=MatchText(text=str(val))))
-                        elif op in ["$gt", "$gte", "$lt", "$lte"]:
-                            range_args = {}
-                            if op == "$gt":
-                                range_args["gt"] = val
-                            elif op == "$gte":
-                                range_args["gte"] = val
-                            elif op == "$lt":
-                                range_args["lt"] = val
-                            elif op == "$lte":
-                                range_args["lte"] = val
-                            must_conditions.append(FieldCondition(key=key, range=Range(**range_args)))
-                else:
-                    # Direct equality match
-                    must_conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
-            
-            if must_conditions or must_not_conditions:
-                return Filter(must=must_conditions if must_conditions else None, 
-                            must_not=must_not_conditions if must_not_conditions else None)
-            return None
+            return build_filter(where)
         except Exception as e:
-            print(f"Failed to build filter: {e}")
+            log_error("Failed to build filter: %s", e)
             return None
     
     def query_collection(
@@ -402,7 +323,7 @@ class QdrantConnection(VectorDBConnection):
             return None
         
         if not query_texts and not query_embeddings:
-            print("Either query_texts or query_embeddings required")
+            log_error("Either query_texts or query_embeddings required")
             return None
         
         try:
@@ -434,7 +355,7 @@ class QdrantConnection(VectorDBConnection):
                         from ..embedding_utils import encode_text
                         query_vector = encode_text(query, model, model_type)
                     except Exception as e:
-                        print(f"Failed to embed query text: {e}")
+                        log_error("Failed to embed query text: %s", e)
                         continue
                 else:
                     query_vector = query
@@ -451,7 +372,7 @@ class QdrantConnection(VectorDBConnection):
                     )
                     search_results = getattr(res, "points", res)
                 except Exception as e:
-                    print(f"Query failed: {e}")
+                    log_error("Query failed: %s", e)
                     continue
                 
                 # Transform results to standard format
@@ -484,7 +405,7 @@ class QdrantConnection(VectorDBConnection):
             
             return all_results
         except Exception as e:
-            print(f"Query failed: {e}")
+            log_error("Query failed: %s", e)
             return None
     
     def get_all_items(
@@ -553,7 +474,7 @@ class QdrantConnection(VectorDBConnection):
                 "embeddings": embeddings
             }
         except Exception as e:
-            print(f"Failed to get items: {e}")
+            log_error("Failed to get items: %s", e)
             return None
     
     def add_items(
@@ -581,7 +502,7 @@ class QdrantConnection(VectorDBConnection):
             return False
         
         if not embeddings:
-            print("Embeddings are required for Qdrant")
+            log_error("Embeddings are required for Qdrant")
             return False
         
         try:
@@ -614,7 +535,7 @@ class QdrantConnection(VectorDBConnection):
             )
             return True
         except Exception as e:
-            print(f"Failed to add items: {e}")
+            log_error("Failed to add items: %s", e)
             return False
     
     def update_items(
@@ -680,7 +601,7 @@ class QdrantConnection(VectorDBConnection):
             
             return True
         except Exception as e:
-            print(f"Failed to update items: {e}")
+            log_error("Failed to update items: %s", e)
             return False
     
     def delete_items(
@@ -720,7 +641,7 @@ class QdrantConnection(VectorDBConnection):
                     )
             return True
         except Exception as e:
-            print(f"Failed to delete items: {e}")
+            log_error("Failed to delete items: %s", e)
             return False
     
     def delete_collection(self, name: str) -> bool:
@@ -740,7 +661,7 @@ class QdrantConnection(VectorDBConnection):
             self._client.delete_collection(collection_name=name)
             return True
         except Exception as e:
-            print(f"Failed to delete collection: {e}")
+            log_error("Failed to delete collection: %s", e)
             return False
     
     def create_collection(
@@ -783,21 +704,91 @@ class QdrantConnection(VectorDBConnection):
             )
             return True
         except Exception as e:
-            print(f"Failed to create collection: {e}")
+            log_error(f"Failed to create collection: {e}")
             return False
-    
+
+    def prepare_restore(self, metadata: Dict[str, Any], data: Dict[str, Any]) -> bool:
+        """Provider-specific hook invoked before restoring data.
+
+        The connection can use metadata and data to pre-create collections,
+        normalize ids, and generate embeddings if needed. Returns True on
+        success or False on fatal failure.
+        """
+        try:
+            coll_info = metadata.get("collection_info") if metadata else None
+
+            # Prefer `vector_dimension` but fall back to older `vector_size` for compatibility
+            vector_size = None
+            if coll_info:
+                vector_size = coll_info.get("vector_dimension") or coll_info.get("vector_size")
+
+            embeddings = data.get("embeddings") if data else None
+            embeddings_present = bool(embeddings) and len(embeddings) > 0
+            if not vector_size and embeddings_present:
+                first = embeddings[0]
+                if isinstance(first, (list, tuple)):
+                    vector_size = len(first)
+
+            if not vector_size:
+                log_error("Cannot determine vector size for Qdrant collection during restore")
+                return False
+
+            # Determine distance metric (try several known keys)
+            distance = None
+            if coll_info:
+                distance = coll_info.get("distance_metric") or coll_info.get("distance")
+            distance = distance or "Cosine"
+
+            log_info("Preparing restore: collection=%s, vector_size=%s, distance=%s",
+                     metadata.get("collection_name"), vector_size, distance)
+
+            if not self.create_collection(metadata.get("collection_name"), int(vector_size), distance):
+                log_error("Failed to create collection %s", metadata.get("collection_name"))
+                return False
+
+            # Ensure IDs are strings — actual insertion will convert to UUIDs
+            if data and data.get("ids"):
+                data["ids"] = [str(i) for i in data.get("ids")]
+
+            # If embeddings present, validate their dimensionality
+            if embeddings_present:
+                for i, emb in enumerate(embeddings):
+                    if not isinstance(emb, (list, tuple)):
+                        # leave conversion to normalize_embeddings later
+                        continue
+                    if len(emb) != int(vector_size):
+                        log_error("Embedding at index %d has length %d but expected %d",
+                                  i, len(emb), int(vector_size))
+                        return False
+
+            # If embeddings missing or empty, try to generate using connection utilities
+            if not embeddings_present:
+                try:
+                    model, model_name, model_type = self._get_embedding_model_for_collection(metadata.get("collection_name"))
+                    from ..embedding_utils import encode_documents
+                    documents = data.get("documents", []) if data else []
+                    if documents:
+                        data["embeddings"] = encode_documents(documents, model, model_type)
+                        log_info("Generated %d embeddings using model %s", len(data.get("embeddings")), model_name)
+                except Exception as e:
+                    log_error("Failed to generate embeddings during prepare_restore: %s", e)
+                    return False
+
+            # Normalize coll_info key for downstream code expectations
+            if coll_info and "vector_dimension" not in coll_info:
+                coll_info["vector_dimension"] = vector_size
+
+            return True
+        except Exception as e:
+            log_error("prepare_restore failed: %s", e)
+            return False
+
     def get_connection_info(self) -> Dict[str, Any]:
-        """
-        Get information about the current connection.
-        
-        Returns:
-            Dictionary with connection details
-        """
-        info = {
+        """Get information about the current connection."""
+        info: Dict[str, Any] = {
             "provider": "Qdrant",
             "connected": self.is_connected,
         }
-        
         if self.path:
             info["mode"] = "local"
             info["path"] = self.path
@@ -810,18 +801,10 @@ class QdrantConnection(VectorDBConnection):
             info["port"] = self.port
         else:
             info["mode"] = "memory"
-        
         return info
-    
+
     def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
-        """
-        Get filter operators supported by Qdrant.
-        
-        Qdrant has richer filtering capabilities than ChromaDB.
-        
-        Returns:
-            List of operator dictionaries
-        """
+        """Get filter operators supported by Qdrant."""
         return [
             {"name": "=", "server_side": True},
             {"name": "!=", "server_side": True},
@@ -831,7 +814,7 @@ class QdrantConnection(VectorDBConnection):
             {"name": "<=", "server_side": True},
             {"name": "in", "server_side": True},
             {"name": "not in", "server_side": True},
-            # Qdrant supports text matching server-side
             {"name": "contains", "server_side": True},
             {"name": "not contains", "server_side": True},
         ]
+
