@@ -12,6 +12,7 @@ from PySide6.QtCore import QThread, Signal
 
 from vector_inspector.core.connection_manager import ConnectionManager, ConnectionInstance
 from vector_inspector.services.backup_restore_service import BackupRestoreService
+from vector_inspector.core.logging import log_info, log_error
 
 
 class MigrationThread(QThread):
@@ -111,26 +112,26 @@ class MigrationThread(QThread):
                 try:
                     if self.target_collection in self.target_conn.connection.list_collections():
                         self.progress.emit(90, "Cleaning up failed migration...")
-                        print(f"Cleaning up failed migration: deleting target collection '{self.target_collection}'")
+                        log_info("Cleaning up failed migration: deleting target collection '%s'", self.target_collection)
                         self.target_conn.connection.delete_collection(self.target_collection)
                 except Exception as cleanup_error:
-                    print(f"Warning: Failed to clean up target collection: {cleanup_error}")
+                    log_error("Warning: Failed to clean up target collection: %s", cleanup_error)
                 
                 self.finished.emit(False, "Failed to restore to target collection. Target collection cleaned up.")
         
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
-            print(f"Migration error details:\n{error_details}")
+            log_error("Migration error details:\n%s", error_details)
             
             # Clean up target collection on exception
             try:
                 if self.target_conn and self.target_conn.connection.is_connected:
                     if self.target_collection in self.target_conn.connection.list_collections():
-                        print(f"Cleaning up failed migration: deleting target collection '{self.target_collection}'")
+                        log_info("Cleaning up failed migration: deleting target collection '%s'", self.target_collection)
                         self.target_conn.connection.delete_collection(self.target_collection)
             except Exception as cleanup_error:
-                print(f"Warning: Failed to clean up target collection: {cleanup_error}")
+                    log_error("Warning: Failed to clean up target collection: %s", cleanup_error)
             
             self.finished.emit(False, f"Migration error: {str(e)}")
         

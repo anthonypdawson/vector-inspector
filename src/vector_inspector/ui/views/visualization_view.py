@@ -14,6 +14,7 @@ import numpy as np
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.services.visualization_service import VisualizationService
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
+from vector_inspector.core.logging import log_error
 
 
 class VisualizationThread(QThread):
@@ -177,7 +178,7 @@ class VisualizationView(QWidget):
     def _on_reduction_error(self, error_msg: str):
         """Handle dimensionality reduction error."""
         self.loading_dialog.hide_loading()
-        print(f"Error: Visualization failed: {error_msg}")
+        log_error("Visualization failed: %s", error_msg)
         QMessageBox.warning(self, "Error", f"Visualization failed: {error_msg}")
         self.generate_button.setEnabled(True)
         self.status_label.setText("Visualization failed")

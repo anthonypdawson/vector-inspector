@@ -13,6 +13,7 @@ from vector_inspector.ui.components.filter_builder import FilterBuilder
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
 from vector_inspector.services.filter_service import apply_client_side_filters
 from vector_inspector.core.cache_manager import get_cache_manager, CacheEntry
+from vector_inspector.core.logging import log_info
 
 
 class SearchView(QWidget):
@@ -122,12 +123,12 @@ class SearchView(QWidget):
         if database_name:  # Only update if non-empty
             self.current_database = database_name
         
-        print(f"[SearchView] Setting collection: db='{self.current_database}', coll='{collection_name}'")
+        log_info("[SearchView] Setting collection: db='%s', coll='%s'", self.current_database, collection_name)
         
         # Check cache first
         cached = self.cache_manager.get(self.current_database, self.current_collection)
         if cached:
-            print(f"[SearchView] ✓ Cache HIT! Restoring search state.")
+                log_info("[SearchView] ✓ Cache HIT! Restoring search state.")
             # Restore search query and results from cache
             if cached.search_query:
                 self.query_input.setPlainText(cached.search_query)
@@ -136,7 +137,7 @@ class SearchView(QWidget):
                 self._display_results(cached.search_results)
                 return
         
-        print(f"[SearchView] ✗ Cache MISS or no cached search.")
+        log_info("[SearchView] ✗ Cache MISS or no cached search.")
         # Not in cache, clear form
         self.search_results = None
         self.query_input.clear()
@@ -173,7 +174,7 @@ class SearchView(QWidget):
                     self.filter_builder.set_available_fields(field_names)
         except Exception as e:
             # Silently ignore errors - fields can still be typed manually
-            print(f"Note: Could not auto-populate filter fields: {e}")
+            log_info("Note: Could not auto-populate filter fields: %s", e)
         
     def _perform_search(self):
         """Perform similarity search."""

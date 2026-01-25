@@ -14,6 +14,7 @@ from vector_inspector.core.connections.chroma_connection import ChromaDBConnecti
 from vector_inspector.core.connections.qdrant_connection import QdrantConnection
 from vector_inspector.core.connections.pinecone_connection import PineconeConnection
 from vector_inspector.core.cache_manager import get_cache_manager
+from vector_inspector.core.logging import log_info
 
 
 class InfoPanel(QWidget):
@@ -254,13 +255,13 @@ class InfoPanel(QWidget):
             
             # Save to cache
             if self.current_database and self.current_collection:
-                print(f"[InfoPanel] Saving collection info to cache: db='{self.current_database}', coll='{self.current_collection}'")
+                log_info("[InfoPanel] Saving collection info to cache: db='%s', coll='%s'", self.current_database, self.current_collection)
                 self.cache_manager.update(
                     self.current_database,
                     self.current_collection,
                     user_inputs={'collection_info': collection_info}
                 )
-                print(f"[InfoPanel] ✓ Saved collection info to cache.")
+                log_info("[InfoPanel] ✓ Saved collection info to cache.")
                 
         except Exception as e:
             self._update_label(self.collection_name_label, self.current_collection)
@@ -355,17 +356,17 @@ class InfoPanel(QWidget):
             self.current_database = database_name
             self.connection_id = database_name  # database_name is the connection ID
         
-        print(f"[InfoPanel] Setting collection: db='{self.current_database}', coll='{collection_name}'")
+        log_info("[InfoPanel] Setting collection: db='%s', coll='%s'", self.current_database, collection_name)
         
         # Check cache first for collection info
         cached = self.cache_manager.get(self.current_database, self.current_collection)
         if cached and hasattr(cached, 'user_inputs') and cached.user_inputs.get('collection_info'):
-            print(f"[InfoPanel] ✓ Cache HIT! Loading collection info from cache.")
+            log_info("[InfoPanel] ✓ Cache HIT! Loading collection info from cache.")
             collection_info = cached.user_inputs['collection_info']
             self._display_collection_info(collection_info)
             return
         
-        print(f"[InfoPanel] ✗ Cache MISS. Loading collection info from database...")
+        log_info("[InfoPanel] ✗ Cache MISS. Loading collection info from database...")
         self.refresh_collection_info()
     
     def _update_label(self, row_widget: QWidget, value: str):
@@ -492,7 +493,7 @@ class InfoPanel(QWidget):
                 # Refresh display
                 self._update_embedding_model_display(collection_info)
                 
-                print(f"✓ Configured embedding model for '{self.current_collection}': {model_name} ({model_type})")
+                log_info("✓ Configured embedding model for '%s': %s (%s)", self.current_collection, model_name, model_type)
                 
         elif result == 2:  # Clear configuration
             # Remove from settings using the new SettingsService method
@@ -501,4 +502,4 @@ class InfoPanel(QWidget):
             # Refresh display
             self._update_embedding_model_display(collection_info)
             
-            print(f"✓ Cleared embedding model configuration for '{self.current_collection}'")
+            log_info("✓ Cleared embedding model configuration for '%s'", self.current_collection)

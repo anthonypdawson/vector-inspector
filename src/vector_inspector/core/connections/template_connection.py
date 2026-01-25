@@ -6,18 +6,19 @@ Implement all abstract methods according to your database's API.
 
 from typing import Optional, List, Dict, Any
 from .base_connection import VectorDBConnection
+from vector_inspector.core.logging import log_error
 
 
 class TemplateConnection(VectorDBConnection):
     """Template vector database connection.
-    
+
     Replace this with your database provider name (e.g., PineconeConnection, QdrantConnection).
     """
-    
+
     def __init__(self, **kwargs):
         """
         Initialize connection parameters.
-        
+
         Args:
             **kwargs: Provider-specific connection parameters
                       (e.g., api_key, host, port, credentials, etc.)
@@ -25,11 +26,11 @@ class TemplateConnection(VectorDBConnection):
         # Store your connection parameters here
         self._client = None
         # Add your provider-specific attributes
-        
+
     def connect(self) -> bool:
         """
         Establish connection to the vector database.
-        
+
         Returns:
             True if connection successful, False otherwise
         """
@@ -38,29 +39,29 @@ class TemplateConnection(VectorDBConnection):
             # self._client = YourDatabaseClient(...)
             return True
         except Exception as e:
-            print(f"Connection failed: {e}")
+            log_error("Connection failed: %s", e)
             return False
-    
+
     def disconnect(self):
         """Close connection to the vector database."""
         # Clean up your connection
         self._client = None
-    
+
     @property
     def is_connected(self) -> bool:
         """
         Check if connected to the vector database.
-        
+
         Returns:
             True if connected, False otherwise
         """
         # Return whether the client is active
         return self._client is not None
-    
+
     def list_collections(self) -> List[str]:
         """
         Get list of all collections/indexes.
-        
+
         Returns:
             List of collection/index names
         """
@@ -72,16 +73,16 @@ class TemplateConnection(VectorDBConnection):
             # return [col.name for col in collections]
             return []
         except Exception as e:
-            print(f"Failed to list collections: {e}")
+            log_error("Failed to list collections: %s", e)
             return []
-    
+
     def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
         """
         Get collection metadata and statistics.
-        
+
         Args:
             name: Collection/index name
-            
+
         Returns:
             Dictionary with collection info:
                 - name: Collection name
@@ -90,22 +91,22 @@ class TemplateConnection(VectorDBConnection):
         """
         if not self._client:
             return None
-        
+
         try:
             # Get collection stats from your database
             # collection = self._client.get_collection(name)
             # count = collection.count()
             # metadata_fields = collection.get_metadata_fields()
-            
+
             return {
                 "name": name,
                 "count": 0,  # Replace with actual count
                 "metadata_fields": [],  # Replace with actual fields
             }
         except Exception as e:
-            print(f"Failed to get collection info: {e}")
+            log_error("Failed to get collection info: %s", e)
             return None
-    
+
     def query_collection(
         self,
         collection_name: str,
@@ -117,7 +118,7 @@ class TemplateConnection(VectorDBConnection):
     ) -> Optional[Dict[str, Any]]:
         """
         Query a collection for similar vectors.
-        
+
         Args:
             collection_name: Name of collection to query
             query_texts: Text queries to embed and search
@@ -125,7 +126,7 @@ class TemplateConnection(VectorDBConnection):
             n_results: Number of results to return
             where: Metadata filter
             where_document: Document content filter
-            
+
         Returns:
             Query results dictionary with keys:
                 - ids: List of result IDs
@@ -136,7 +137,7 @@ class TemplateConnection(VectorDBConnection):
         """
         if not self._client:
             return None
-        
+
         try:
             # Perform similarity search
             # results = self._client.query(
@@ -145,19 +146,13 @@ class TemplateConnection(VectorDBConnection):
             #     n_results=n_results,
             #     filter=where
             # )
-            
+
             # Transform results to standard format
-            return {
-                "ids": [],
-                "distances": [],
-                "documents": [],
-                "metadatas": [],
-                "embeddings": []
-            }
+            return {"ids": [], "distances": [], "documents": [], "metadatas": [], "embeddings": []}
         except Exception as e:
-            print(f"Query failed: {e}")
+            log_error("Query failed: %s", e)
             return None
-    
+
     def get_all_items(
         self,
         collection_name: str,
@@ -167,13 +162,13 @@ class TemplateConnection(VectorDBConnection):
     ) -> Optional[Dict[str, Any]]:
         """
         Get all items from a collection.
-        
+
         Args:
             collection_name: Name of collection
             limit: Maximum number of items to return
             offset: Number of items to skip
             where: Metadata filter
-            
+
         Returns:
             Dictionary with collection items:
                 - ids: List of item IDs
@@ -183,7 +178,7 @@ class TemplateConnection(VectorDBConnection):
         """
         if not self._client:
             return None
-        
+
         try:
             # Fetch items from collection with pagination
             # results = self._client.fetch(
@@ -192,17 +187,12 @@ class TemplateConnection(VectorDBConnection):
             #     offset=offset,
             #     filter=where
             # )
-            
-            return {
-                "ids": [],
-                "documents": [],
-                "metadatas": [],
-                "embeddings": []
-            }
+
+            return {"ids": [], "documents": [], "metadatas": [], "embeddings": []}
         except Exception as e:
-            print(f"Failed to get items: {e}")
+            log_error("Failed to get items: %s", e)
             return None
-    
+
     def add_items(
         self,
         collection_name: str,
@@ -213,20 +203,20 @@ class TemplateConnection(VectorDBConnection):
     ) -> bool:
         """
         Add items to a collection.
-        
+
         Args:
             collection_name: Name of collection
             documents: Document texts
             metadatas: Metadata for each document
             ids: IDs for each document
             embeddings: Pre-computed embeddings
-            
+
         Returns:
             True if successful, False otherwise
         """
         if not self._client:
             return False
-        
+
         try:
             # Add items to the collection
             # self._client.upsert(
@@ -238,9 +228,9 @@ class TemplateConnection(VectorDBConnection):
             # )
             return True
         except Exception as e:
-            print(f"Failed to add items: {e}")
+            log_error("Failed to add items: %s", e)
             return False
-    
+
     def update_items(
         self,
         collection_name: str,
@@ -251,20 +241,20 @@ class TemplateConnection(VectorDBConnection):
     ) -> bool:
         """
         Update items in a collection.
-        
+
         Args:
             collection_name: Name of collection
             ids: IDs of items to update
             documents: New document texts
             metadatas: New metadata
             embeddings: New embeddings
-            
+
         Returns:
             True if successful, False otherwise
         """
         if not self._client:
             return False
-        
+
         try:
             # Update existing items
             # self._client.update(
@@ -276,9 +266,9 @@ class TemplateConnection(VectorDBConnection):
             # )
             return True
         except Exception as e:
-            print(f"Failed to update items: {e}")
+            log_error("Failed to update items: %s", e)
             return False
-    
+
     def delete_items(
         self,
         collection_name: str,
@@ -287,18 +277,18 @@ class TemplateConnection(VectorDBConnection):
     ) -> bool:
         """
         Delete items from a collection.
-        
+
         Args:
             collection_name: Name of collection
             ids: IDs of items to delete
             where: Metadata filter for items to delete
-            
+
         Returns:
             True if successful, False otherwise
         """
         if not self._client:
             return False
-        
+
         try:
             # Delete items
             # self._client.delete(
@@ -308,34 +298,34 @@ class TemplateConnection(VectorDBConnection):
             # )
             return True
         except Exception as e:
-            print(f"Failed to delete items: {e}")
+            log_error("Failed to delete items: %s", e)
             return False
-    
+
     def delete_collection(self, name: str) -> bool:
         """
         Delete an entire collection.
-        
+
         Args:
             name: Collection name
-            
+
         Returns:
             True if successful, False otherwise
         """
         if not self._client:
             return False
-        
+
         try:
             # Delete the collection
             # self._client.delete_collection(name)
             return True
         except Exception as e:
-            print(f"Failed to delete collection: {e}")
+            log_error("Failed to delete collection: %s", e)
             return False
-    
+
     def get_connection_info(self) -> Dict[str, Any]:
         """
         Get information about the current connection.
-        
+
         Returns:
             Dictionary with connection details
         """

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
+from vector_inspector.core.logging import log_info, log_error
 
 
 @dataclass
@@ -63,7 +64,7 @@ class EmbeddingModelRegistry:
         registry_path = Path(__file__).parent.parent / "config" / "known_embedding_models.json"
         
         if not registry_path.exists():
-            print(f"Warning: Model registry not found at {registry_path}")
+            log_info("Warning: Model registry not found at %s", registry_path)
             return
 
         try:
@@ -83,10 +84,10 @@ class EmbeddingModelRegistry:
                 # Index by name
                 self._name_index[model_info.name.lower()] = model_info
             
-            print(f"Loaded {len(self._models)} models from registry")
+            log_info("Loaded %d models from registry", len(self._models))
             #...
         except Exception as e:
-            print(f"Error loading model registry: {e}")
+            log_error("Error loading model registry: %s", e)
     
     def get_models_by_dimension(self, dimension: int) -> List[ModelInfo]:
         """Get all models for a specific dimension.

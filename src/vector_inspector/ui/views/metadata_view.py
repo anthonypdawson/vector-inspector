@@ -18,6 +18,7 @@ from vector_inspector.services.filter_service import apply_client_side_filters
 from vector_inspector.services.settings_service import SettingsService
 from vector_inspector.core.cache_manager import get_cache_manager, CacheEntry
 from PySide6.QtWidgets import QApplication
+from vector_inspector.core.logging import log_info
 
 
 class DataLoadThread(QThread):
@@ -184,13 +185,13 @@ class MetadataView(QWidget):
             self.current_database = database_name
         
         # Debug: Check cache status
-        print(f"[MetadataView] Setting collection: db='{self.current_database}', coll='{collection_name}'")
-        print(f"[MetadataView] Cache enabled: {self.cache_manager.is_enabled()}")
+        log_info("[MetadataView] Setting collection: db='%s', coll='%s'", self.current_database, collection_name)
+        log_info("[MetadataView] Cache enabled: %s", self.cache_manager.is_enabled())
         
         # Check cache first
         cached = self.cache_manager.get(self.current_database, self.current_collection)
         if cached and cached.data:
-            print(f"[MetadataView] ✓ Cache HIT! Loading from cache.")
+            log_info("[MetadataView] ✓ Cache HIT! Loading from cache.")
             # Restore from cache
             self.current_page = 0
             self.current_data = cached.data
@@ -208,7 +209,7 @@ class MetadataView(QWidget):
             self.status_label.setText(f"✓ Loaded from cache - {len(cached.data.get('ids', []))} items")
             return
         
-        print(f"[MetadataView] ✗ Cache MISS. Loading from database...")
+        log_info("[MetadataView] ✗ Cache MISS. Loading from database...")
         # Not in cache, load from database
         self.current_page = 0
         
@@ -284,16 +285,16 @@ class MetadataView(QWidget):
         
         # Save to cache
         if self.current_database and self.current_collection:
-            print(f"[MetadataView] Saving to cache: db='{self.current_database}', coll='{self.current_collection}'")
+            log_info("[MetadataView] Saving to cache: db='%s', coll='%s'", self.current_database, self.current_collection)
             cache_entry = CacheEntry(
                 data=data,
                 scroll_position=self.table.verticalScrollBar().value(),
                 search_query=self.filter_builder.to_dict() if hasattr(self.filter_builder, 'to_dict') else ""
             )
             self.cache_manager.set(self.current_database, self.current_collection, cache_entry)
-            print(f"[MetadataView] ✓ Saved to cache. Total entries: {len(self.cache_manager._cache)}")
+            log_info("[MetadataView] ✓ Saved to cache. Total entries: %d", len(self.cache_manager._cache))
         else:
-            print(f"[MetadataView] ✗ NOT saving to cache - db='{self.current_database}', coll='{self.current_collection}'")
+            log_info("[MetadataView] ✗ NOT saving to cache - db='%s', coll='%s'", self.current_database, self.current_collection)
     
     def _on_load_error(self, error_msg: str):
         """Handle error from background thread."""
