@@ -47,16 +47,50 @@ package-dir = "src"
 cmd = "python -m vector_inspector.main"
 env = { PYTHONPATH = "src" }
 
-[tool.pdm.dev-dependencies]
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[dependency-groups]
 dev = [
     "pytest>=7.4.0",
     "pytest-qt>=4.2.0",
     "black>=23.12.0",
-    "ruff>=0.1.0",
-    "mypy>=1.7.0",
+    "ruff>=0.14.14",
+    "mypy>=1.19.1",
     "ipython>=8.18.0",
 ]
 
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["build", "dist", ".venv"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "UP",
+    "B",
+    "A",
+    "C4",
+    "DTZ",
+    "T20",
+    "RET",
+    "SIM",
+    "ARG",
+    "RUF",
+]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["vector_inspector"]
