@@ -1,6 +1,5 @@
-That instinct is *exactly* right — and it’s the cleanest, most future‑proof way to support multimodal embeddings without drowning yourself in edge cases.
 
-You’re basically describing a **pluggable embedding provider** architecture, where the user can hand you a model name or path, and your tool handles everything else:
+ **Pluggable embedding provider** architecture, where the user can provide a model name or path, and vector-inspector handles everything else:
 
 - detect the model  
 - load it if local  
@@ -12,7 +11,7 @@ You’re basically describing a **pluggable embedding provider** architecture, w
 
 This is the sweet spot between “full control” and “full convenience.”
 
-Let me break down how this can work in a way that feels natural inside your tool.
+**Breakdown**
 
 ---
 
@@ -26,7 +25,7 @@ Something like:
 - `"clip-ViT-B-32"`  
 - `"/home/user/models/custom-embedder"`  
 
-Your tool then:
+vector-inspector then:
 
 1. Checks if it’s a known model  
 2. Checks if it’s installed locally  
@@ -62,12 +61,12 @@ So you can automatically determine:
 - normalization requirements  
 - expected input types  
 
-This is exactly the kind of intelligence your tool is already good at.
+This is exactly the kind of intelligence vector-inspector is already good at.
 
 ---
 
-# 🧠 3. This solves your multimodal pain cleanly  
-Right now you’re struggling because:
+# 🧠 3. This solves multimodal pain cleanly  
+Right now we are struggling because:
 
 - text models are easy  
 - image models require different preprocessing  
@@ -75,7 +74,7 @@ Right now you’re struggling because:
 - dimensionality mismatches break search  
 - users don’t know which model was used originally  
 
-Letting the user specify the model gives you:
+Letting the user specify the model gives vector-inspector:
 
 - correct dimensionality  
 - correct preprocessing  
@@ -83,12 +82,12 @@ Letting the user specify the model gives you:
 - correct normalization  
 - correct distance metric expectations  
 
-And you don’t have to hard‑code anything.
+Without having to hard‑code anything.
 
 ---
 
 # 🔥 4. This also unlocks a killer feature: **model provenance**  
-Once you know the model, you can store:
+Once we know the model, we can store:
 
 - model name  
 - model version  
@@ -98,7 +97,7 @@ Once you know the model, you can store:
 - device used  
 - timestamp  
 
-This makes your tool the first vector DB viewer that actually understands *where embeddings came from*.
+This makes vector-inspector the first vector DB viewer that actually understands *where embeddings came from*.
 
 That’s huge for debugging and migrations.
 
