@@ -6,6 +6,11 @@ on:
     paths:
       - 'pyproject.toml'
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force run all steps regardless of version change'
+        required: false
+        default: 'false'
 
 jobs:
   build-and-publish:
@@ -41,18 +46,18 @@ jobs:
         echo "Changed: $changed"
 
     - name: Set up Python
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
     - name: Install PDM
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       run: |
         pip install pdm
 
     - name: Cache PDM packages
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       uses: actions/cache@v4
       with:
         path: |
@@ -64,21 +69,21 @@ jobs:
           ${{ runner.os }}-pdm-
 
     - name: Install dependencies
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       run: |
         pdm install
 
     - name: Clean dist directory
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       run: rm -rf dist/
 
     - name: Build package
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       run: |
         pdm build
 
     - name: Create GitHub Release
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.get_version.outputs.current }}
@@ -109,7 +114,7 @@ jobs:
           For more details and troubleshooting, see the [README](https://github.com/anthonypdawson/vector-inspector#installation).
 
     - name: Publish to PyPI (Trusted Publishing)
-      if: steps.get_version.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+      if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: dist/
