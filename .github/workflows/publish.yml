@@ -11,6 +11,10 @@ on:
         description: 'Force run all steps regardless of version change'
         required: false
         default: 'false'
+      reason:
+        description: 'Release reason/notes (used as release notes)'
+        required: false
+        default: ''
 
 jobs:
   build-and-publish:
@@ -95,6 +99,8 @@ jobs:
           dist/*.tar.gz
         generate_release_notes: true
         body: |
+          ${{ github.event.inputs.reason }}
+          ${{ github.event.inputs.reason && '\n---\n' || '' }}
           ## Installation
 
           Download the `.whl` or `.tar.gz` file from the Assets section below, then install with:
