@@ -1,8 +1,12 @@
 """Main entry point for Vector Inspector application."""
 
 import sys
+import os
 from PySide6.QtWidgets import QApplication
 from vector_inspector.ui.main_window import MainWindow
+
+# Ensures the app looks in its own folder for the raw libraries
+sys.path.append(os.path.dirname(sys.executable))
 
 
 def main():
@@ -10,10 +14,10 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Vector Inspector")
     app.setOrganizationName("Vector Inspector")
-    
+
     window = MainWindow()
     window.show()
-    
+
     sys.exit(app.exec())
 
 
