@@ -10,7 +10,8 @@ on:
       force:
         description: 'Force run all steps regardless of version change'
         required: false
-        default: 'false'
+        default: false
+        type: boolean
       reason:
         description: 'Release reason/notes (used as release notes)'
         required: false
