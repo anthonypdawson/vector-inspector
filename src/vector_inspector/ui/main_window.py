@@ -1,63 +1,29 @@
 """Updated main window with multi-database support."""
 
 from PySide6.QtWidgets import (
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QSplitter,
-    QTabWidget,
-    QStatusBar,
-    QToolBar,
     QMessageBox,
-    QInputDialog,
     QLabel,
-    QDockWidget,
     QApplication,
     QDialog,
+    QToolBar,
+    QStatusBar,
 )
-from PySide6.QtCore import Qt, Signal, QTimer, QThread
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction
 
-from vector_inspector.core.connection_manager import ConnectionManager, ConnectionState
+from vector_inspector.core.connection_manager import ConnectionManager
 from vector_inspector.core.connections.base_connection import VectorDBConnection
-from vector_inspector.core.connections.chroma_connection import ChromaDBConnection
-from vector_inspector.core.connections.qdrant_connection import QdrantConnection
-from vector_inspector.core.connections.pinecone_connection import PineconeConnection
-from vector_inspector.core.connections.pgvector_connection import PgVectorConnection
 from vector_inspector.services.profile_service import ProfileService
 from vector_inspector.services.settings_service import SettingsService
+from vector_inspector.ui.main_window_shell import InspectorShell
 from vector_inspector.ui.components.connection_manager_panel import ConnectionManagerPanel
 from vector_inspector.ui.components.profile_manager_panel import ProfileManagerPanel
-from vector_inspector.ui.views.info_panel import InfoPanel
-from vector_inspector.ui.views.metadata_view import MetadataView
-from vector_inspector.ui.views.search_view import SearchView
-from vector_inspector.ui.components.loading_dialog import LoadingDialog
+from vector_inspector.ui.tabs import InspectorTabs
+from vector_inspector.ui.controllers.connection_controller import ConnectionController
+from vector_inspector.ui.services.dialog_service import DialogService
 
 
-class ConnectionThread(QThread):
-    """Background thread for connecting to database."""
-
-    finished = Signal(bool, list, str)  # success, collections, error_message
-
-    def __init__(self, connection):
-        super().__init__()
-        self.connection = connection
-
-    def run(self):
-        """Connect to database and get collections."""
-        try:
-            success = self.connection.connect()
-            if success:
-                collections = self.connection.list_collections()
-                self.finished.emit(True, collections, "")
-            else:
-                self.finished.emit(False, [], "Connection failed")
-        except Exception as e:
-            self.finished.emit(False, [], str(e))
-
-
-class MainWindow(QMainWindow):
+class MainWindow(InspectorShell):
     """Main application window with multi-database support."""
 
     def __init__(self):
@@ -67,11 +33,21 @@ class MainWindow(QMainWindow):
         self.connection_manager = ConnectionManager()
         self.profile_service = ProfileService()
         self.settings_service = SettingsService()
-        self.loading_dialog = LoadingDialog("Loading...", self)
+
+        # Controller for connection operations
+        self.connection_controller = ConnectionController(
+            self.connection_manager, self.profile_service, self
+        )
 
         # State
         self.visualization_view = None
-        self._connection_threads = {}  # Track connection threads
+
+        # View references (will be set in _setup_ui)
+        self.info_panel = None
+        self.metadata_view = None
+        self.search_view = None
+        self.connection_panel = None
+        self.profile_panel = None
 
         self.setWindowTitle("Vector Inspector")
         self.setGeometry(100, 100, 1600, 900)
@@ -101,61 +77,35 @@ class MainWindow(QMainWindow):
                 print(f"[SplashWindow] Failed to show splash: {e}")
 
     def _setup_ui(self):
-        """Setup the main UI layout."""
-        # Central widget with splitter
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
-        layout = QHBoxLayout(central_widget)
-        layout.setContentsMargins(5, 5, 5, 5)
-
-        # Main splitter (left panel | right tabs)
-        main_splitter = QSplitter(Qt.Horizontal)
-
-        # Left panel - Connections and Profiles
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Create tab widget for connections and profiles
-        self.left_tabs = QTabWidget()
-
-        # Connection manager panel
+        """Setup the main UI layout using InspectorShell."""
+        # Left panels - Connections and Profiles
         self.connection_panel = ConnectionManagerPanel(self.connection_manager)
-        self.left_tabs.addTab(self.connection_panel, "Active")
+        self.add_left_panel(self.connection_panel, "Active")
 
-        # Profile manager panel
         self.profile_panel = ProfileManagerPanel(self.profile_service)
-        self.left_tabs.addTab(self.profile_panel, "Profiles")
+        self.add_left_panel(self.profile_panel, "Profiles")
 
-        left_layout.addWidget(self.left_tabs)
+        # Main content tabs using TabRegistry
+        tab_defs = InspectorTabs.get_standard_tabs()
 
-        # Right panel - Tabbed views
-        self.tab_widget = QTabWidget()
+        for i, tab_def in enumerate(tab_defs):
+            widget = InspectorTabs.create_tab_widget(tab_def, connection=None)
+            self.add_main_tab(widget, tab_def.title)
 
-        # Create views (they'll be updated when collection changes)
-        self.info_panel = InfoPanel(None)  # Will be set later
-        self.metadata_view = MetadataView(None)  # Will be set later
-        self.search_view = SearchView(None)  # Will be set later
-
-        self.tab_widget.addTab(self.info_panel, "Info")
-        self.tab_widget.addTab(self.metadata_view, "Data Browser")
-        self.tab_widget.addTab(self.search_view, "Search")
-        self.tab_widget.addTab(QWidget(), "Visualization")  # Placeholder
+            # Store references to views (except placeholder)
+            if i == InspectorTabs.INFO_TAB:
+                self.info_panel = widget
+            elif i == InspectorTabs.DATA_TAB:
+                self.metadata_view = widget
+            elif i == InspectorTabs.SEARCH_TAB:
+                self.search_view = widget
+            # Visualization is lazy-loaded, so it's a placeholder for now
 
         # Set Info tab as default
-        self.tab_widget.setCurrentIndex(0)
+        self.set_main_tab_active(InspectorTabs.INFO_TAB)
 
         # Connect to tab change to lazy load visualization
         self.tab_widget.currentChanged.connect(self._on_tab_changed)
-
-        # Add panels to splitter
-        main_splitter.addWidget(left_panel)
-        main_splitter.addWidget(self.tab_widget)
-        main_splitter.setStretchFactor(0, 1)
-        main_splitter.setStretchFactor(1, 4)
-
-        layout.addWidget(main_splitter)
 
     def _setup_menu_bar(self):
         """Setup application menu bar."""
@@ -303,17 +253,7 @@ class MainWindow(QMainWindow):
         # Show update details dialog
         if not hasattr(self, "_latest_release"):
             return
-        from vector_inspector.ui.components.update_details_dialog import UpdateDetailsDialog
-        from vector_inspector.services.update_service import UpdateService
-
-        latest = self._latest_release
-        version = latest.get("tag_name", "?")
-        notes = latest.get("body", "")
-        instructions = UpdateService.get_update_instructions()
-        pip_cmd = instructions["pip"]
-        github_url = instructions["github"]
-        dlg = UpdateDetailsDialog(version, notes, pip_cmd, github_url, self)
-        dlg.exec()
+        DialogService.show_update_details(self._latest_release, self)
 
     def _connect_signals(self):
         """Connect signals between components."""
@@ -327,6 +267,9 @@ class MainWindow(QMainWindow):
         self.connection_manager.collections_updated.connect(self._on_collections_updated)
         self.connection_manager.connection_opened.connect(self._on_connection_opened)
 
+        # Connection controller signals
+        self.connection_controller.connection_completed.connect(self._on_connection_completed)
+
         # Connection panel signals
         self.connection_panel.collection_selected.connect(self._on_collection_selected_from_panel)
         self.connection_panel.add_connection_btn.clicked.connect(self._new_connection_from_profile)
@@ -334,9 +277,20 @@ class MainWindow(QMainWindow):
         # Profile panel signals
         self.profile_panel.connect_profile.connect(self._connect_to_profile)
 
+    def _on_connection_completed(
+        self, connection_id: str, success: bool, collections: list, error: str
+    ):
+        """Handle connection completed event from controller."""
+        if success:
+            # Switch to Active connections tab
+            self.set_left_panel_active(0)
+            self.statusBar().showMessage(
+                f"Connected successfully ({len(collections)} collections)", 5000
+            )
+
     def _on_tab_changed(self, index: int):
         """Handle tab change - lazy load visualization tab."""
-        if index == 3 and self.visualization_view is None:
+        if index == InspectorTabs.VISUALIZATION_TAB and self.visualization_view is None:
             # Lazy load visualization view
             from vector_inspector.ui.views.visualization_view import VisualizationView
 
@@ -346,9 +300,11 @@ class MainWindow(QMainWindow):
 
             self.visualization_view = VisualizationView(conn)
             # Replace placeholder with actual view
-            self.tab_widget.removeTab(3)
-            self.tab_widget.insertTab(3, self.visualization_view, "Visualization")
-            self.tab_widget.setCurrentIndex(3)
+            self.remove_main_tab(InspectorTabs.VISUALIZATION_TAB)
+            self.add_main_tab(
+                self.visualization_view, "Visualization", InspectorTabs.VISUALIZATION_TAB
+            )
+            self.set_main_tab_active(InspectorTabs.VISUALIZATION_TAB)
 
             # Set collection if one is already selected
             if active and active.active_collection:
@@ -386,20 +342,22 @@ class MainWindow(QMainWindow):
             if connection_id == self.connection_manager.get_active_connection_id():
                 # Show loading immediately when collection changes
                 if collection_name:
-                    self.loading_dialog.show_loading(f"Loading collection '{collection_name}'...")
+                    self.connection_controller.loading_dialog.show_loading(
+                        f"Loading collection '{collection_name}'..."
+                    )
                     QApplication.processEvents()
                     try:
                         self._update_views_for_collection(collection_name)
                     finally:
-                        self.loading_dialog.hide_loading()
+                        self.connection_controller.loading_dialog.hide_loading()
                 else:
                     # Clear collection from views
-                    self.loading_dialog.show_loading("Clearing collection...")
+                    self.connection_controller.loading_dialog.show_loading("Clearing collection...")
                     QApplication.processEvents()
                     try:
                         self._update_views_for_collection(None)
                     finally:
-                        self.loading_dialog.hide_loading()
+                        self.connection_controller.loading_dialog.hide_loading()
 
     def _on_collections_updated(self, connection_id: str, collections: list):
         """Handle collections list updated."""
@@ -417,7 +375,9 @@ class MainWindow(QMainWindow):
     def _on_collection_selected_from_panel(self, connection_id: str, collection_name: str):
         """Handle collection selection from connection panel."""
         # Show loading dialog while switching collections
-        self.loading_dialog.show_loading(f"Loading collection '{collection_name}'...")
+        self.connection_controller.loading_dialog.show_loading(
+            f"Loading collection '{collection_name}'..."
+        )
         QApplication.processEvents()
 
         try:
@@ -425,7 +385,7 @@ class MainWindow(QMainWindow):
             # Just update the views
             self._update_views_for_collection(collection_name)
         finally:
-            self.loading_dialog.hide_loading()
+            self.connection_controller.loading_dialog.hide_loading()
 
     def _update_views_with_connection(self, connection: VectorDBConnection):
         """Update all views with a new connection."""
@@ -464,176 +424,20 @@ class MainWindow(QMainWindow):
 
     def _new_connection_from_profile(self):
         """Show dialog to create new connection (switches to Profiles tab)."""
-        self.left_tabs.setCurrentIndex(1)  # Switch to Profiles tab
-        QMessageBox.information(
-            self,
-            "Connect to Profile",
-            "Select a profile from the list and click 'Connect', or click '+' to create a new profile.",
-        )
+        self.set_left_panel_active(1)  # Switch to Profiles tab
+        DialogService.show_profile_editor_prompt(self)
 
     def _show_profile_editor(self):
         """Show profile editor to create new profile."""
-        self.left_tabs.setCurrentIndex(1)  # Switch to Profiles tab
+        self.set_left_panel_active(1)  # Switch to Profiles tab
         self.profile_panel._create_profile()
 
     def _connect_to_profile(self, profile_id: str):
-        """Connect to a profile."""
-        profile_data = self.profile_service.get_profile_with_credentials(profile_id)
-        if not profile_data:
-            QMessageBox.warning(self, "Error", "Profile not found.")
-            return
-
-        # Check connection limit
-        if self.connection_manager.get_connection_count() >= ConnectionManager.MAX_CONNECTIONS:
-            QMessageBox.warning(
-                self,
-                "Connection Limit",
-                f"Maximum number of connections ({ConnectionManager.MAX_CONNECTIONS}) reached. "
-                "Please close a connection first.",
-            )
-            return
-
-        # Create connection
-        provider = profile_data["provider"]
-        config = profile_data["config"]
-        credentials = profile_data.get("credentials", {})
-
-        try:
-            # Create connection object
-            if provider == "chromadb":
-                connection = self._create_chroma_connection(config, credentials)
-            elif provider == "qdrant":
-                connection = self._create_qdrant_connection(config, credentials)
-            elif provider == "pinecone":
-                connection = self._create_pinecone_connection(config, credentials)
-            elif provider == "pgvector":
-                connection = self._create_pgvector_connection(config, credentials)
-            else:
-                QMessageBox.warning(self, "Error", f"Unsupported provider: {provider}")
-                return
-
-            # Register with connection manager, using profile_id as connection_id for persistence
-            connection_id = self.connection_manager.create_connection(
-                name=profile_data["name"],
-                provider=provider,
-                connection=connection,
-                config=config,
-                connection_id=profile_data["id"],
-            )
-
-            # Update state to connecting
-            self.connection_manager.update_connection_state(
-                connection_id, ConnectionState.CONNECTING
-            )
-
-            # Connect in background thread
-            thread = ConnectionThread(connection)
-            thread.finished.connect(
-                lambda success, collections, error: self._on_connection_finished(
-                    connection_id, success, collections, error
-                )
-            )
-            self._connection_threads[connection_id] = thread
-            thread.start()
-
-            # Show loading dialog
-            self.loading_dialog.show_loading(f"Connecting to {profile_data['name']}...")
-
-        except Exception as e:
-            QMessageBox.critical(self, "Connection Error", f"Failed to create connection: {e}")
-
-    def _create_chroma_connection(self, config: dict, credentials: dict) -> ChromaDBConnection:
-        """Create a ChromaDB connection."""
-        conn_type = config.get("type")
-
-        if conn_type == "persistent":
-            return ChromaDBConnection(path=config.get("path"))
-        elif conn_type == "http":
-            return ChromaDBConnection(host=config.get("host"), port=config.get("port"))
-        else:  # ephemeral
-            return ChromaDBConnection()
-
-    def _create_qdrant_connection(self, config: dict, credentials: dict) -> QdrantConnection:
-        """Create a Qdrant connection."""
-        conn_type = config.get("type")
-        api_key = credentials.get("api_key")
-
-        if conn_type == "persistent":
-            return QdrantConnection(path=config.get("path"))
-        elif conn_type == "http":
-            return QdrantConnection(
-                host=config.get("host"), port=config.get("port"), api_key=api_key
-            )
-        else:  # ephemeral
-            return QdrantConnection()
-
-    def _create_pinecone_connection(self, config: dict, credentials: dict) -> PineconeConnection:
-        """Create a Pinecone connection."""
-        api_key = credentials.get("api_key")
-        if not api_key:
-            raise ValueError("Pinecone requires an API key")
-
-        return PineconeConnection(api_key=api_key)
-
-    def _create_pgvector_connection(self, config: dict, credentials: dict) -> PgVectorConnection:
-        """Create a PgVector/Postgres connection from profile config/credentials."""
-        conn_type = config.get("type")
-
-        # We expect HTTP-style profile for pgvector (host/port + db creds)
-        if conn_type == "http":
-            host = config.get("host", "localhost")
-            port = int(config.get("port", 5432))
-            database = config.get("database")
-            user = config.get("user")
-            # Prefer password from credentials
-            password = credentials.get("password")
-
-            return PgVectorConnection(
-                host=host, port=port, database=database, user=user, password=password
-            )
-
-        raise ValueError("Unsupported connection type for PgVector profile")
-
-    def _on_connection_finished(
-        self, connection_id: str, success: bool, collections: list, error: str
-    ):
-        """Handle connection thread completion."""
-        self.loading_dialog.hide_loading()
-
-        # Clean up thread
-        thread = self._connection_threads.pop(connection_id, None)
-        if thread:
-            thread.wait()  # Wait for thread to fully finish
-            thread.deleteLater()
-
+        """Connect to a profile using the connection controller."""
+        success = self.connection_controller.connect_to_profile(profile_id)
         if success:
-            # Update state to connected
-            self.connection_manager.update_connection_state(
-                connection_id, ConnectionState.CONNECTED
-            )
-
-            # Mark connection as opened first (will show in UI)
-            self.connection_manager.mark_connection_opened(connection_id)
-
-            # Then update collections (UI item now exists to receive them)
-            self.connection_manager.update_collections(connection_id, collections)
-
-            # Switch to Active connections tab
-            self.left_tabs.setCurrentIndex(0)
-
-            self.statusBar().showMessage(
-                f"Connected successfully ({len(collections)} collections)", 5000
-            )
-        else:
-            # Update state to error
-            self.connection_manager.update_connection_state(
-                connection_id, ConnectionState.ERROR, error
-            )
-
-            QMessageBox.warning(self, "Connection Failed", f"Failed to connect: {error}")
-
-            # Remove the failed connection
-            self.connection_manager.close_connection(connection_id)
+            # Switch to Active connections tab after initiating connection
+            self.set_left_panel_active(0)
 
     def _refresh_active_connection(self):
         """Refresh collections for the active connection."""
@@ -665,13 +469,7 @@ class MainWindow(QMainWindow):
 
     def _show_about(self):
         """Show about dialog."""
-        from .main_window import get_about_html
-
-        QMessageBox.about(
-            self,
-            "About Vector Inspector",
-            get_about_html(),
-        )
+        DialogService.show_about(self)
 
     def _toggle_cache(self, checked: bool):
         """Toggle caching on/off."""
@@ -681,53 +479,25 @@ class MainWindow(QMainWindow):
 
     def _show_migration_dialog(self):
         """Show cross-database migration dialog."""
-        if self.connection_manager.get_connection_count() < 2:
-            QMessageBox.information(
-                self,
-                "Insufficient Connections",
-                "You need at least 2 active connections to migrate data.\n"
-                "Please connect to additional databases first.",
-            )
-            return
-
-        from vector_inspector.ui.dialogs.cross_db_migration import CrossDatabaseMigrationDialog
-
-        dialog = CrossDatabaseMigrationDialog(self.connection_manager, self)
-        dialog.exec()
+        DialogService.show_migration_dialog(self.connection_manager, self)
 
     def _show_backup_restore_dialog(self):
         """Show backup/restore dialog for the active collection."""
-        # Check if there's an active connection
+        # Get active connection and collection
         connection = self.connection_manager.get_active_connection()
-        if not connection:
-            QMessageBox.information(self, "No Connection", "Please connect to a database first.")
-            return
-
-        # Get active collection
         collection_name = self.connection_manager.get_active_collection()
-        if not collection_name:
-            # Allow opening dialog without a collection selected (for restore-only)
-            QMessageBox.information(
-                self,
-                "No Collection Selected",
-                "You can restore backups without a collection selected.\n"
-                "To create a backup, please select a collection first.",
-            )
 
-        from vector_inspector.ui.components.backup_restore_dialog import BackupRestoreDialog
+        # Show dialog
+        result = DialogService.show_backup_restore_dialog(connection, collection_name or "", self)
 
-        dialog = BackupRestoreDialog(connection, collection_name or "", self)
-        if dialog.exec() == QDialog.Accepted:
+        if result == QDialog.Accepted:
             # Refresh collections after restore
             self._refresh_active_connection()
 
     def closeEvent(self, event):
         """Handle application close."""
-        # Wait for all connection threads to finish
-        for thread in list(self._connection_threads.values()):
-            if thread.isRunning():
-                thread.quit()
-                thread.wait(1000)  # Wait up to 1 second
+        # Clean up connection controller
+        self.connection_controller.cleanup()
 
         # Clean up temp HTML files from visualization view
         if self.visualization_view is not None:
@@ -739,20 +509,3 @@ class MainWindow(QMainWindow):
         self.connection_manager.close_all_connections()
 
         event.accept()
-
-
-def get_about_html():
-    from vector_inspector.utils.version import get_app_version
-
-    version = get_app_version()
-    version_html = (
-        f"<h2>Vector Inspector {version}</h2>" if version else "<h2>Vector Inspector</h2>"
-    )
-    return (
-        version_html + "<p>A comprehensive desktop application for visualizing, "
-        "querying, and managing multiple vector databases simultaneously.</p>"
-        '<p><a href="https://github.com/anthonypdawson/vector-inspector" style="color:#2980b9;">GitHub Project Page</a></p>'
-        "<hr />"
-        "<p>Built with PySide6</p>"
-        "<p><b>New:</b> Pinecone support!</p>"
-    )

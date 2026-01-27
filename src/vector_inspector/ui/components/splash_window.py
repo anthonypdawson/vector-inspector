@@ -34,10 +34,22 @@ class SplashWindow(QDialog):
         layout.addWidget(github)
 
         # About info (reuse About dialog text)
-        from vector_inspector.ui.main_window import get_about_html
+        from vector_inspector.utils.version import get_app_version
 
         about = QTextBrowser()
-        about.setHtml(get_about_html())
+        version = get_app_version()
+        version_html = (
+            f"<h2>Vector Inspector {version}</h2>" if version else "<h2>Vector Inspector</h2>"
+        )
+        about_text = (
+            version_html + "<p>A comprehensive desktop application for visualizing, "
+            "querying, and managing multiple vector databases simultaneously.</p>"
+            '<p><a href="https://github.com/anthonypdawson/vector-inspector" style="color:#2980b9;">GitHub Project Page</a></p>'
+            "<hr />"
+            "<p>Built with PySide6</p>"
+            "<p><b>New:</b> Pinecone support!</p>"
+        )
+        about.setHtml(about_text)
         about.setOpenExternalLinks(True)
         about.setMaximumHeight(160)
         layout.addWidget(about)
