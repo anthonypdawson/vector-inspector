@@ -1,7 +1,6 @@
 # Latest updates
-- Added Postgres (pgvector extension) support as a new vector database connection option.
-- Fixed issue with embedding regeneration on add/edit
-- Added option for editing items without regenerating embeddings
+- Added `scripts/add_release_reason.py` and docs/RELEASE_PROCESS.md to streamline release notes and assistant-assisted entries
+- Fixed bug where data browser row disappeared post-edit
 ---
 
 
