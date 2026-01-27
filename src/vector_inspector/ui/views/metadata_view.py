@@ -780,6 +780,78 @@ class MetadataView(QWidget):
                 # compute its page and load that page while selecting the row. This
                 # ensures the edited item becomes visible even if the backend moved it.
                 try:
+                    # Quick in-place update: if the updated item is still on the
+                    # currently-visible page, update the in-memory page and
+                    # table cells and emit `dataChanged` so the view refreshes
+                    # immediately without a full reload.
+                    updated_id = updated_data.get("id")
+                    if (
+                        self.current_data
+                        and self.current_data.get("ids")
+                        and updated_id in self.current_data.get("ids", [])
+                    ):
+                        try:
+                            row_idx = self.current_data["ids"].index(updated_id)
+
+                            # Update in-memory lists
+                            if "documents" in self.current_data and row_idx < len(
+                                self.current_data["documents"]
+                            ):
+                                self.current_data["documents"][row_idx] = (
+                                    updated_data["document"] if updated_data["document"] else ""
+                                )
+                            if "metadatas" in self.current_data and row_idx < len(
+                                self.current_data["metadatas"]
+                            ):
+                                self.current_data["metadatas"][row_idx] = (
+                                    updated_data["metadata"] if updated_data["metadata"] else {}
+                                )
+
+                            # Update table cell text for document column
+                            doc_text = (
+                                str(self.current_data["documents"][row_idx])
+                                if self.current_data["documents"][row_idx]
+                                else ""
+                            )
+                            if len(doc_text) > 100:
+                                doc_text = doc_text[:100] + "..."
+                            self.table.setItem(row_idx, 1, QTableWidgetItem(doc_text))
+
+                            # Update metadata columns based on current header names
+                            metadata_keys = []
+                            for col in range(2, self.table.columnCount()):
+                                hdr = self.table.horizontalHeaderItem(col)
+                                if hdr:
+                                    metadata_keys.append(hdr.text())
+
+                            if "metadatas" in self.current_data:
+                                meta = self.current_data["metadatas"][row_idx]
+                                for col_idx, key in enumerate(metadata_keys, start=2):
+                                    value = meta.get(key, "")
+                                    self.table.setItem(
+                                        row_idx, col_idx, QTableWidgetItem(str(value))
+                                    )
+
+                            # Emit dataChanged on the underlying model so views refresh
+                            try:
+                                model = self.table.model()
+                                top = model.index(row_idx, 0)
+                                bottom = model.index(row_idx, self.table.columnCount() - 1)
+                                model.dataChanged.emit(top, bottom, [Qt.DisplayRole, Qt.EditRole])
+                            except Exception:
+                                pass
+
+                            # Restore selection/scroll and return
+                            self.table.verticalScrollBar().setValue(
+                                self.table.verticalScrollBar().value()
+                            )
+                            self.table.selectRow(row_idx)
+                            self.table.scrollToItem(self.table.item(row_idx, 0))
+                            return
+                        except Exception:
+                            # Fall through to server-side search if in-place update fails
+                            pass
+
                     server_filter = None
                     if self.filter_group.isChecked() and self.filter_builder.has_filters():
                         server_filter, _ = self.filter_builder.get_filters_split()
