@@ -489,7 +489,7 @@ class ChromaDBConnection(VectorDBConnection):
             name: Collection name
 
         Returns:
-            True if successful, False otherwise
+            True if successful or collection does not exist, False otherwise
         """
         if not self._client:
             return False
@@ -500,6 +500,9 @@ class ChromaDBConnection(VectorDBConnection):
                 self._current_collection = None
             return True
         except Exception as e:
+            # If the exception is about the collection not existing, treat as success (idempotent)
+            if "does not exist" in str(e).lower():
+                return True
             log_error("Failed to delete collection: %s", e)
             return False
 

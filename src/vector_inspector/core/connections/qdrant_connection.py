@@ -512,6 +512,19 @@ class QdrantConnection(VectorDBConnection):
         """
         if not self._client:
             return False
+        # Reject empty document lists early
+        if not documents:
+            return False
+
+        # If embeddings provided, ensure counts match
+        if embeddings is not None and len(embeddings) != len(documents):
+            log_error(
+                "Embeddings length (%d) does not match documents length (%d) for collection %s",
+                len(embeddings),
+                len(documents),
+                collection_name,
+            )
+            return False
 
         # If embeddings not provided, compute using model resolution helper
         if not embeddings and documents:
