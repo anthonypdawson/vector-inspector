@@ -5,7 +5,7 @@ import time
 from pinecone import Pinecone, ServerlessSpec
 from pinecone.exceptions import PineconeException
 
-from .base_connection import VectorDBConnection
+from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.logging import log_error
 
 
@@ -229,9 +229,15 @@ class PineconeConnection(VectorDBConnection):
         Returns:
             True if successful, False otherwise
         """
-        if not embeddings:
-            log_error("Embeddings are required for Pinecone")
-            return False
+        # If embeddings not provided, compute using base helper
+        if not embeddings and documents:
+            try:
+                embeddings = self.compute_embeddings_for_documents(
+                    collection_name, documents, getattr(self, "connection_id", None)
+                )
+            except Exception as e:
+                log_error("Embeddings are required for Pinecone and computing them failed: %s", e)
+                return False
 
         index = self._get_index(collection_name)
         if not index:
@@ -660,6 +666,20 @@ class PineconeConnection(VectorDBConnection):
 
                 # Update document
                 if documents and i < len(documents):
+                    # If embedding not supplied, compute for this updated document
+                    if (
+                        embeddings is None or i >= len(embeddings) or embeddings[i] is None
+                    ) and documents[i]:
+                        try:
+                            computed = self.compute_embeddings_for_documents(
+                                collection_name,
+                                [documents[i]],
+                                getattr(self, "connection_id", None),
+                            )
+                            if computed:
+                                values = computed[0]
+                        except Exception as e:
+                            log_error("Failed to compute embedding for Pinecone update: %s", e)
                     metadata["document"] = documents[i]
 
                 vectors.append({"id": vid, "values": values, "metadata": metadata})

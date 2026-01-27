@@ -8,7 +8,7 @@ from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
 from chromadb import Documents, EmbeddingFunction, Embeddings
 
-from .base_connection import VectorDBConnection
+from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.logging import log_info, log_error
 
 
@@ -28,7 +28,7 @@ class DimensionAwareEmbeddingFunction(EmbeddingFunction):
         if self._initialized:
             return
 
-        from ..embedding_utils import get_embedding_model_for_dimension
+        from vector_inspector.core.embedding_utils import get_embedding_model_for_dimension
 
         log_info("[ChromaDB] Loading embedding model for %dd vectors...", self.expected_dimension)
         self.model, self.model_name, self.model_type = get_embedding_model_for_dimension(
@@ -45,7 +45,7 @@ class DimensionAwareEmbeddingFunction(EmbeddingFunction):
     def __call__(self, input: Documents) -> Embeddings:
         """Embed documents using the dimension-appropriate model."""
         self._ensure_model_loaded()
-        from ..embedding_utils import encode_text
+        from vector_inspector.core.embedding_utils import encode_text
 
         embeddings = []
         for text in input:
@@ -385,6 +385,16 @@ class ChromaDBConnection(VectorDBConnection):
             return False
 
         try:
+            # If embeddings not provided, compute using collection model
+            if not embeddings and documents:
+                try:
+                    embeddings = self.compute_embeddings_for_documents(
+                        collection_name, documents, getattr(self, "connection_id", None)
+                    )
+                except Exception as e:
+                    log_error("Failed to compute embeddings for Chroma add_items: %s", e)
+                    return False
+
             collection.add(
                 documents=documents,
                 metadatas=metadatas,  # type: ignore
@@ -422,6 +432,16 @@ class ChromaDBConnection(VectorDBConnection):
             return False
 
         try:
+            # If embeddings not provided but documents changed, compute embeddings
+            if (not embeddings) and documents:
+                try:
+                    embeddings = self.compute_embeddings_for_documents(
+                        collection_name, documents, getattr(self, "connection_id", None)
+                    )
+                except Exception as e:
+                    log_error("Failed to compute embeddings for Chroma update_items: %s", e)
+                    return False
+
             collection.update(
                 ids=ids,
                 documents=documents,

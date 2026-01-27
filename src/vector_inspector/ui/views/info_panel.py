@@ -147,7 +147,7 @@ class InfoPanel(QWidget):
 
     def _clear_embedding_model(self):
         """Clear the embedding model configuration for this collection (reset to autodetect)."""
-        from ...services.settings_service import SettingsService
+        from vector_inspector.services.settings_service import SettingsService
 
         settings = SettingsService()
         settings.remove_embedding_model(self.connection_id, self.current_collection)
@@ -161,7 +161,7 @@ class InfoPanel(QWidget):
 
     def _update_clear_button_state(self):
         """Update the clear button state based on current configuration."""
-        from ...services.settings_service import SettingsService
+        from vector_inspector.services.settings_service import SettingsService
 
         if not self.connection_id or not self.current_collection:
             self.clear_embedding_btn.setEnabled(False)
@@ -445,7 +445,7 @@ class InfoPanel(QWidget):
 
     def _update_embedding_model_display(self, collection_info: Dict[str, Any]):
         """Update the embedding model label based on current configuration."""
-        from ...services.settings_service import SettingsService
+        from vector_inspector.services.settings_service import SettingsService
 
         # Check if stored in collection metadata
         # Default: disable clear button
@@ -493,14 +493,14 @@ class InfoPanel(QWidget):
             return
 
         # Show loading immediately; preparing can touch DB/registry
-        from ..components.loading_dialog import LoadingDialog
+        from vector_inspector.ui.components.loading_dialog import LoadingDialog
 
         loading = LoadingDialog("Preparing model configuration...", self)
         loading.show_loading("Preparing model configuration...")
         QApplication.processEvents()
 
-        from ..dialogs import ProviderTypeDialog, EmbeddingConfigDialog
-        from ...services.settings_service import SettingsService
+        from vector_inspector.ui.dialogs import ProviderTypeDialog, EmbeddingConfigDialog
+        from vector_inspector.services.settings_service import SettingsService
 
         # Get current collection info
         try:

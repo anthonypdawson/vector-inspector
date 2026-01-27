@@ -24,6 +24,7 @@ from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.connections.chroma_connection import ChromaDBConnection
 from vector_inspector.core.connections.qdrant_connection import QdrantConnection
 from vector_inspector.core.connections.pinecone_connection import PineconeConnection
+from vector_inspector.core.connections.pgvector_connection import PgVectorConnection
 from vector_inspector.services.profile_service import ProfileService
 from vector_inspector.services.settings_service import SettingsService
 from vector_inspector.ui.components.connection_manager_panel import ConnectionManagerPanel
@@ -433,6 +434,8 @@ class MainWindow(QMainWindow):
                 connection = self._create_qdrant_connection(config, credentials)
             elif provider == "pinecone":
                 connection = self._create_pinecone_connection(config, credentials)
+            elif provider == "pgvector":
+                connection = self._create_pgvector_connection(config, credentials)
             else:
                 QMessageBox.warning(self, "Error", f"Unsupported provider: {provider}")
                 return
@@ -499,6 +502,25 @@ class MainWindow(QMainWindow):
             raise ValueError("Pinecone requires an API key")
 
         return PineconeConnection(api_key=api_key)
+
+    def _create_pgvector_connection(self, config: dict, credentials: dict) -> PgVectorConnection:
+        """Create a PgVector/Postgres connection from profile config/credentials."""
+        conn_type = config.get("type")
+
+        # We expect HTTP-style profile for pgvector (host/port + db creds)
+        if conn_type == "http":
+            host = config.get("host", "localhost")
+            port = int(config.get("port", 5432))
+            database = config.get("database")
+            user = config.get("user")
+            # Prefer password from credentials
+            password = credentials.get("password")
+
+            return PgVectorConnection(
+                host=host, port=port, database=database, user=user, password=password
+            )
+
+        raise ValueError("Unsupported connection type for PgVector profile")
 
     def _on_connection_finished(
         self, connection_id: str, success: bool, collections: list, error: str

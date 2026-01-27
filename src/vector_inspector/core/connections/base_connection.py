@@ -261,7 +261,7 @@ class VectorDBConnection(ABC):
 
             # Finally, check user settings (for collections we can't modify)
             if connection_id:
-                from ...services.settings_service import SettingsService
+                from vector_inspector.services.settings_service import SettingsService
 
                 settings = SettingsService()
                 model_info = settings.get_embedding_model(connection_id, collection_name)
@@ -272,3 +272,88 @@ class VectorDBConnection(ABC):
         except Exception as e:
             log_error("Failed to get embedding model: %s", e)
             return None
+
+    def load_embedding_model_for_collection(
+        self, collection_name: str, connection_id: Optional[str] = None
+    ):
+        """
+        Resolve and load an embedding model for a collection.
+
+        Resolution order:
+        1. User settings (SettingsService)
+        2. Collection metadata (get_collection_info)
+        3. Dimension-based registry (embedding_utils.get_embedding_model_for_dimension)
+        4. DEFAULT_MODEL
+
+        Returns:
+            (loaded_model, model_name, model_type)
+        """
+        try:
+            from vector_inspector.services.settings_service import SettingsService
+            from vector_inspector.core.embedding_utils import (
+                load_embedding_model,
+                get_embedding_model_for_dimension,
+                DEFAULT_MODEL,
+            )
+
+            # 1) settings
+            if connection_id:
+                settings = SettingsService()
+                cfg = settings.get_embedding_model(connection_id, collection_name)
+                if cfg and cfg.get("model"):
+                    model_name = cfg.get("model")
+                    model_type = cfg.get("type", "sentence-transformer")
+                    model = load_embedding_model(model_name, model_type)
+                    return (model, model_name, model_type)
+
+            # 2) collection metadata
+            try:
+                info = self.get_collection_info(collection_name)
+            except Exception:
+                info = None
+
+            if info and info.get("embedding_model"):
+                model_name = info.get("embedding_model")
+                model_type = info.get("embedding_model_type", "sentence-transformer")
+                model = load_embedding_model(model_name, model_type)
+                return (model, model_name, model_type)
+
+            # 3) dimension based
+            if info and info.get("vector_dimension"):
+                try:
+                    dim = int(info.get("vector_dimension"))
+                    model, model_name, model_type = get_embedding_model_for_dimension(dim)
+                    return (model, model_name, model_type)
+                except Exception:
+                    pass
+
+            # 4) fallback
+            model_name, model_type = DEFAULT_MODEL
+            model = load_embedding_model(model_name, model_type)
+            return (model, model_name, model_type)
+        except Exception as e:
+            log_error("Failed to load embedding model for collection %s: %s", collection_name, e)
+            raise
+
+    def compute_embeddings_for_documents(
+        self, collection_name: str, documents: List[str], connection_id: Optional[str] = None
+    ) -> List[List[float]]:
+        """
+        Compute embeddings for a list of documents using the resolved model for the collection.
+
+        Returns a list of embedding vectors (one per document). If encoding fails,
+        raises an exception.
+        """
+        model, model_name, model_type = self.load_embedding_model_for_collection(
+            collection_name, connection_id
+        )
+
+        # Use batch encoding when available (sentence-transformer), otherwise per-doc
+        if model_type != "clip":
+            # sentence-transformer-like models support batch encode
+            return model.encode(documents, show_progress_bar=False).tolist()
+        else:
+            # CLIP - use encode_text helper for each document
+            from vector_inspector.core.embedding_utils import encode_text
+
+            return [encode_text(d, model, model_type) for d in documents]

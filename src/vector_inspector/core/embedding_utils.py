@@ -4,7 +4,7 @@ from typing import Optional, Union, Tuple
 from sentence_transformers import SentenceTransformer
 from vector_inspector.core.logging import log_info
 
-from .model_registry import get_model_registry
+from vector_inspector.core.model_registry import get_model_registry
 
 
 # Default model to use when dimension is unknown or not mapped
@@ -87,7 +87,7 @@ def get_available_models_for_dimension(dimension: int) -> list:
 
     # Add custom models from settings
     try:
-        from ..services.settings_service import SettingsService
+        from vector_inspector.services.settings_service import SettingsService
 
         settings = SettingsService()
         custom_models = settings.get_custom_embedding_models(dimension)

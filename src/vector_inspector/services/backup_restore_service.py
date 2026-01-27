@@ -6,29 +6,26 @@ from pathlib import Path
 from datetime import datetime
 import shutil
 
-from ..core.logging import log_info, log_error, log_debug
+from vector_inspector.core.logging import log_info, log_error, log_debug
 from .backup_helpers import write_backup_zip, read_backup_zip, normalize_embeddings
 
 
 class BackupRestoreService:
     """Handles backup and restore operations for vector database collections."""
-    
+
     @staticmethod
     def backup_collection(
-        connection,
-        collection_name: str,
-        backup_dir: str,
-        include_embeddings: bool = True
+        connection, collection_name: str, backup_dir: str, include_embeddings: bool = True
     ) -> Optional[str]:
         """
         Backup a collection to a directory.
-        
+
         Args:
             connection: Vector database connection
             collection_name: Name of collection to backup
             backup_dir: Directory to store backups
             include_embeddings: Whether to include embedding vectors
-            
+
         Returns:
             Path to backup file or None if failed
         """
@@ -69,23 +66,20 @@ class BackupRestoreService:
         except Exception as e:
             log_error("Backup failed: %s", e)
             return None
-    
+
     @staticmethod
     def restore_collection(
-        connection,
-        backup_file: str,
-        collection_name: Optional[str] = None,
-        overwrite: bool = False
+        connection, backup_file: str, collection_name: Optional[str] = None, overwrite: bool = False
     ) -> bool:
         """
         Restore a collection from a backup file.
-        
+
         Args:
             connection: Vector database connection
             backup_file: Path to backup zip file
             collection_name: Optional new name for restored collection
             overwrite: Whether to overwrite existing collection
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -97,7 +91,10 @@ class BackupRestoreService:
             existing_collections = connection.list_collections()
             if restore_collection_name in existing_collections:
                 if not overwrite:
-                    log_info("Collection %s already exists. Use overwrite=True to replace it.", restore_collection_name)
+                    log_info(
+                        "Collection %s already exists. Use overwrite=True to replace it.",
+                        restore_collection_name,
+                    )
                     return False
                 else:
                     connection.delete_collection(restore_collection_name)
@@ -129,7 +126,10 @@ class BackupRestoreService:
             log_error("Failed to restore collection %s", restore_collection_name)
             try:
                 if restore_collection_name in connection.list_collections():
-                    log_info("Cleaning up failed restore: deleting collection '%s'", restore_collection_name)
+                    log_info(
+                        "Cleaning up failed restore: deleting collection '%s'",
+                        restore_collection_name,
+                    )
                     connection.delete_collection(restore_collection_name)
             except Exception as cleanup_error:
                 log_error("Warning: Failed to clean up collection: %s", cleanup_error)
@@ -138,21 +138,27 @@ class BackupRestoreService:
         except Exception as e:
             log_error("Restore failed: %s", e)
             try:
-                if restore_collection_name and restore_collection_name in connection.list_collections():
-                    log_info("Cleaning up failed restore: deleting collection '%s'", restore_collection_name)
+                if (
+                    restore_collection_name
+                    and restore_collection_name in connection.list_collections()
+                ):
+                    log_info(
+                        "Cleaning up failed restore: deleting collection '%s'",
+                        restore_collection_name,
+                    )
                     connection.delete_collection(restore_collection_name)
             except Exception as cleanup_error:
                 log_error("Warning: Failed to clean up collection: %s", cleanup_error)
             return False
-    
+
     @staticmethod
     def list_backups(backup_dir: str) -> list:
         """
         List all backup files in a directory.
-        
+
         Args:
             backup_dir: Directory containing backups
-            
+
         Returns:
             List of backup file information dictionaries
         """
@@ -164,28 +170,30 @@ class BackupRestoreService:
         for backup_file in backup_path.glob("*_backup_*.zip"):
             try:
                 metadata, _ = read_backup_zip(backup_file)
-                backups.append({
-                    "file_path": str(backup_file),
-                    "file_name": backup_file.name,
-                    "collection_name": metadata.get("collection_name", "Unknown"),
-                    "timestamp": metadata.get("backup_timestamp", "Unknown"),
-                    "item_count": metadata.get("item_count", 0),
-                    "file_size": backup_file.stat().st_size,
-                })
+                backups.append(
+                    {
+                        "file_path": str(backup_file),
+                        "file_name": backup_file.name,
+                        "collection_name": metadata.get("collection_name", "Unknown"),
+                        "timestamp": metadata.get("backup_timestamp", "Unknown"),
+                        "item_count": metadata.get("item_count", 0),
+                        "file_size": backup_file.stat().st_size,
+                    }
+                )
             except Exception:
                 continue
 
         backups.sort(key=lambda x: x["timestamp"], reverse=True)
         return backups
-    
+
     @staticmethod
     def delete_backup(backup_file: str) -> bool:
         """
         Delete a backup file.
-        
+
         Args:
             backup_file: Path to backup file to delete
-            
+
         Returns:
             True if successful, False otherwise
         """
