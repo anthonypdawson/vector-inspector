@@ -64,3 +64,42 @@ class TableContextMenuHook:
 
 # Global singleton instance
 table_context_menu_hook = TableContextMenuHook()
+
+
+class SettingsPanelHook:
+    """Hook for adding custom sections to the Settings/Preferences dialog."""
+
+    _handlers: ClassVar[list[Callable]] = []
+
+    @classmethod
+    def register(cls, handler: Callable):
+        """Register a settings panel provider.
+
+        Handler signature: (parent_layout, settings_service, dialog)
+        where `parent_layout` is a QLayout the handler can add widgets to.
+        """
+        if handler not in cls._handlers:
+            cls._handlers.append(handler)
+
+    @classmethod
+    def unregister(cls, handler: Callable):
+        if handler in cls._handlers:
+            cls._handlers.remove(handler)
+
+    @classmethod
+    def trigger(cls, parent_layout, settings_service, dialog=None):
+        for handler in cls._handlers:
+            try:
+                handler(parent_layout, settings_service, dialog)
+            except Exception as e:
+                from vector_inspector.core.logging import log_error
+
+                log_error("Settings panel handler error: %s", e)
+
+    @classmethod
+    def clear(cls):
+        cls._handlers.clear()
+
+
+# Global singleton instance
+settings_panel_hook = SettingsPanelHook()

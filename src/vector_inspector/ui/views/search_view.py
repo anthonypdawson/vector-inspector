@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QPushButton,
     QLabel,
+    QSizePolicy,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
@@ -15,8 +16,10 @@ from PySide6.QtWidgets import (
     QSplitter,
     QCheckBox,
     QApplication,
+    QMenu,
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFontMetrics
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.ui.components.filter_builder import FilterBuilder
@@ -31,6 +34,19 @@ class SearchView(QWidget):
 
     def __init__(self, connection: VectorDBConnection, parent=None):
         super().__init__(parent)
+        # Initialize all UI attributes to None to avoid AttributeError
+        self.breadcrumb_label = None
+        self.query_input = None
+        self.results_table = None
+        self.results_status = None
+        self.refresh_button = None
+        self.n_results_spin = None
+        self.filter_builder = None
+        self.filter_group = None
+        self.search_button = None
+        self.loading_dialog = None
+        self.cache_manager = None
+
         self.connection = connection
         self.current_collection: str = ""
         self.current_database: str = ""
@@ -42,7 +58,31 @@ class SearchView(QWidget):
 
     def _setup_ui(self):
         """Setup widget UI."""
+        # Assign all UI attributes at the top to avoid NoneType errors
+        self.breadcrumb_label = QLabel("")
+        self.query_input = QTextEdit()
+        self.results_table = QTableWidget()
+        self.results_status = QLabel("No search performed")
+        self.refresh_button = QPushButton("Refresh")
+        self.n_results_spin = QSpinBox()
+        self.filter_builder = FilterBuilder()
+        self.filter_group = QGroupBox("Advanced Metadata Filters")
+        self.search_button = QPushButton("Search")
+
         layout = QVBoxLayout(self)
+
+        # Breadcrumb bar (for pro features)
+        self.breadcrumb_label.setStyleSheet(
+            "color: #2980b9; font-weight: bold; padding: 2px 0 4px 0;"
+        )
+        # Configure breadcrumb label sizing
+        self.breadcrumb_label.setWordWrap(False)
+        self.breadcrumb_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        # Store full breadcrumb text for tooltip and eliding
+        self._full_breadcrumb = ""
+        # Elide mode: 'left' or 'middle'
+        self._elide_mode = "left"
+        layout.addWidget(self.breadcrumb_label)
 
         # Create splitter for query and results
         splitter = QSplitter(Qt.Vertical)
@@ -56,7 +96,6 @@ class SearchView(QWidget):
 
         # Query input
         query_group_layout.addWidget(QLabel("Enter search text:"))
-        self.query_input = QTextEdit()
         self.query_input.setMaximumHeight(100)
         self.query_input.setPlaceholderText("Enter text to search for similar vectors...")
         query_group_layout.addWidget(self.query_input)
@@ -65,7 +104,6 @@ class SearchView(QWidget):
         controls_layout = QHBoxLayout()
 
         controls_layout.addWidget(QLabel("Results:"))
-        self.n_results_spin = QSpinBox()
         self.n_results_spin.setMinimum(1)
         self.n_results_spin.setMaximum(100)
         self.n_results_spin.setValue(10)
@@ -73,9 +111,13 @@ class SearchView(QWidget):
 
         controls_layout.addStretch()
 
-        self.search_button = QPushButton("Search")
         self.search_button.clicked.connect(self._perform_search)
         self.search_button.setDefault(True)
+
+        self.refresh_button.setToolTip("Reset search input and results")
+        self.refresh_button.clicked.connect(self._refresh_search)
+        controls_layout.addWidget(self.refresh_button)
+
         controls_layout.addWidget(self.search_button)
 
         query_group_layout.addLayout(controls_layout)
@@ -83,18 +125,15 @@ class SearchView(QWidget):
         query_layout.addWidget(query_group)
 
         # Advanced filters section
-        filter_group = QGroupBox("Advanced Metadata Filters")
-        filter_group.setCheckable(True)
-        filter_group.setChecked(False)
+        self.filter_group.setCheckable(True)
+        self.filter_group.setChecked(False)
         filter_group_layout = QVBoxLayout()
 
-        # Filter builder
-        self.filter_builder = FilterBuilder()
+        # Filter builder (already created at top)
         filter_group_layout.addWidget(self.filter_builder)
 
-        filter_group.setLayout(filter_group_layout)
-        query_layout.addWidget(filter_group)
-        self.filter_group = filter_group
+        self.filter_group.setLayout(filter_group_layout)
+        query_layout.addWidget(self.filter_group)
 
         splitter.addWidget(query_widget)
 
@@ -106,12 +145,13 @@ class SearchView(QWidget):
         results_group = QGroupBox("Search Results")
         results_group_layout = QVBoxLayout()
 
-        self.results_table = QTableWidget()
         self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.results_table.setAlternatingRowColors(True)
+        # Enable context menu
+        self.results_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.results_table.customContextMenuRequested.connect(self._show_context_menu)
         results_group_layout.addWidget(self.results_table)
 
-        self.results_status = QLabel("No search performed")
         self.results_status.setStyleSheet("color: gray;")
         results_group_layout.addWidget(self.results_status)
 
@@ -125,6 +165,57 @@ class SearchView(QWidget):
         splitter.setStretchFactor(1, 2)
 
         layout.addWidget(splitter)
+        self.setLayout(layout)
+
+    def set_breadcrumb(self, text: str):
+        """Set the breadcrumb indicator (for pro features)."""
+        # Keep the full breadcrumb for tooltip and compute an elided
+        # display that fits the current label width (elide from the left).
+        self._full_breadcrumb = text or ""
+        self.breadcrumb_label.setToolTip(self._full_breadcrumb)
+        self._update_breadcrumb_display()
+
+    def _update_breadcrumb_display(self):
+        """Compute and apply an elided breadcrumb display based on label width."""
+        if not hasattr(self, "breadcrumb_label") or self.breadcrumb_label is None:
+            return
+
+        fm = QFontMetrics(self.breadcrumb_label.font())
+        avail_width = max(10, self.breadcrumb_label.width())
+        if not self._full_breadcrumb:
+            self.breadcrumb_label.setText("")
+            return
+
+        # Choose elide mode from settings
+        elide_flag = Qt.ElideLeft if self._elide_mode == "left" else Qt.ElideMiddle
+        elided = fm.elidedText(self._full_breadcrumb, elide_flag, avail_width)
+        self.breadcrumb_label.setText(elided)
+
+    def set_elide_mode(self, mode: str):
+        """Set elide mode ('left' or 'middle') and refresh display."""
+        if mode not in ("left", "middle"):
+            mode = "left"
+        self._elide_mode = mode
+        self._update_breadcrumb_display()
+
+    def resizeEvent(self, event):
+        """Handle resize to recompute breadcrumb eliding."""
+        try:
+            super().resizeEvent(event)
+        finally:
+            self._update_breadcrumb_display()
+
+    def clear_breadcrumb(self):
+        """Clear the breadcrumb indicator."""
+        self.breadcrumb_label.setText("")
+
+    def _refresh_search(self):
+        """Reset search input, results, and breadcrumb."""
+        self.query_input.clear()
+        self.results_table.setRowCount(0)
+        self.results_status.setText("No search performed")
+        self.clear_breadcrumb()
+        self.search_results = None
 
     def set_collection(self, collection_name: str, database_name: str = ""):
         """Set the current collection to search."""
@@ -138,6 +229,11 @@ class SearchView(QWidget):
             self.current_database,
             collection_name,
         )
+
+        # Guard: if results_table is not yet initialized, do nothing
+        if self.results_table is None:
+            log_info("[SearchView] set_collection called before UI setup; skipping.")
+            return
 
         # Check cache first
         cached = self.cache_manager.get(self.current_database, self.current_collection)
@@ -280,6 +376,43 @@ class SearchView(QWidget):
                     else {},
                 },
             )
+
+    def _show_context_menu(self, position):
+        """Show context menu for results table rows."""
+        # Get the item at the position
+        item = self.results_table.itemAt(position)
+        if not item:
+            return
+
+        row = item.row()
+        if row < 0 or row >= self.results_table.rowCount():
+            return
+
+        # Create context menu
+        menu = QMenu(self)
+
+        # Call extension hooks to add custom menu items
+        try:
+            from vector_inspector.extensions import table_context_menu_hook
+
+            table_context_menu_hook.trigger(
+                menu=menu,
+                table=self.results_table,
+                row=row,
+                data={
+                    "current_data": self.search_results,
+                    "collection_name": self.current_collection,
+                    "database_name": self.current_database,
+                    "connection": self.connection,
+                    "view_type": "search",
+                },
+            )
+        except Exception as e:
+            log_info("Extension hook error: %s", e)
+
+        # Only show menu if it has items
+        if not menu.isEmpty():
+            menu.exec(self.results_table.viewport().mapToGlobal(position))
 
     def _display_results(self, results: Dict[str, Any]):
         """Display search results in table."""

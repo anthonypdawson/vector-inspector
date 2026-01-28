@@ -196,6 +196,9 @@ class MetadataView(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.doubleClicked.connect(self._on_row_double_clicked)
+        # Enable context menu
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._show_context_menu)
         layout.addWidget(self.table)
 
         # Status bar
@@ -961,6 +964,48 @@ class MetadataView(QWidget):
             )
         else:
             QMessageBox.warning(self, "Export Failed", "Failed to export data.")
+
+    def _show_context_menu(self, position):
+        """Show context menu for table rows."""
+        # Get the item at the position
+        item = self.table.itemAt(position)
+        if not item:
+            return
+
+        row = item.row()
+        if row < 0 or row >= self.table.rowCount():
+            return
+
+        # Create context menu
+        menu = QMenu(self)
+
+        # Add standard "Edit" action
+        edit_action = menu.addAction("✏️ Edit")
+        edit_action.triggered.connect(
+            lambda: self._on_row_double_clicked(self.table.model().index(row, 0))
+        )
+
+        # Call extension hooks to add custom menu items
+        try:
+            from vector_inspector.extensions import table_context_menu_hook
+
+            table_context_menu_hook.trigger(
+                menu=menu,
+                table=self.table,
+                row=row,
+                data={
+                    "current_data": self.current_data,
+                    "collection_name": self.current_collection,
+                    "database_name": self.current_database,
+                    "connection": self.connection,
+                    "view_type": "metadata",
+                },
+            )
+        except Exception as e:
+            log_info("Extension hook error: %s", e)
+
+        # Show menu
+        menu.exec(self.table.viewport().mapToGlobal(position))
 
     def _import_data(self, format_type: str):
         """Import data from file into collection."""

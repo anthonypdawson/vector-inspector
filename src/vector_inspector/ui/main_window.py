@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QToolBar,
     QStatusBar,
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QByteArray
 from PySide6.QtGui import QAction
 
 from vector_inspector.core.connection_manager import ConnectionManager
@@ -58,6 +58,29 @@ class MainWindow(InspectorShell):
         self._setup_statusbar()
         self._connect_signals()
         self._restore_session()
+        # Listen for settings changes so updates apply immediately
+        try:
+            self.settings_service.signals.setting_changed.connect(self._on_setting_changed)
+        except Exception:
+            pass
+        # Restore window geometry if present
+        try:
+            geom = self.settings_service.get_window_geometry()
+            if geom and self.settings_service.get_window_restore_geometry():
+                try:
+                    # restoreGeometry accepts QByteArray; wrap bytes accordingly
+                    if isinstance(geom, (bytes, bytearray)):
+                        self.restoreGeometry(QByteArray(geom))
+                    else:
+                        self.restoreGeometry(geom)
+                except Exception:
+                    # fallback: try passing raw bytes
+                    try:
+                        self.restoreGeometry(geom)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
         # Show splash after main window is visible
         QTimer.singleShot(0, self._maybe_show_splash)
 
@@ -118,6 +141,13 @@ class MainWindow(InspectorShell):
         new_connection_action.setShortcut("Ctrl+N")
         new_connection_action.triggered.connect(self._new_connection_from_profile)
         file_menu.addAction(new_connection_action)
+
+        file_menu.addSeparator()
+
+        prefs_action = QAction("Preferences...", self)
+        prefs_action.setShortcut("Ctrl+,")
+        prefs_action.triggered.connect(self._show_preferences_dialog)
+        file_menu.addAction(prefs_action)
 
         file_menu.addSeparator()
 
@@ -248,6 +278,62 @@ class MainWindow(InspectorShell):
                     QTimer.singleShot(0, show_update)
 
         threading.Thread(target=check_updates, daemon=True).start()
+
+    def _show_preferences_dialog(self):
+        try:
+            from vector_inspector.ui.dialogs.settings_dialog import SettingsDialog
+
+            dlg = SettingsDialog(self.settings_service, self)
+            if dlg.exec() == QDialog.Accepted:
+                self._apply_settings_to_views()
+        except Exception as e:
+            print(f"Failed to open preferences: {e}")
+
+    def _apply_settings_to_views(self):
+        """Apply relevant settings to existing views."""
+        try:
+            # Breadcrumb visibility
+            enabled = self.settings_service.get_breadcrumb_enabled()
+            if self.search_view is not None and hasattr(self.search_view, "breadcrumb_label"):
+                self.search_view.breadcrumb_label.setVisible(enabled)
+                # also set elide mode
+                mode = self.settings_service.get_breadcrumb_elide_mode()
+                try:
+                    self.search_view.set_elide_mode(mode)
+                except Exception:
+                    pass
+
+            # Default results
+            default_n = self.settings_service.get_default_n_results()
+            if self.search_view is not None and hasattr(self.search_view, "n_results_spin"):
+                try:
+                    self.search_view.n_results_spin.setValue(int(default_n))
+                except Exception:
+                    pass
+
+        except Exception:
+            pass
+
+    def _on_setting_changed(self, key: str, value: object):
+        """Handle granular setting change events."""
+        try:
+            if key == "breadcrumb.enabled":
+                enabled = bool(value)
+                if self.search_view is not None and hasattr(self.search_view, "breadcrumb_label"):
+                    self.search_view.breadcrumb_label.setVisible(enabled)
+            elif key == "breadcrumb.elide_mode":
+                mode = str(value)
+                if self.search_view is not None and hasattr(self.search_view, "set_elide_mode"):
+                    self.search_view.set_elide_mode(mode)
+            elif key == "search.default_n_results":
+                try:
+                    n = int(value)
+                    if self.search_view is not None and hasattr(self.search_view, "n_results_spin"):
+                        self.search_view.n_results_spin.setValue(n)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     def _on_update_indicator_clicked(self, event):
         # Show update details dialog
@@ -467,6 +553,9 @@ class MainWindow(InspectorShell):
                 10000,
             )
 
+        # Apply settings to views after UI is built
+        self._apply_settings_to_views()
+
     def _show_about(self):
         """Show about dialog."""
         DialogService.show_about(self)
@@ -494,6 +583,35 @@ class MainWindow(InspectorShell):
             # Refresh collections after restore
             self._refresh_active_connection()
 
+    def show_search_results(self, collection_name: str, results: dict, context_info: str = ""):
+        """Display search results in the Search tab.
+
+        This is an extension point that allows external code (e.g., pro features)
+        to programmatically display search results.
+
+        Args:
+            collection_name: Name of the collection
+            results: Search results dictionary
+            context_info: Optional context string (e.g., "Similar to: item_123")
+        """
+        # Switch to search tab
+        self.set_main_tab_active(InspectorTabs.SEARCH_TAB)
+
+        # Set the collection if needed
+        if self.search_view.current_collection != collection_name:
+            active = self.connection_manager.get_active_connection()
+            database_name = active.id if active else ""
+            self.search_view.set_collection(collection_name, database_name)
+
+        # Display the results
+        self.search_view.search_results = results
+        self.search_view._display_results(results)
+
+        # Update status with context if provided
+        if context_info:
+            num_results = len(results.get("ids", [[]])[0])
+            self.search_view.results_status.setText(f"{context_info} - Found {num_results} results")
+
     def closeEvent(self, event):
         """Handle application close."""
         # Clean up connection controller
@@ -507,5 +625,24 @@ class MainWindow(InspectorShell):
                 pass
         # Close all connections
         self.connection_manager.close_all_connections()
+
+        # Save window geometry if enabled
+        try:
+            if self.settings_service.get_window_restore_geometry():
+                geom = self.saveGeometry()
+                # geom may be a QByteArray; convert to raw bytes
+                try:
+                    if isinstance(geom, QByteArray):
+                        b = bytes(geom)
+                    else:
+                        b = bytes(geom)
+                    self.settings_service.set_window_geometry(b)
+                except Exception:
+                    try:
+                        self.settings_service.set_window_geometry(bytes(geom))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
         event.accept()

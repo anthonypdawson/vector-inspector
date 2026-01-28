@@ -1,6 +1,8 @@
 """Service for persisting application settings."""
 
 import json
+import base64
+from PySide6.QtCore import QObject, Signal
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from vector_inspector.core.cache_manager import invalidate_cache_on_settings_change
@@ -12,6 +14,18 @@ class SettingsService:
 
     def __init__(self):
         """Initialize settings service."""
+
+        # Expose a shared QObject-based signal emitter so UI can react to
+        # settings changes without polling.
+        class _Signals(QObject):
+            setting_changed = Signal(str, object)
+
+        # singleton-like per-process signals instance
+        try:
+            self.signals
+        except Exception:
+            self.signals = _Signals()
+
         self.settings_dir = Path.home() / ".vector-inspector"
         self.settings_file = self.settings_dir / "settings.json"
         self.settings: Dict[str, Any] = {}
@@ -51,6 +65,62 @@ class SettingsService:
         """Get a setting value."""
         return self.settings.get(key, default)
 
+    # Convenience accessors for common settings
+    def get_breadcrumb_enabled(self) -> bool:
+        return bool(self.settings.get("breadcrumb.enabled", True))
+
+    def set_breadcrumb_enabled(self, enabled: bool):
+        self.set("breadcrumb.enabled", bool(enabled))
+
+    def get_breadcrumb_elide_mode(self) -> str:
+        return str(self.settings.get("breadcrumb.elide_mode", "left"))
+
+    def set_breadcrumb_elide_mode(self, mode: str):
+        if mode not in ("left", "middle"):
+            mode = "left"
+        self.set("breadcrumb.elide_mode", mode)
+
+    def get_default_n_results(self) -> int:
+        return int(self.settings.get("search.default_n_results", 10))
+
+    def set_default_n_results(self, n: int):
+        self.set("search.default_n_results", int(n))
+
+    def get_auto_generate_embeddings(self) -> bool:
+        return bool(self.settings.get("embeddings.auto_generate", True))
+
+    def set_auto_generate_embeddings(self, enabled: bool):
+        self.set("embeddings.auto_generate", bool(enabled))
+
+    def get_window_restore_geometry(self) -> bool:
+        return bool(self.settings.get("window.restore_geometry", True))
+
+    def set_window_restore_geometry(self, enabled: bool):
+        self.set("window.restore_geometry", bool(enabled))
+
+    def set_window_geometry(self, geometry_bytes: bytes):
+        """Save window geometry as base64 string."""
+        try:
+            if isinstance(geometry_bytes, str):
+                # assume base64 already
+                b64 = geometry_bytes
+            else:
+                b64 = base64.b64encode(bytes(geometry_bytes)).decode("ascii")
+            self.set("window.geometry", b64)
+        except Exception as e:
+            log_error("Failed to set window geometry: %s", e)
+
+    def get_window_geometry(self) -> Optional[bytes]:
+        """Return geometry bytes or None."""
+        try:
+            b64 = self.settings.get("window.geometry")
+            if not b64:
+                return None
+            return base64.b64decode(b64)
+        except Exception as e:
+            log_error("Failed to get window geometry: %s", e)
+            return None
+
     def get_cache_enabled(self) -> bool:
         """Get whether caching is enabled (default: True)."""
         return self.settings.get("cache_enabled", True)
@@ -74,6 +144,12 @@ class SettingsService:
         # Invalidate cache when settings change (only if cache is enabled)
         if key != "cache_enabled":  # Don't invalidate when toggling cache itself
             invalidate_cache_on_settings_change()
+        # Emit change signal for UI/reactive components
+        try:
+            # Emit the raw python object (value) for convenience
+            self.signals.setting_changed.emit(key, value)
+        except Exception:
+            pass
 
     def clear(self):
         """Clear all settings."""
