@@ -36,7 +36,7 @@ This approach ensures you can **try and use the entire app** with any provider, 
 | Connection management                        | Free     | Connect to any supported provider          |
 | Collection/index browsing                    | Free     | View all collections with statistics       |
 | Metadata browsing & filtering                | Free     | Advanced filters, AND/OR logic             |
-| Similarity search                            | Free     | Text-to-vector, vector-to-vector           |
+| Similarity search                            | Free     | Text-to-vector                             |
 | 2D visualization (PCA/t-SNE/UMAP)            | Free     | Dimensionality reduction plots             |
 | 3D visualization                             | Free     | Interactive 3D scatter plots               |
 | CRUD operations                              | Free     | Create, read, update, delete vectors       |
@@ -66,6 +66,7 @@ This approach ensures you can **try and use the entire app** with any provider, 
 | Feature                                      | Access   | Description                                |
 |----------------------------------------------|----------|--------------------------------------------||
 | Saved queries (named, persistent)            | Pro      | Save and share query templates             |
+| Similarity search                            | Free     | Vector-to-vector                           |
 | Cross-collection queries                     | Pro      | Query across multiple collections          |
 | Query templates                              | Pro      | Reusable query patterns                    |
 | Nested condition builder                     | Pro      | Complex boolean logic with nesting         |

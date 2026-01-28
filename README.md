@@ -33,6 +33,8 @@ Vector Inspector bridges the gap between vector databases and user-friendly data
 
 ## Key Features
 
+> **Note:** Some features listed below may be not started or currently in progress.
+
 ### 1. **Multi-Provider Support**
 - Connect to vector databases:
   - ChromaDB (persistent local storage)
