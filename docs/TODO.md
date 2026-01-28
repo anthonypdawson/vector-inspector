@@ -18,6 +18,7 @@ Add new items below as needed. When an item is scheduled for a phase or release,
 - Fix my workflow using the file "publish copy.yml", rename the file to have no spaces and update tags on the site and in my readme. Update the pypi trusted publishing.  Remove the old publish workflows.
 
 - Refactor UI MainWindow as suggested here https://copilot.microsoft.com/shares/2657KN5vHbc1qNwLHQMc3
+- Continue testing search similar feature and fix any bugs found
 
 ### Update available flow (Partially completed)
  - Implement a user notification system for available updates
