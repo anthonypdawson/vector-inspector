@@ -5,6 +5,8 @@ import json
 import psycopg2
 from psycopg2 import sql
 
+from vector_inspector.core.logging import log_info
+
 ## No need to import register_vector; pgvector extension is enabled at table creation
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.logging import log_error, log_info
@@ -1043,12 +1045,35 @@ class PgVectorConnection(VectorDBConnection):
         Returns:
             List of floats
         """
+        log_info("[pgvector] _parse_vector raw value: %r (type: %s)", vector_str, type(vector_str))
         if isinstance(vector_str, list):
+            log_info("[pgvector] _parse_vector: already list, len=%d", len(vector_str))
             return vector_str
+        # Handle numpy arrays
+        try:
+            import numpy as np
+
+            if isinstance(vector_str, np.ndarray):
+                log_info("[pgvector] _parse_vector: numpy array, shape=%s", vector_str.shape)
+                return vector_str.tolist()
+        except ImportError:
+            pass
         if isinstance(vector_str, str):
             # Remove brackets and split by comma
             vector_str = vector_str.strip("[]")
-            return [float(x) for x in vector_str.split(",")]
+            if not vector_str:
+                log_info("[pgvector] _parse_vector: empty string after strip")
+                return []
+            try:
+                parsed = [float(x) for x in vector_str.split(",")]
+                log_info("[pgvector] _parse_vector: parsed list of len %d", len(parsed))
+                return parsed
+            except Exception as e:
+                log_info(
+                    "[pgvector] _parse_vector: failed to parse '%s' with error: %s", vector_str, e
+                )
+                return []
+        log_info("[pgvector] _parse_vector: unhandled type %s, returning []", type(vector_str))
         return []
 
     def compute_embeddings_for_documents(

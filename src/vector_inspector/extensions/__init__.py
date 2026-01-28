@@ -1,0 +1,66 @@
+"""Extension points for Vector Inspector.
+
+This module provides hooks and callbacks that allow pro versions
+or plugins to extend core functionality without modifying the base code.
+"""
+
+from typing import Any, ClassVar
+from collections.abc import Callable
+from PySide6.QtWidgets import QMenu, QTableWidget
+
+
+class TableContextMenuHook:
+    """Hook for adding custom context menu items to table widgets."""
+
+    _handlers: ClassVar[list[Callable]] = []
+
+    @classmethod
+    def register(cls, handler: Callable):
+        """Register a context menu handler.
+
+        Args:
+            handler: Callable that takes (menu: QMenu, table: QTableWidget, row: int, data: Dict)
+                    and adds menu items to the menu.
+        """
+        if handler not in cls._handlers:
+            cls._handlers.append(handler)
+
+    @classmethod
+    def unregister(cls, handler: Callable):
+        """Unregister a context menu handler."""
+        if handler in cls._handlers:
+            cls._handlers.remove(handler)
+
+    @classmethod
+    def trigger(
+        cls,
+        menu: QMenu,
+        table: QTableWidget,
+        row: int,
+        data: dict[str, Any] | None = None,
+    ):
+        """Trigger all registered handlers.
+
+        Args:
+            menu: The QMenu to add items to
+            table: The QTableWidget that was right-clicked
+            row: The row number that was clicked
+            data: Optional data dictionary with context (ids, documents, metadatas, etc.)
+        """
+        for handler in cls._handlers:
+            try:
+                handler(menu, table, row, data)
+            except Exception as e:
+                # Log but don't break if a handler fails
+                from vector_inspector.core.logging import log_error
+
+                log_error("Context menu handler error: %s", e)
+
+    @classmethod
+    def clear(cls):
+        """Clear all registered handlers."""
+        cls._handlers.clear()
+
+
+# Global singleton instance
+table_context_menu_hook = TableContextMenuHook()
