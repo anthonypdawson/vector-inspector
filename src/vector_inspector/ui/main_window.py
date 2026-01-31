@@ -528,12 +528,12 @@ class MainWindow(InspectorShell):
     def _refresh_active_connection(self):
         """Refresh collections for the active connection."""
         active = self.connection_manager.get_active_connection()
-        if not active or not active.connection.is_connected:
+        if not active or not active.is_connected:
             QMessageBox.information(self, "No Connection", "No active connection to refresh.")
             return
 
         try:
-            collections = active.connection.list_collections()
+            collections = active.list_collections()
             self.connection_manager.update_collections(active.id, collections)
             self.statusBar().showMessage(f"Refreshed collections ({len(collections)} found)", 3000)
 

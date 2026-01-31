@@ -57,6 +57,8 @@ class VisualizationView(QWidget):
 
     def __init__(self, connection: VectorDBConnection, parent=None):
         super().__init__(parent)
+        # Accepts a raw VectorDBConnection (or any wrapper exposing the same interface).
+        self._raw_connection = connection
         self.connection = connection
         self.current_collection: str = ""
         self.current_data: dict[str, Any] | None = None

@@ -3,7 +3,7 @@
 import json
 from typing import Dict, Any, Optional
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import shutil
 
 from vector_inspector.core.logging import log_info, log_error, log_debug
@@ -50,13 +50,35 @@ class BackupRestoreService:
 
             backup_metadata = {
                 "collection_name": collection_name,
-                "backup_timestamp": datetime.now().isoformat(),
+                "backup_timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "item_count": len(all_data["ids"]),
                 "collection_info": collection_info,
                 "include_embeddings": include_embeddings,
             }
+            # Include embedding model info when available to assist accurate restores
+            try:
+                embed_model = None
+                embed_model_type = None
+                # Prefer explicit collection_info entries
+                if collection_info and collection_info.get("embedding_model"):
+                    embed_model = collection_info.get("embedding_model")
+                    embed_model_type = collection_info.get("embedding_model_type")
+                else:
+                    # Ask connection for a model hint (may consult settings/service)
+                    try:
+                        embed_model = connection.get_embedding_model(collection_name)
+                    except Exception:
+                        embed_model = None
 
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                if embed_model:
+                    backup_metadata["embedding_model"] = embed_model
+                if embed_model_type:
+                    backup_metadata["embedding_model_type"] = embed_model_type
+            except Exception as e:
+                # Embedding metadata is optional; log failure but do not abort backup.
+                log_debug("Failed to populate embedding metadata for %s: %s", collection_name, e)
+
+            timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{collection_name}_backup_{timestamp}.zip"
             backup_path = Path(backup_dir) / backup_filename
 
@@ -69,7 +91,11 @@ class BackupRestoreService:
 
     @staticmethod
     def restore_collection(
-        connection, backup_file: str, collection_name: Optional[str] = None, overwrite: bool = False
+        connection,
+        backup_file: str,
+        collection_name: Optional[str] = None,
+        overwrite: bool = False,
+        recompute_embeddings: Optional[bool] = None,
     ) -> bool:
         """
         Restore a collection from a backup file.
@@ -79,6 +105,11 @@ class BackupRestoreService:
             backup_file: Path to backup zip file
             collection_name: Optional new name for restored collection
             overwrite: Whether to overwrite existing collection
+            recompute_embeddings: Whether to recompute embeddings during restore.
+                - True: Always recompute embeddings from documents if model metadata is available
+                - False: Never recompute, use embeddings from backup as-is
+                - None (default): Auto mode - only recompute if backup contains embeddings
+                  and model metadata is available
 
         Returns:
             True if successful, False otherwise
@@ -98,6 +129,47 @@ class BackupRestoreService:
                     return False
                 else:
                     connection.delete_collection(restore_collection_name)
+            else:
+                # Collection does not exist on target; attempt to create it.
+                # Try to infer vector size from metadata or embedded vectors in backup.
+                try:
+                    inferred_size = None
+                    col_info = metadata.get("collection_info") if metadata else None
+                    if (
+                        col_info
+                        and col_info.get("vector_dimension")
+                        and isinstance(col_info.get("vector_dimension"), int)
+                    ):
+                        inferred_size = int(col_info.get("vector_dimension"))
+
+                    # Fallback: inspect embeddings in backup data
+                    if inferred_size is None and data and data.get("embeddings"):
+                        first_emb = data.get("embeddings")[0]
+                        if first_emb is not None:
+                            inferred_size = len(first_emb)
+
+                    # Final fallback: common default
+                    if inferred_size is None:
+                        log_error(
+                            "Unable to infer vector dimension for collection %s from metadata or backup data; restore aborted.",
+                            restore_collection_name,
+                        )
+                        return False
+
+                    created = True
+                    if hasattr(connection, "create_collection"):
+                        created = connection.create_collection(
+                            restore_collection_name, inferred_size
+                        )
+
+                    if not created:
+                        log_error(
+                            "Failed to create collection %s before restore", restore_collection_name
+                        )
+                        return False
+                except Exception as e:
+                    log_error("Error while creating collection %s: %s", restore_collection_name, e)
+                    return False
 
             # Provider-specific preparation hook
             if hasattr(connection, "prepare_restore"):
@@ -109,12 +181,81 @@ class BackupRestoreService:
             # Ensure embeddings normalized
             data = normalize_embeddings(data)
 
+            # Decide whether to use embeddings from backup, recompute, or omit.
+            embeddings_to_use = data.get("embeddings")
+            if recompute_embeddings is False:
+                # User explicitly requested restore without embeddings: ignore any stored embeddings
+                embeddings_to_use = None
+
+            # Determine if we should recompute embeddings based on:
+            # 1. Explicit request (recompute_embeddings=True), OR
+            # 2. Auto mode (None) with embedding_model in metadata and embeddings in backup
+            try:
+                should_recompute = False
+                if recompute_embeddings is True:
+                    # Explicit recompute request - allow regardless of backup having embeddings
+                    should_recompute = True
+                elif (
+                    recompute_embeddings is None
+                    and metadata
+                    and metadata.get("embedding_model")
+                    and data.get("embeddings")
+                ):
+                    # Auto mode: only recompute if embeddings exist in backup
+                    should_recompute = True
+
+                if should_recompute:
+                    try:
+                        from vector_inspector.core.embedding_utils import (
+                            load_embedding_model,
+                            encode_text,
+                        )
+
+                        model_name = metadata.get("embedding_model") if metadata else None
+                        docs = data.get("documents", [])
+
+                        # Check if we have the necessary data to recompute
+                        if not model_name:
+                            log_info(
+                                "No embedding model available in metadata to recompute embeddings"
+                            )
+                            embeddings_to_use = None
+                        elif not docs:
+                            log_info(
+                                "No documents available in backup to recompute embeddings"
+                            )
+                            embeddings_to_use = None
+                        else:
+                            # We have both model metadata and documents, proceed with recomputation
+                            model_type = metadata.get("embedding_model_type", "sentence-transformer")
+                            model = load_embedding_model(model_name, model_type)
+                            new_embeddings = []
+                            if model_type == "clip":
+                                # CLIP: encode per-document
+                                for d in docs:
+                                    new_embeddings.append(encode_text(d, model, model_type))
+                            else:
+                                # sentence-transformer supports batch encode
+                                new_embeddings = model.encode(
+                                    docs, show_progress_bar=False
+                                ).tolist()
+
+                            embeddings_to_use = new_embeddings
+                    except Exception as e:
+                        log_error("Failed to recompute embeddings during restore: %s", e)
+                        embeddings_to_use = None
+
+                # If target provider (e.g., Chroma) cannot accept mismatched embeddings, and embeddings_to_use
+                # exists but likely mismatched, it is safer to omit them. We already attempted recompute when possible.
+            except Exception:
+                embeddings_to_use = data.get("embeddings")
+
             success = connection.add_items(
                 restore_collection_name,
                 documents=data.get("documents", []),
                 metadatas=data.get("metadatas"),
                 ids=data.get("ids"),
-                embeddings=data.get("embeddings"),
+                embeddings=embeddings_to_use,
             )
 
             if success:

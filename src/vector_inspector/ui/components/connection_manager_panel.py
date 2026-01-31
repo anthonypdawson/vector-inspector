@@ -305,7 +305,7 @@ class ConnectionManagerPanel(QWidget):
     def _refresh_collections(self, connection_id: str):
         """Refresh collections for a connection."""
         instance = self.connection_manager.get_connection(connection_id)
-        if not instance or not instance.connection.is_connected:
+        if not instance or not instance.is_connected:
             return
 
         # Show loading while refreshing
@@ -315,7 +315,7 @@ class ConnectionManagerPanel(QWidget):
         loading.show_loading("Refreshing collections...")
         QApplication.processEvents()
         try:
-            collections = instance.connection.list_collections()
+            collections = instance.list_collections()
             self.connection_manager.update_collections(connection_id, collections)
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to refresh collections: {e}")
