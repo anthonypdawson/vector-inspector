@@ -1045,7 +1045,7 @@ class PgVectorConnection(VectorDBConnection):
         Returns:
             List of floats
         """
-        log_info("[pgvector] _parse_vector raw value: %r (type: %s)", vector_str, type(vector_str))
+        # log_info("[pgvector] _parse_vector raw value: %r (type: %s)", vector_str, type(vector_str))
         if isinstance(vector_str, list):
             log_info("[pgvector] _parse_vector: already list, len=%d", len(vector_str))
             return vector_str
