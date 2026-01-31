@@ -205,7 +205,7 @@ class BackupRestoreService:
 
                         model_name = metadata.get("embedding_model") if metadata else None
                         docs = data.get("documents", [])
-                        
+
                         # Check if we have the necessary data to recompute
                         if not model_name:
                             log_info(
