@@ -47,7 +47,7 @@ class SearchView(QWidget):
         self.loading_dialog = None
         self.cache_manager = None
 
-        # Expect a ConnectionInstance wrapper with proxy methods.
+        # Store the provided VectorDBConnection (or compatible wrapper) directly.
         self._raw_connection = connection
         self.connection = connection
         self.current_collection: str = ""
