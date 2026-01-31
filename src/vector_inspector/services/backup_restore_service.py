@@ -173,6 +173,9 @@ class BackupRestoreService:
 
             # Decide whether to use embeddings from backup, recompute, or omit.
             embeddings_to_use = data.get("embeddings")
+            if recompute_embeddings is False:
+                # User explicitly requested restore without embeddings: ignore any stored embeddings
+                embeddings_to_use = None
 
             # If embeddings exist in backup and caller requested recompute (True), or auto (None) and
             # the metadata contains an embedding_model, attempt to recompute embeddings using that model.
