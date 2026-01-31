@@ -108,7 +108,7 @@ env = { PYTHONPATH = "src" }
 [tool.briefcase]
 project_name = "Vector Inspector"
 bundle = "com.divinedevops.vector-inspector"
-version = "0.3.9"
+version = "0.3.11"
 url = "https://vector-inspector.divinedevops.com"
 license.file = "LICENSE"
 author = "Anthony Dawson"
