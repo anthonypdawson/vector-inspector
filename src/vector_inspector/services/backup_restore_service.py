@@ -3,7 +3,7 @@
 import json
 from typing import Dict, Any, Optional
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import shutil
 
 from vector_inspector.core.logging import log_info, log_error, log_debug
@@ -50,7 +50,7 @@ class BackupRestoreService:
 
             backup_metadata = {
                 "collection_name": collection_name,
-                "backup_timestamp": datetime.now().isoformat(),
+                "backup_timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "item_count": len(all_data["ids"]),
                 "collection_info": collection_info,
                 "include_embeddings": include_embeddings,
@@ -74,10 +74,11 @@ class BackupRestoreService:
                     backup_metadata["embedding_model"] = embed_model
                 if embed_model_type:
                     backup_metadata["embedding_model_type"] = embed_model_type
-            except Exception:
-                pass
+            except Exception as e:
+                # Embedding metadata is optional; log failure but do not abort backup.
+                log_debug("Failed to populate embedding metadata for %s: %s", collection_name, e)
 
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{collection_name}_backup_{timestamp}.zip"
             backup_path = Path(backup_dir) / backup_filename
 
@@ -144,7 +145,11 @@ class BackupRestoreService:
 
                     # Final fallback: common default
                     if inferred_size is None:
-                        inferred_size = 1536
+                        log_error(
+                            "Unable to infer vector dimension for collection %s from metadata or backup data; restore aborted.",
+                            restore_collection_name,
+                        )
+                        return False
 
                     created = True
                     if hasattr(connection, "create_collection"):

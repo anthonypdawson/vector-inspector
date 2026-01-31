@@ -1,7 +1,7 @@
 """Utilities for managing embedding models and vector dimensions."""
 
 from __future__ import annotations  # Allows us to use class names in typehints while lazyloading
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Any
 
 # Lazy import: see below
 from vector_inspector.core.logging import log_info
@@ -103,7 +103,7 @@ def get_available_models_for_dimension(dimension: int) -> list:
     return models
 
 
-def load_embedding_model(model_name: str, model_type: str) -> Union["SentenceTransformer", any]:
+def load_embedding_model(model_name: str, model_type: str) -> SentenceTransformer | Any:
     """
     Load an embedding model (sentence-transformer or CLIP).
 
