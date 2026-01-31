@@ -28,6 +28,8 @@ class InfoPanel(QWidget):
 
     def __init__(self, connection: VectorDBConnection, parent=None):
         super().__init__(parent)
+        # Expect a ConnectionInstance (wrapper). Keep raw backend available.
+        self._raw_connection = connection
         self.connection = connection
         self.connection_id: str = ""  # Will be set when collection is set
         self.current_collection: str = ""
@@ -213,50 +215,47 @@ class InfoPanel(QWidget):
             return
 
         # Get provider name
-        provider_name = self.connection.__class__.__name__.replace("Connection", "")
+        backend = getattr(self.connection, "connection", None)
+        provider_name = (
+            backend.__class__.__name__.replace("Connection", "") if backend else "Unknown"
+        )
         self._update_label(self.provider_label, provider_name)
 
         # Get connection details
-        if isinstance(self.connection, ChromaDBConnection):
-            if self.connection.path:
+        if isinstance(backend, ChromaDBConnection):
+            if getattr(backend, "path", None):
                 self._update_label(self.connection_type_label, "Persistent (Local)")
-                self._update_label(self.endpoint_label, self.connection.path)
-            elif self.connection.host and self.connection.port:
+                self._update_label(self.endpoint_label, backend.path)
+            elif getattr(backend, "host", None) and getattr(backend, "port", None):
                 self._update_label(self.connection_type_label, "HTTP (Remote)")
-                self._update_label(
-                    self.endpoint_label, f"{self.connection.host}:{self.connection.port}"
-                )
+                self._update_label(self.endpoint_label, f"{backend.host}:{backend.port}")
             else:
                 self._update_label(self.connection_type_label, "Ephemeral (In-Memory)")
                 self._update_label(self.endpoint_label, "N/A")
             self._update_label(self.api_key_label, "Not required")
-
-        elif isinstance(self.connection, QdrantConnection):
-            if self.connection.path:
+        elif isinstance(backend, QdrantConnection):
+            if getattr(backend, "path", None):
                 self._update_label(self.connection_type_label, "Embedded (Local)")
-                self._update_label(self.endpoint_label, self.connection.path)
-            elif self.connection.url:
+                self._update_label(self.endpoint_label, backend.path)
+            elif getattr(backend, "url", None):
                 self._update_label(self.connection_type_label, "Remote (URL)")
-                self._update_label(self.endpoint_label, self.connection.url)
-            elif self.connection.host:
+                self._update_label(self.endpoint_label, backend.url)
+            elif getattr(backend, "host", None):
                 self._update_label(self.connection_type_label, "Remote (Host)")
-                self._update_label(
-                    self.endpoint_label, f"{self.connection.host}:{self.connection.port}"
-                )
+                self._update_label(self.endpoint_label, f"{backend.host}:{backend.port}")
             else:
                 self._update_label(self.connection_type_label, "In-Memory")
                 self._update_label(self.endpoint_label, "N/A")
-
-            if self.connection.api_key:
+            if getattr(backend, "api_key", None):
                 self._update_label(self.api_key_label, "Present (hidden)")
             else:
                 self._update_label(self.api_key_label, "Not configured")
 
-        elif isinstance(self.connection, PineconeConnection):
+        elif isinstance(backend, PineconeConnection):
+            # backend already assigned above
             self._update_label(self.connection_type_label, "Cloud")
             self._update_label(self.endpoint_label, "Pinecone Cloud")
-
-            if self.connection.api_key:
+            if getattr(backend, "api_key", None):
                 self._update_label(self.api_key_label, "Present (hidden)")
             else:
                 self._update_label(self.api_key_label, "Not configured")

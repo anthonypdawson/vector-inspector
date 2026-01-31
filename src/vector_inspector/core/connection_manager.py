@@ -59,6 +59,59 @@ class ConnectionInstance:
             return f"{self.name} > {self.active_collection}"
         return self.name
 
+    def __getattr__(self, name):
+        """Forward unknown attribute lookups to the underlying connection.
+
+        This allows `ConnectionInstance` to act as a thin wrapper while
+        exposing the provider-specific API (e.g. `get_all_items`,
+        `query_collection`) without callers needing to access
+        `.connection` explicitly.
+        """
+        return getattr(self.connection, name)
+
+    # Convenience proxy methods to forward common operations to the underlying
+    # VectorDBConnection. This prevents callers from needing to access
+    # `instance.connection` directly and centralizes error handling.
+    def list_collections(self) -> List[str]:
+        """Return list of collections from the underlying connection.
+
+        Falls back to the cached `collections` attribute on error.
+        """
+        try:
+            return self.connection.list_collections()
+        except Exception:
+            return self.collections or []
+
+    def connect(self) -> bool:
+        """Proxy to connect the underlying connection."""
+        return self.connection.connect()
+
+    def disconnect(self) -> None:
+        """Proxy to disconnect the underlying connection; logs errors."""
+        try:
+            self.connection.disconnect()
+        except Exception as e:
+            log_error("Error disconnecting underlying connection: %s", e)
+
+    @property
+    def is_connected(self) -> bool:
+        """Whether the underlying connection is currently connected."""
+        return getattr(self.connection, "is_connected", False)
+
+    def get_collection_info(self, collection_name: str):
+        """Proxy to get collection-specific information."""
+        try:
+            return self.connection.get_collection_info(collection_name)
+        except Exception:
+            return None
+
+    def delete_collection(self, collection_name: str) -> bool:
+        """Proxy to delete a collection on the underlying connection."""
+        try:
+            return self.connection.delete_collection(collection_name)
+        except Exception:
+            return False
+
 
 class ConnectionManager(QObject):
     """Manages multiple vector database connections and saved profiles.
@@ -87,6 +140,18 @@ class ConnectionManager(QObject):
         super().__init__()
         self._connections: Dict[str, ConnectionInstance] = {}
         self._active_connection_id: Optional[str] = None
+
+    def get_active_collection(self) -> Optional[str]:
+        """
+        Get the active collection name for the currently active connection.
+
+        Returns:
+            The active collection name, or None if no active connection or collection.
+        """
+        active_conn = self.get_active_connection()
+        if active_conn:
+            return active_conn.active_collection
+        return None
 
     def create_connection(
         self,
@@ -185,7 +250,7 @@ class ConnectionManager(QObject):
 
         # Disconnect the connection
         try:
-            instance.connection.disconnect()
+            instance.disconnect()
         except Exception as e:
             log_error("Error disconnecting: %s", e)
 
