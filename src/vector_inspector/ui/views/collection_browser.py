@@ -62,8 +62,9 @@ class CollectionBrowser(QWidget):
 
         if not collections:
             # Show more context for persistent connections
-            if self.connection.path:
-                self.info_label.setText(f"No collections found at {self.connection.path}")
+            path = getattr(self.connection, "path", None)
+            if path:
+                self.info_label.setText(f"No collections found at {path}")
             else:
                 self.info_label.setText("No collections found")
             return
