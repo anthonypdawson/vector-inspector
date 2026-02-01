@@ -46,6 +46,10 @@ class SettingsDialog(QDialog):
         # Window geometry
         self.restore_geometry_checkbox = QCheckBox("Restore window size/position on startup")
         layout.addWidget(self.restore_geometry_checkbox)
+        
+        # Loading screen
+        self.hide_splash_checkbox = QCheckBox("Hide loading screen on startup")
+        layout.addWidget(self.hide_splash_checkbox)
 
         # Buttons
         btn_layout = QHBoxLayout()
@@ -81,6 +85,9 @@ class SettingsDialog(QDialog):
         self.restore_geometry_checkbox.stateChanged.connect(
             lambda s: self.settings.set_window_restore_geometry(bool(s))
         )
+        self.hide_splash_checkbox.stateChanged.connect(
+            lambda s: self.settings.set("hide_loading_screen", bool(s))
+        )
 
         # Container for programmatic sections
         self._extra_sections = []
@@ -107,6 +114,7 @@ class SettingsDialog(QDialog):
         self.default_results.setValue(self.settings.get_default_n_results())
         self.auto_embed_checkbox.setChecked(self.settings.get_auto_generate_embeddings())
         self.restore_geometry_checkbox.setChecked(self.settings.get_window_restore_geometry())
+        self.hide_splash_checkbox.setChecked(self.settings.get("hide_loading_screen", False))
 
     def _apply(self):
         # Values are already applied on change; ensure persistence and close
@@ -121,4 +129,5 @@ class SettingsDialog(QDialog):
         self.default_results.setValue(10)
         self.auto_embed_checkbox.setChecked(True)
         self.restore_geometry_checkbox.setChecked(True)
+        self.hide_splash_checkbox.setChecked(False)
         self._apply()
