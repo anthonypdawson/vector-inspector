@@ -51,6 +51,11 @@ class ConnectionInstance:
         self.collections: list[str] = []
         self.error_message: str | None = None
 
+        # Set profile_name on the underlying connection object so it can be used
+        # for settings lookups (embedding models, etc.)
+        # Note: This dynamically adds an attribute to the connection object
+        self.database.profile_name = name  # type: ignore[attr-defined]
+
     def get_display_name(self) -> str:
         """Get a display-friendly connection name."""
         return f"{self.name} ({self.provider})"
@@ -161,7 +166,7 @@ class ConnectionManager(QObject):
         provider: str,
         connection: VectorDBConnection,
         config: dict[str, Any],
-        connection_id: str = None,
+        connection_id: str | None = None,
     ) -> str:
         """
         Create a new connection instance (not yet connected).

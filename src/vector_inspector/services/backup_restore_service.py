@@ -18,7 +18,7 @@ class BackupRestoreService:
         collection_name: str,
         backup_dir: str,
         include_embeddings: bool = True,
-        connection_id: Optional[str] = None,
+        profile_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Backup a collection to a directory.
@@ -75,12 +75,15 @@ class BackupRestoreService:
                         embed_model = None
 
                 # If not found yet, check app settings as a fallback
-                if not embed_model and connection_id:
+                if not embed_model and profile_name:
                     try:
                         from vector_inspector.services.settings_service import SettingsService
 
                         settings = SettingsService()
-                        model_info = settings.get_embedding_model(connection_id, collection_name)
+                        model_info = settings.get_embedding_model(
+                            profile_name,
+                            collection_name,
+                        )
                         if model_info:
                             embed_model = model_info.get("model")
                             embed_model_type = model_info.get("type", "sentence-transformer")
@@ -106,14 +109,14 @@ class BackupRestoreService:
             log_error("Backup failed: %s", e)
             return None
 
-    @staticmethod
     def restore_collection(
+        self,
         connection,
         backup_file: str,
         collection_name: Optional[str] = None,
         overwrite: bool = False,
         recompute_embeddings: Optional[bool] = None,
-        connection_id: Optional[str] = None,
+        profile_name: Optional[str] = None,
     ) -> bool:
         """
         Restore a collection from a backup file.
@@ -123,11 +126,10 @@ class BackupRestoreService:
             backup_file: Path to backup zip file
             collection_name: Optional new name for restored collection
             overwrite: Whether to overwrite existing collection
-            recompute_embeddings: Whether to recompute embeddings during restore.
-                - True: Always recompute embeddings from documents if model metadata is available
-                - False: Never recompute, use embeddings from backup as-is
-                - None (default): Auto mode - only recompute if backup contains embeddings
-                  and model metadata is available
+            recompute_embeddings: How to handle embeddings during restore:
+                - None (default): Use stored embeddings as-is from backup (safest, fastest)
+                - True: Force recompute embeddings from documents using model metadata
+                - False: Omit embeddings entirely (documents/metadata only)
             connection_id: Optional connection ID for saving model config to app settings
 
         Returns:
@@ -146,8 +148,7 @@ class BackupRestoreService:
                         restore_collection_name,
                     )
                     return False
-                else:
-                    connection.delete_collection(restore_collection_name)
+                connection.delete_collection(restore_collection_name)
             else:
                 # Collection does not exist on target; attempt to create it.
                 # Try to infer vector size from metadata or embedded vectors in backup.
@@ -200,74 +201,85 @@ class BackupRestoreService:
             # Ensure embeddings normalized
             data = normalize_embeddings(data)
 
-            # Decide whether to use embeddings from backup, recompute, or omit.
-            embeddings_to_use = data.get("embeddings")
+            # Decide how to handle embeddings based on user choice
+            embeddings_to_use = None
+            stored_embeddings = data.get("embeddings")
+
             if recompute_embeddings is False:
-                # User explicitly requested restore without embeddings: ignore any stored embeddings
+                # User explicitly chose to omit embeddings
+                log_info("Restoring without embeddings (user choice)")
                 embeddings_to_use = None
 
-            # Determine if we should recompute embeddings based on:
-            # 1. Explicit request (recompute_embeddings=True), OR
-            # 2. Auto mode (None) with embedding_model in metadata and embeddings in backup
-            try:
-                should_recompute = False
-                if recompute_embeddings is True:
-                    # Explicit recompute request - allow regardless of backup having embeddings
-                    should_recompute = True
-                elif (
-                    recompute_embeddings is None
-                    and metadata
-                    and metadata.get("embedding_model")
-                    and data.get("embeddings")
-                ):
-                    # Auto mode: only recompute if embeddings exist in backup
-                    should_recompute = True
+            elif recompute_embeddings is True:
+                # User explicitly chose to recompute embeddings
+                log_info("Recomputing embeddings from documents")
+                try:
+                    from vector_inspector.core.embedding_utils import (
+                        encode_text,
+                        load_embedding_model,
+                    )
 
-                if should_recompute:
-                    try:
-                        from vector_inspector.core.embedding_utils import (
-                            encode_text,
-                            load_embedding_model,
+                    model_name = metadata.get("embedding_model") if metadata else None
+                    docs = data.get("documents", [])
+
+                    if not model_name:
+                        log_error(
+                            "Cannot recompute: No embedding model available in backup metadata"
                         )
-
-                        model_name = metadata.get("embedding_model") if metadata else None
-                        docs = data.get("documents", [])
-
-                        # Check if we have the necessary data to recompute
-                        if not model_name:
-                            log_info(
-                                "No embedding model available in metadata to recompute embeddings"
-                            )
-                            embeddings_to_use = None
-                        elif not docs:
-                            log_info("No documents available in backup to recompute embeddings")
-                            embeddings_to_use = None
-                        else:
-                            # We have both model metadata and documents, proceed with recomputation
-                            model_type = metadata.get(
-                                "embedding_model_type", "sentence-transformer"
-                            )
-                            model = load_embedding_model(model_name, model_type)
-                            new_embeddings = []
-                            if model_type == "clip":
-                                # CLIP: encode per-document
-                                for d in docs:
-                                    new_embeddings.append(encode_text(d, model, model_type))
-                            else:
-                                # sentence-transformer supports batch encode
-                                new_embeddings = model.encode(
-                                    docs, show_progress_bar=False
-                                ).tolist()
-
-                            embeddings_to_use = new_embeddings
-                    except Exception as e:
-                        log_error("Failed to recompute embeddings during restore: %s", e)
                         embeddings_to_use = None
+                    elif not docs:
+                        log_error("Cannot recompute: No documents available in backup")
+                        embeddings_to_use = None
+                    else:
+                        model_type = metadata.get("embedding_model_type", "sentence-transformer")
+                        log_info("Loading embedding model: %s (%s)", model_name, model_type)
+                        model = load_embedding_model(model_name, model_type)
+                        new_embeddings = []
+                        if model_type == "clip":
+                            # CLIP: encode per-document
+                            for d in docs:
+                                new_embeddings.append(encode_text(d, model, model_type))
+                        else:
+                            # sentence-transformer supports batch encode
+                            new_embeddings = model.encode(docs, show_progress_bar=False).tolist()
 
-                # If target provider (e.g., Chroma) cannot accept mismatched embeddings, and embeddings_to_use
-                # exists but likely mismatched, it is safer to omit them. We already attempted recompute when possible.
-            except Exception:
-                embeddings_to_use = data.get("embeddings")
+                        embeddings_to_use = new_embeddings
+                        log_info("Successfully recomputed %d embeddings", len(new_embeddings))
+                except Exception as e:
+                    log_error("Failed to recompute embeddings: %s", e)
+                    embeddings_to_use = None
+
+            else:
+                # Default (None): Use stored embeddings as-is if available
+                if stored_embeddings:
+                    # Check dimension compatibility with target collection
+                    try:
+                        if stored_embeddings and len(stored_embeddings) > 0:
+                            stored_dim = len(stored_embeddings[0])
+                            target_dim = inferred_size  # We already calculated this above
+
+                            if stored_dim == target_dim:
+                                log_info(
+                                    "Using stored embeddings from backup (dimension: %d)",
+                                    stored_dim,
+                                )
+                                embeddings_to_use = stored_embeddings
+                            else:
+                                log_error(
+                                    "Dimension mismatch: backup has %d, target needs %d. Omitting embeddings.",
+                                    stored_dim,
+                                    target_dim,
+                                )
+                                embeddings_to_use = None
+                        else:
+                            embeddings_to_use = stored_embeddings
+                    except Exception as e:
+                        log_error("Error checking embedding dimensions: %s", e)
+                        # Try to use them anyway
+                        embeddings_to_use = stored_embeddings
+                else:
+                    log_info("No embeddings in backup to restore")
+                    embeddings_to_use = None
 
             success = connection.add_items(
                 restore_collection_name,
@@ -282,7 +294,7 @@ class BackupRestoreService:
                 log_info("Restored %d items", len(data.get("ids", [])))
 
                 # Save model config to app settings if available
-                if connection_id and restore_collection_name and metadata:
+                if profile_name and restore_collection_name and metadata:
                     try:
                         embed_model = metadata.get("embedding_model")
                         embed_model_type = metadata.get(
@@ -293,7 +305,7 @@ class BackupRestoreService:
 
                             settings = SettingsService()
                             settings.save_embedding_model(
-                                connection_id,
+                                profile_name,
                                 restore_collection_name,
                                 embed_model,
                                 embed_model_type,
@@ -305,6 +317,21 @@ class BackupRestoreService:
                             )
                     except Exception as e:
                         log_error("Failed to save model config to settings: %s", e)
+
+                # Clear the cache for this collection so the info panel gets fresh data
+                if profile_name and restore_collection_name:
+                    try:
+                        from vector_inspector.core.cache_manager import get_cache_manager
+
+                        cache = get_cache_manager()
+                        # Use profile_name as the database identifier for cache
+                        cache.invalidate(profile_name, restore_collection_name)
+                        log_info(
+                            "Cleared cache for restored collection: %s",
+                            restore_collection_name,
+                        )
+                    except Exception as e:
+                        log_error("Failed to clear cache after restore: %s", e)
 
                 return True
 

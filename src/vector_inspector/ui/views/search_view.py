@@ -1,32 +1,32 @@
 """Search interface for similarity queries."""
 
-from typing import Optional, Dict, Any
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QTextEdit,
-    QPushButton,
-    QLabel,
-    QSizePolicy,
-    QSpinBox,
-    QTableWidget,
-    QTableWidgetItem,
-    QGroupBox,
-    QSplitter,
-    QCheckBox,
-    QApplication,
-    QMenu,
-)
+from typing import Any, Optional
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontMetrics
+from PySide6.QtWidgets import (
+    QApplication,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMenu,
+    QPushButton,
+    QSizePolicy,
+    QSpinBox,
+    QSplitter,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
+from vector_inspector.core.cache_manager import get_cache_manager
 from vector_inspector.core.connection_manager import ConnectionInstance
+from vector_inspector.core.logging import log_info
+from vector_inspector.services.filter_service import apply_client_side_filters
 from vector_inspector.ui.components.filter_builder import FilterBuilder
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
-from vector_inspector.services.filter_service import apply_client_side_filters
-from vector_inspector.core.cache_manager import get_cache_manager, CacheEntry
-from vector_inspector.core.logging import log_info
 
 
 class SearchView(QWidget):
@@ -51,7 +51,7 @@ class SearchView(QWidget):
         self.connection = connection
         self.current_collection: str = ""
         self.current_database: str = ""
-        self.search_results: Optional[Dict[str, Any]] = None
+        self.search_results: Optional[dict[str, Any]] = None
         self.loading_dialog = LoadingDialog("Searching...", self)
         self.cache_manager = get_cache_manager()
 
@@ -415,7 +415,7 @@ class SearchView(QWidget):
         if not menu.isEmpty():
             menu.exec(self.results_table.viewport().mapToGlobal(position))
 
-    def _display_results(self, results: Dict[str, Any]):
+    def _display_results(self, results: dict[str, Any]):
         """Display search results in table."""
         ids = results.get("ids", [[]])[0]
         documents = results.get("documents", [[]])[0]

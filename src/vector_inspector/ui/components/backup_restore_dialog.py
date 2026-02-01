@@ -1,26 +1,26 @@
 """Dialog for backup and restore operations."""
 
-from typing import Optional
+from pathlib import Path
+
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
     QDialog,
-    QVBoxLayout,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
     QHBoxLayout,
-    QTabWidget,
-    QWidget,
-    QPushButton,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QFileDialog,
     QMessageBox,
-    QCheckBox,
-    QLineEdit,
-    QGroupBox,
-    QFormLayout,
-    QApplication,
+    QPushButton,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt
-from pathlib import Path
 
 from vector_inspector.core.connection_manager import ConnectionInstance
 from vector_inspector.services.backup_restore_service import BackupRestoreService
@@ -215,7 +215,7 @@ class BackupRestoreDialog(QDialog):
                 self.collection_name,
                 self.backup_dir,
                 include_embeddings=include_embeddings,
-                connection_id=self.connection.id,
+                profile_name=self.connection.name,
             )
         finally:
             self.loading_dialog.hide_loading()
@@ -271,8 +271,8 @@ class BackupRestoreDialog(QDialog):
 
         # Read backup metadata to get original collection name
         try:
-            import zipfile
             import json
+            import zipfile
 
             with zipfile.ZipFile(backup_file, "r") as zipf:
                 metadata_str = zipf.read("metadata.json").decode("utf-8")
@@ -323,45 +323,95 @@ class BackupRestoreDialog(QDialog):
         if reply != QMessageBox.Yes:
             return
 
-        # If the backup included embeddings, ask user whether to recompute embeddings
-        # (recommended for some providers) or restore without embeddings.
-        recompute_choice: Optional[bool] = None
+        # If the backup included embeddings, ask user how to handle them
+        recompute_choice: bool | None = None
         try:
-            import zipfile, json
+            import json
+            import zipfile
 
             with zipfile.ZipFile(backup_file, "r") as zipf:
                 metadata_str = zipf.read("metadata.json").decode("utf-8")
                 metadata = json.loads(metadata_str)
                 include_embeddings = metadata.get("include_embeddings", False)
                 has_model = bool(metadata.get("embedding_model"))
+                embedding_model = metadata.get("embedding_model", "unknown")
 
             if include_embeddings:
-                # Present options: Recompute (Yes), Omit embeddings (No), Cancel (Cancel)
+                # Present three options: Use stored (default), Recompute, or Omit
+                from PySide6.QtWidgets import (
+                    QDialog,
+                    QHBoxLayout,
+                    QLabel,
+                    QPushButton,
+                    QRadioButton,
+                    QVBoxLayout,
+                )
+
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Restore Embeddings")
+                dialog.setMinimumWidth(500)
+                layout = QVBoxLayout(dialog)
+
+                # Explanation
                 if has_model:
-                    prompt = (
-                        "This backup includes embedding vectors.\n\n"
-                        "Choose 'Yes' to attempt to recompute embeddings using the recorded embedding model.\n"
-                        "Choose 'No' to restore documents/metadatas without embeddings.\n\n"
-                        "Recomputing is recommended for providers like Chroma."
+                    info_text = (
+                        f"This backup includes {metadata.get('item_count', 0)} embedding vectors.\n"
+                        f"Recorded model: {embedding_model}\n\n"
+                        "How would you like to handle the embeddings?"
                     )
                 else:
-                    prompt = (
-                        "This backup includes embedding vectors, but no embedding model was recorded.\n\n"
-                        "Choose 'Yes' to attempt to recompute embeddings using your current embedding configuration.\n"
-                        "Choose 'No' to restore documents/metadatas without embeddings.\n\n"
-                        "Recomputing is recommended for providers like Chroma."
+                    info_text = (
+                        f"This backup includes {metadata.get('item_count', 0)} embedding vectors,\n"
+                        "but no embedding model was recorded.\n\n"
+                        "How would you like to handle the embeddings?"
                     )
-                choice = QMessageBox.question(
-                    self,
-                    "Restore Embeddings",
-                    prompt,
-                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+
+                info_label = QLabel(info_text)
+                info_label.setWordWrap(True)
+                layout.addWidget(info_label)
+
+                # Radio buttons for options
+                use_stored_radio = QRadioButton(
+                    "Use stored embeddings (recommended for new collections)"
                 )
-                if choice == QMessageBox.Cancel:
+                use_stored_radio.setChecked(True)  # Default option
+                layout.addWidget(use_stored_radio)
+
+                recompute_radio = QRadioButton("Recompute embeddings from documents")
+                if has_model:
+                    recompute_radio.setToolTip(f"Will use model: {embedding_model}")
+                else:
+                    recompute_radio.setToolTip(
+                        "Will attempt using your current embedding configuration"
+                    )
+                layout.addWidget(recompute_radio)
+
+                omit_radio = QRadioButton("Omit embeddings (documents and metadata only)")
+                layout.addWidget(omit_radio)
+
+                # Buttons
+                button_layout = QHBoxLayout()
+                ok_button = QPushButton("OK")
+                cancel_button = QPushButton("Cancel")
+                ok_button.clicked.connect(dialog.accept)
+                cancel_button.clicked.connect(dialog.reject)
+                button_layout.addStretch()
+                button_layout.addWidget(ok_button)
+                button_layout.addWidget(cancel_button)
+                layout.addLayout(button_layout)
+
+                # Show dialog and get choice
+                if dialog.exec() != QDialog.Accepted:
                     return
-                recompute_choice = True if choice == QMessageBox.Yes else False
+
+                if use_stored_radio.isChecked():
+                    recompute_choice = None  # Use stored embeddings
+                elif recompute_radio.isChecked():
+                    recompute_choice = True  # Recompute
+                else:  # omit_radio.isChecked()
+                    recompute_choice = False  # Omit
         except Exception:
-            recompute_choice = None
+            recompute_choice = None  # Default to using stored embeddings
 
         self.loading_dialog.show_loading("Restoring backup...")
         QApplication.processEvents()
@@ -374,7 +424,7 @@ class BackupRestoreDialog(QDialog):
                 collection_name=restore_name if restore_name else None,
                 overwrite=overwrite,
                 recompute_embeddings=recompute_choice,
-                connection_id=self.connection.id,
+                profile_name=self.connection.name,
             )
         finally:
             self.loading_dialog.hide_loading()

@@ -1,16 +1,16 @@
 """Collection browser for listing and selecting collections."""
 
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QListWidget,
-    QListWidgetItem,
     QGroupBox,
     QLabel,
+    QListWidget,
+    QListWidgetItem,
     QMenu,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QAction
 
 from vector_inspector.core.connection_manager import ConnectionInstance
 

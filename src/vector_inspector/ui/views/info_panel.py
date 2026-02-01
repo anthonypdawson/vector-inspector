@@ -1,25 +1,25 @@
 """Information panel for displaying database and collection metadata."""
 
-from typing import Optional, Dict, Any
+from typing import Any, Optional
+
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QApplication,
+    QDialog,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QGroupBox,
-    QScrollArea,
-    QFrame,
     QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, QObject
-from PySide6.QtWidgets import QDialog
-from PySide6.QtWidgets import QApplication
 
+from vector_inspector.core.cache_manager import get_cache_manager
 from vector_inspector.core.connection_manager import ConnectionInstance
 from vector_inspector.core.connections.chroma_connection import ChromaDBConnection
-from vector_inspector.core.connections.qdrant_connection import QdrantConnection
 from vector_inspector.core.connections.pinecone_connection import PineconeConnection
-from vector_inspector.core.cache_manager import get_cache_manager
+from vector_inspector.core.connections.qdrant_connection import QdrantConnection
 from vector_inspector.core.logging import log_info
 
 
@@ -150,8 +150,29 @@ class InfoPanel(QWidget):
         """Clear the embedding model configuration for this collection (reset to autodetect)."""
         from vector_inspector.services.settings_service import SettingsService
 
+        # Ensure we have a valid connection_id
+        effective_connection_id = self.connection_id or (
+            self.connection.id if self.connection else None
+        )
+
+        if not effective_connection_id:
+            log_info("Cannot clear embedding model: no connection_id available")
+            return
+
         settings = SettingsService()
-        settings.remove_embedding_model(self.connection_id, self.current_collection)
+        settings.remove_embedding_model(
+            self.connection.name if self.connection else "",
+            self.current_collection,
+        )
+
+        # Clear cache to ensure fresh collection info on next load
+        if effective_connection_id and self.current_collection:
+            self.cache_manager.invalidate(effective_connection_id, self.current_collection)
+            log_info(
+                "Cleared cache for collection after clearing embedding model: %s",
+                self.current_collection,
+            )
+
         # Refresh display (force reload collection info)
         if self.current_collection:
             self.set_collection(self.current_collection, self.current_database)
@@ -164,13 +185,21 @@ class InfoPanel(QWidget):
         """Update the clear button state based on current configuration."""
         from vector_inspector.services.settings_service import SettingsService
 
-        if not self.connection_id or not self.current_collection:
+        # Ensure we have valid identifiers
+        effective_connection_id = self.connection_id or (
+            self.connection.id if self.connection else None
+        )
+
+        if not effective_connection_id or not self.current_collection:
             self.clear_embedding_btn.setEnabled(False)
             return
 
         # Check if there's a user-configured model in settings
         settings = SettingsService()
-        model_info = settings.get_embedding_model(self.connection_id, self.current_collection)
+        model_info = settings.get_embedding_model(
+            self.connection.name if self.connection else "",
+            self.current_collection,
+        )
 
         # Enable button if there's a user-configured model
         self.clear_embedding_btn.setEnabled(model_info is not None)
@@ -273,7 +302,7 @@ class InfoPanel(QWidget):
         try:
             collections = self.connection.list_collections()
             self._update_label(self.collections_count_label, str(len(collections)))
-        except Exception as e:
+        except Exception:
             self._update_label(self.collections_count_label, "Error")
 
     def refresh_collection_info(self):
@@ -322,11 +351,11 @@ class InfoPanel(QWidget):
             self._update_label(self.vector_dim_label, "Error")
             self._update_label(self.distance_metric_label, "Error")
             self._update_label(self.total_points_label, "Error")
-            self.schema_label.setText(f"Error: {str(e)}")
+            self.schema_label.setText(f"Error: {e!s}")
             self.schema_label.setStyleSheet("color: red; padding-left: 20px;")
             self.provider_details_label.setText("N/A")
 
-    def _display_collection_info(self, collection_info: Dict[str, Any]):
+    def _display_collection_info(self, collection_info: dict[str, Any]):
         """Display collection information (from cache or fresh query)."""
         # Update basic info
         self._update_label(self.collection_name_label, self.current_collection)
@@ -442,7 +471,7 @@ class InfoPanel(QWidget):
         if value_label and isinstance(value_label, QLabel):
             value_label.setText(value)
 
-    def _update_embedding_model_display(self, collection_info: Dict[str, Any]):
+    def _update_embedding_model_display(self, collection_info: dict[str, Any]):
         """Update the embedding model label based on current configuration."""
         from vector_inspector.services.settings_service import SettingsService
 
@@ -458,20 +487,28 @@ class InfoPanel(QWidget):
             self.clear_embedding_btn.setEnabled(True)
             return
 
+        # Ensure we have a valid connection_id for settings lookup
+        # Fallback to connection.id if connection_id not set
+        effective_connection_id = self.connection_id or (
+            self.connection.id if self.connection else None
+        )
+
         # Try to get from connection using the helper method
         if self.connection and self.current_collection:
-            detected_model = self.connection.get_embedding_model(
-                self.current_collection, self.connection_id
-            )
+            detected_model = self.connection.get_embedding_model(self.current_collection)
             if detected_model:
                 self.embedding_model_label.setText(f"{detected_model} (detected)")
                 self.embedding_model_label.setStyleSheet("color: lightgreen;")
                 self.clear_embedding_btn.setEnabled(False)
                 return
 
-        # Check user settings
+        # Check user settings directly
         settings = SettingsService()
-        model_info = settings.get_embedding_model(self.connection_id, self.current_collection)
+        profile_name = self.connection.name if self.connection else ""
+        model_info = settings.get_embedding_model(
+            profile_name,
+            self.current_collection,
+        )
 
         if model_info:
             model_name = model_info["model"]
@@ -491,6 +528,14 @@ class InfoPanel(QWidget):
         if not self.current_collection:
             return
 
+        # Ensure we have a valid connection_id
+        effective_connection_id = self.connection_id or (
+            self.connection.id if self.connection else None
+        )
+
+        if not effective_connection_id:
+            return
+
         # Show loading immediately; preparing can touch DB/registry
         from vector_inspector.ui.components.loading_dialog import LoadingDialog
 
@@ -498,8 +543,8 @@ class InfoPanel(QWidget):
         loading.show_loading("Preparing model configuration...")
         QApplication.processEvents()
 
-        from vector_inspector.ui.dialogs import ProviderTypeDialog, EmbeddingConfigDialog
         from vector_inspector.services.settings_service import SettingsService
+        from vector_inspector.ui.dialogs import EmbeddingConfigDialog, ProviderTypeDialog
 
         # Get current collection info
         try:
@@ -526,7 +571,10 @@ class InfoPanel(QWidget):
             current_type = collection_info.get("embedding_model_type", "stored")
         # Then check settings
         else:
-            model_info = settings.get_embedding_model(self.connection_id, self.current_collection)
+            model_info = settings.get_embedding_model(
+                self.connection.name if self.connection else "",
+                self.current_collection,
+            )
             if model_info:
                 current_model = model_info.get("model")
                 current_type = model_info.get("type")
@@ -557,8 +605,19 @@ class InfoPanel(QWidget):
             if selection:
                 model_name, model_type = selection
                 settings.save_embedding_model(
-                    self.connection_id, self.current_collection, model_name, model_type
+                    self.connection.name if self.connection else "",
+                    self.current_collection,
+                    model_name,
+                    model_type,
                 )
+
+                # Clear cache to ensure fresh collection info on next load
+                if effective_connection_id and self.current_collection:
+                    self.cache_manager.invalidate(effective_connection_id, self.current_collection)
+                    log_info(
+                        "Cleared cache for collection after configuring embedding model: %s",
+                        self.current_collection,
+                    )
 
                 # Update the display immediately to show new model
                 self.embedding_model_label.setText(f"{model_name} ({model_type})")
@@ -576,7 +635,10 @@ class InfoPanel(QWidget):
 
         elif result == 2:  # Clear configuration
             # Remove from settings using the new SettingsService method
-            settings.remove_embedding_model(self.connection_id, self.current_collection)
+            settings.remove_embedding_model(
+                self.connection.name if self.connection else "",
+                self.current_collection,
+            )
 
             # Refresh display
             self._update_embedding_model_display(collection_info)

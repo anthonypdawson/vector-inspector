@@ -229,9 +229,7 @@ class VectorDBConnection(ABC):
             {"name": "contains", "server_side": False},
         ]
 
-    def get_embedding_model(
-        self, collection_name: str, connection_id: str | None = None
-    ) -> str | None:
+    def get_embedding_model(self, collection_name: str) -> str | None:
         """
         Get the embedding model used for a collection.
 
@@ -261,11 +259,12 @@ class VectorDBConnection(ABC):
                     return metadata["_embedding_model"]
 
             # Finally, check user settings (for collections we can't modify)
-            if connection_id:
+            profile_name = getattr(self, "profile_name", None)
+            if profile_name:
                 from vector_inspector.services.settings_service import SettingsService
 
                 settings = SettingsService()
-                model_info = settings.get_embedding_model(connection_id, collection_name)
+                model_info = settings.get_embedding_model(profile_name, collection_name)
                 if model_info:
                     return model_info["model"]
 
@@ -275,7 +274,7 @@ class VectorDBConnection(ABC):
             return None
 
     def load_embedding_model_for_collection(
-        self, collection_name: str, connection_id: str | None = None
+        self, collection_name: str, profile_name_override: str | None = None
     ):
         """
         Resolve and load an embedding model for a collection.
@@ -298,9 +297,10 @@ class VectorDBConnection(ABC):
             from vector_inspector.services.settings_service import SettingsService
 
             # 1) settings
-            if connection_id:
+            profile_name = profile_name_override or getattr(self, "profile_name", None)
+            if profile_name:
                 settings = SettingsService()
-                cfg = settings.get_embedding_model(connection_id, collection_name)
+                cfg = settings.get_embedding_model(profile_name, collection_name)
                 if cfg and cfg.get("model"):
                     model_name = cfg.get("model")
                     model_type = cfg.get("type", "sentence-transformer")
@@ -337,7 +337,7 @@ class VectorDBConnection(ABC):
             raise
 
     def compute_embeddings_for_documents(
-        self, collection_name: str, documents: list[str], connection_id: str | None = None
+        self, collection_name: str, documents: list[str], profile_name_override: str | None = None
     ) -> list[list[float]]:
         """
         Compute embeddings for a list of documents using the resolved model for the collection.
@@ -346,7 +346,7 @@ class VectorDBConnection(ABC):
         raises an exception.
         """
         model, model_name, model_type = self.load_embedding_model_for_collection(
-            collection_name, connection_id
+            collection_name, profile_name_override
         )
 
         # Use batch encoding when available (sentence-transformer), otherwise per-doc

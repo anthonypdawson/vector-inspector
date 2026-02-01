@@ -1,25 +1,27 @@
 """Updated main window with multi-database support."""
 
+from typing import Optional
+
+from PySide6.QtCore import QByteArray, Qt, QTimer
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QMessageBox,
-    QLabel,
     QApplication,
     QDialog,
-    QToolBar,
+    QLabel,
+    QMessageBox,
     QStatusBar,
+    QToolBar,
 )
-from PySide6.QtCore import Qt, QTimer, QByteArray
-from PySide6.QtGui import QAction
 
-from vector_inspector.core.connection_manager import ConnectionManager, ConnectionInstance
+from vector_inspector.core.connection_manager import ConnectionInstance, ConnectionManager
 from vector_inspector.services.profile_service import ProfileService
 from vector_inspector.services.settings_service import SettingsService
-from vector_inspector.ui.main_window_shell import InspectorShell
 from vector_inspector.ui.components.connection_manager_panel import ConnectionManagerPanel
 from vector_inspector.ui.components.profile_manager_panel import ProfileManagerPanel
-from vector_inspector.ui.tabs import InspectorTabs
 from vector_inspector.ui.controllers.connection_controller import ConnectionController
+from vector_inspector.ui.main_window_shell import InspectorShell
 from vector_inspector.ui.services.dialog_service import DialogService
+from vector_inspector.ui.tabs import InspectorTabs
 
 
 class MainWindow(InspectorShell):
@@ -198,9 +200,10 @@ class MainWindow(InspectorShell):
         help_menu.addAction(check_update_action)
 
     def _check_for_update_from_menu(self):
+        from PySide6.QtWidgets import QMessageBox
+
         from vector_inspector.services.update_service import UpdateService
         from vector_inspector.utils.version import get_app_version
-        from PySide6.QtWidgets import QMessageBox
 
         latest = UpdateService.get_latest_release(force_refresh=True)
         if latest:
@@ -254,11 +257,12 @@ class MainWindow(InspectorShell):
         self.update_indicator.mousePressEvent = self._on_update_indicator_clicked
 
         # Check for updates on launch
-        from vector_inspector.services.update_service import UpdateService
-        from vector_inspector.utils.version import get_app_version
         import threading
 
         from PySide6.QtCore import QTimer
+
+        from vector_inspector.services.update_service import UpdateService
+        from vector_inspector.utils.version import get_app_version
 
         def check_updates():
             latest = UpdateService.get_latest_release()
@@ -453,7 +457,7 @@ class MainWindow(InspectorShell):
         # If this is the active connection, refresh the info panel
         if connection_id == self.connection_manager.get_active_connection_id():
             instance = self.connection_manager.get_connection(connection_id)
-            if instance and instance.connection:
+            if instance and instance.is_connected:
                 self.info_panel.refresh_database_info()
 
     def _on_collection_selected_from_panel(self, connection_id: str, collection_name: str):
@@ -472,7 +476,7 @@ class MainWindow(InspectorShell):
             self.connection_controller.loading_dialog.hide_loading()
 
     def _update_views_with_connection(self, connection: Optional[ConnectionInstance]):
-        """Update all views with a new connection.\"\"\"
+        """Update all views with a new connection."""
         # Clear current collection when switching connections
         self.info_panel.current_collection = None
         self.metadata_view.current_collection = None
