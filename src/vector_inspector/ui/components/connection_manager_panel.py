@@ -24,6 +24,7 @@ from vector_inspector.core.connection_manager import (
     ConnectionManager,
     ConnectionState,
 )
+from vector_inspector.services.settings_service import SettingsService
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
 
 
@@ -457,6 +458,10 @@ class ConnectionManagerPanel(QWidget):
             success = instance.delete_collection(collection_name)
 
             if success:
+                # Remove embedding model info from settings
+                profile_name = instance.name
+                SettingsService().remove_embedding_model(profile_name, collection_name)
+
                 # Refresh collections list
                 collections = instance.list_collections()
                 self.connection_manager.update_collections(connection_id, collections)
