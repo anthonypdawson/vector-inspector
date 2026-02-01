@@ -12,6 +12,14 @@
 
 A comprehensive desktop application for visualizing, querying, and managing vector database data. Similar to SQL database viewers, Vector Inspector provides an intuitive GUI for exploring vector embeddings, metadata, and performing similarity searches across multiple vector database providers.
 
+<p align="center">
+  <a href="site/images/demo.gif" target="_blank">
+    <img src="site/images/demo.gif" alt="Vector Inspector Demo" width="600"/>
+  </a>
+</p>
+
+**Quick Demo:** See Vector Inspector in action!
+
 ## Overview
 
 Vector Inspector bridges the gap between vector databases and user-friendly data exploration tools. While vector databases are powerful for semantic search and AI applications, they often lack the intuitive inspection and management tools that traditional SQL databases have. This project aims to provide that missing layer.
