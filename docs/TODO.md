@@ -13,12 +13,43 @@ Add new items below as needed. When an item is scheduled for a phase or release,
   - Probably should store as a dict of defaults somewhere
 - Improve error handling and user feedback for database connection issues
 
-- Fix disappearing-row after edit in MetadataView: when an edit regenerates embeddings the row can move to the end of the server-side result set and the UI reload currently shows the last page. Investigate and implement a reliable strategy to keep the edited item visible (e.g., locate its server-side index and load that page, or preserve stable sorting keys). (blocking UX; unscheduled)
-
-- Fix my workflow using the file "publish copy.yml", rename the file to have no spaces and update tags on the site and in my readme. Update the pypi trusted publishing.  Remove the old publish workflows.
 
 - Refactor UI MainWindow as suggested here https://copilot.microsoft.com/shares/2657KN5vHbc1qNwLHQMc3
 - Continue testing search similar feature and fix any bugs found
+- Allow create collections
+- Allow adding test data from the UI for demo purposes (leverage code in create_test_data.py)
+  - Allow types of data: text, images, audio, mixed
+  - Allow specifying number of items, metadata fields, embedding dimensions
+  - Use the data from create_test_data.py if the user wants just demo data quickly
+- Implement cluster visualization with HDBSCAN (Premium) — moved to: ../vector-studio/docs/CLUSTER_VISUALIZATION_HDBSCAN.md
+- When catching an exception on connecting to a database, classify the error and show a more specific message to the user (e.g., authentication failure, network unreachable, timeout, problem with database etc.). Remove the loading dialog when an error occurs.
+  - Example of a database failure
+    ```
+    try:
+      self._client = chromadb.PersistentClient(path=path_to_use)
+    except Exception as e:
+      msg = str(e).lower()
+
+    # Detect Rust-level corruption signals
+    if (
+        "pyo3_runtime.panic" in msg
+        or "range start index" in msg
+        or "slice of length" in msg
+        or "rust" in msg and "panic" in msg
+        or "bindings" in msg and "panic" in msg
+    ):
+        self._last_error = (
+            "The Chroma database could not be opened because its internal "
+            "metadata or index files appear to be corrupted. "
+            "If you have a backup, try restoring it."
+        )
+        return False
+
+    # Otherwise treat it as a normal connection error
+    self._last_error = f"Failed to open Chroma database: {e}"
+    return False
+    ```
+
 
 ### Update available flow (Partially completed)
  - Implement a user notification system for available updates
@@ -47,4 +78,3 @@ Add new items below as needed. When an item is scheduled for a phase or release,
      - Release notes
      - Update instructions (pip command and GitHub link)
      - Option to dismiss or snooze the notification
-
