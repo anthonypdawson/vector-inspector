@@ -1,9 +1,27 @@
-"""Pinecone connection manager."""
+"""Pinecone connection manager.
 
-from typing import Optional, List, Dict, Any
+Namespace Best Practices:
+-------------------------
+Pinecone supports namespaces within indexes to organize vectors. In Vector Inspector,
+namespaces are specified using the format: 'index_name::namespace'
+
+IMPORTANT: Always use named namespaces (e.g., 'my-index::production') rather than
+the default namespace (just 'my-index'). The default namespace has limitations:
+- Not reported in describe_index_stats() API
+- Not visible in Pinecone data browser
+- Vectors exist and are queryable, but discovery is limited
+
+Named namespaces work perfectly and are fully visible in all interfaces.
+
+Examples:
+- Good: 'embeddings::production', 'embeddings::staging', 'embeddings::dev'
+- Avoid: 'embeddings' (uses default namespace with limited visibility)
+"""
+
 import time
+from typing import Any, Optional
+
 from pinecone import Pinecone, ServerlessSpec
-from pinecone.exceptions import PineconeException
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.logging import log_error
@@ -29,6 +47,41 @@ class PineconeConnection(VectorDBConnection):
         self._client: Optional[Pinecone] = None
         self._current_index = None
         self._current_index_name: Optional[str] = None
+
+    @staticmethod
+    def _parse_collection_name(collection_name: str) -> tuple[str, str]:
+        """
+        Parse a collection name into (index_name, namespace).
+
+        Format: 'index_name' or 'index_name::namespace'
+        Empty namespace is represented as empty string ''.
+
+        Args:
+            collection_name: Collection name, optionally with namespace
+
+        Returns:
+            Tuple of (index_name, namespace)
+        """
+        if "::" in collection_name:
+            parts = collection_name.split("::", 1)
+            return parts[0], parts[1]
+        return collection_name, ""
+
+    @staticmethod
+    def _format_collection_name(index_name: str, namespace: str) -> str:
+        """
+        Format an index name and namespace into a collection name.
+
+        Args:
+            index_name: Name of the Pinecone index
+            namespace: Namespace within the index (empty string for default)
+
+        Returns:
+            Formatted collection name
+        """
+        if namespace:
+            return f"{index_name}::{namespace}"
+        return index_name
 
     def connect(self) -> bool:
         """
@@ -60,18 +113,58 @@ class PineconeConnection(VectorDBConnection):
         """Check if connected to Pinecone."""
         return self._client is not None
 
-    def list_collections(self) -> List[str]:
+    def list_collections(self) -> list[str]:
         """
-        Get list of all indexes (collections in Pinecone terminology).
+        Get list of all indexes and their namespaces.
+
+        Returns collection names in format:
+        - 'index_name' for default namespace
+        - 'index_name::namespace' for named namespaces
 
         Returns:
-            List of index names
+            List of collection names (index::namespace combinations)
         """
         if not self._client:
             return []
         try:
             indexes = self._client.list_indexes()
-            return [str(idx.name) for idx in indexes]  # type: ignore
+            collections = []
+
+            for idx in indexes:
+                index_name = str(idx.name)  # type: ignore
+
+                try:
+                    # Get stats to discover namespaces
+                    index = self._client.Index(index_name)
+                    stats = index.describe_index_stats()
+
+                    # Extract namespaces from stats
+                    namespaces_info = stats.get("namespaces", {})
+
+                    if not namespaces_info:
+                        # No vectors yet, just add the index with default namespace
+                        collections.append(index_name)
+                    else:
+                        # Add entry for each namespace that has vectors
+                        for namespace, ns_stats in namespaces_info.items():
+                            vector_count = ns_stats.get("vector_count", 0)
+                            if vector_count > 0:
+                                collections.append(
+                                    self._format_collection_name(index_name, namespace)
+                                )
+
+                        # If no namespaces have vectors, still show the index
+                        if not collections or not any(
+                            c.startswith(f"{index_name}") for c in collections
+                        ):
+                            collections.append(index_name)
+
+                except Exception as e:
+                    log_error("Failed to get namespace info for index %s: %s", index_name, e)
+                    # Fallback: just add the index name
+                    collections.append(index_name)
+
+            return collections
         except Exception as e:
             log_error("Failed to list indexes: %s", e)
             return []
@@ -91,12 +184,12 @@ class PineconeConnection(VectorDBConnection):
             log_error("Failed to get index: %s", e)
             return None
 
-    def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_collection_info(self, name: str) -> Optional[dict[str, Any]]:
         """
-        Get index metadata and statistics.
+        Get index metadata and statistics for a specific namespace.
 
         Args:
-            name: Index name
+            name: Collection name (format: 'index' or 'index::namespace')
 
         Returns:
             Dictionary with index info
@@ -105,18 +198,28 @@ class PineconeConnection(VectorDBConnection):
             return None
 
         try:
+            # Parse collection name to get index and namespace
+            index_name, namespace = self._parse_collection_name(name)
+
             # Get index description
-            index_description = self._client.describe_index(name)
+            index_description = self._client.describe_index(index_name)
 
             # Get index stats
-            index = self._get_index(name)
+            index = self._get_index(index_name)
             if not index:
                 return None
 
+            # Get all stats (describe_index_stats returns stats for all namespaces)
             stats = index.describe_index_stats()
 
-            # Extract information
-            total_vector_count = stats.get("total_vector_count", 0)
+            # Extract information for this specific namespace
+            if namespace and "namespaces" in stats:
+                namespace_stats = stats["namespaces"].get(namespace, {})
+                total_vector_count = namespace_stats.get("vector_count", 0)
+            else:
+                # For default namespace or when no namespaces exist
+                total_vector_count = stats.get("total_vector_count", 0)
+
             dimension = index_description.dimension
             metric = index_description.metric
 
@@ -127,7 +230,10 @@ class PineconeConnection(VectorDBConnection):
                     # Query for a small sample to see metadata structure
                     dimension_val = int(dimension) if dimension else 0
                     sample_query = index.query(
-                        vector=[0.0] * dimension_val, top_k=1, include_metadata=True
+                        vector=[0.0] * dimension_val,
+                        top_k=1,
+                        include_metadata=True,
+                        namespace=namespace,
                     )
                     if hasattr(sample_query, "matches") and sample_query.matches:  # type: ignore
                         metadata = sample_query.matches[0].metadata  # type: ignore
@@ -138,6 +244,8 @@ class PineconeConnection(VectorDBConnection):
 
             return {
                 "name": name,
+                "index_name": index_name,
+                "namespace": namespace if namespace else "(default)",
                 "count": total_vector_count,
                 "metadata_fields": metadata_fields,
                 "vector_dimension": dimension,
@@ -160,8 +268,16 @@ class PineconeConnection(VectorDBConnection):
         """
         Create a new index.
 
+        Note: In Pinecone, indexes are created but namespaces are implicit.
+        If name includes '::namespace', only the index will be created.
+        Namespaces are automatically created when data is added to them.
+
+        IMPORTANT: For Pinecone, it's recommended to always use named namespaces
+        (e.g., 'index::production' rather than just 'index') because the default
+        namespace has limitations with visibility in stats API and data browser.
+
         Args:
-            name: Index name
+            name: Index name (format: 'index::namespace' recommended, or 'index' alone)
             vector_size: Dimension of vectors
             distance: Distance metric (Cosine, Euclidean, DotProduct)
 
@@ -172,6 +288,25 @@ class PineconeConnection(VectorDBConnection):
             return False
 
         try:
+            # Parse name - only use index part for creation
+            index_name, namespace = self._parse_collection_name(name)
+
+            # Warn if using default namespace
+            if not namespace:
+                log_error(
+                    "RECOMMENDATION: Consider using a named namespace (e.g., '%s::main') "
+                    "instead of the default namespace. Named namespaces are fully visible "
+                    "in Pinecone's data browser and stats API.",
+                    index_name,
+                )
+
+            if namespace:
+                log_error(
+                    "Note: Creating index '%s'. Namespace '%s' will be created when data is added.",
+                    index_name,
+                    namespace,
+                )
+
             # Map distance names to Pinecone metrics
             metric_map = {
                 "cosine": "cosine",
@@ -183,7 +318,7 @@ class PineconeConnection(VectorDBConnection):
 
             # Create serverless index (default configuration)
             self._client.create_index(
-                name=name,
+                name=index_name,
                 dimension=vector_size,
                 metric=metric,
                 spec=ServerlessSpec(cloud="aws", region="us-east-1"),
@@ -193,7 +328,7 @@ class PineconeConnection(VectorDBConnection):
             max_wait = 60  # seconds
             start_time = time.time()
             while time.time() - start_time < max_wait:
-                desc = self._client.describe_index(name)
+                desc = self._client.describe_index(index_name)
                 status = (
                     desc.status.get("state", "unknown")
                     if hasattr(desc.status, "get")
@@ -211,16 +346,16 @@ class PineconeConnection(VectorDBConnection):
     def add_items(
         self,
         collection_name: str,
-        documents: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        documents: list[str],
+        metadatas: Optional[list[dict[str, Any]]] = None,
+        ids: Optional[list[str]] = None,
+        embeddings: Optional[list[list[float]]] = None,
     ) -> bool:
         """
-        Add items to an index.
+        Add items to an index namespace.
 
         Args:
-            collection_name: Name of index
+            collection_name: Collection name (format: 'index' or 'index::namespace')
             documents: Document texts (stored in metadata)
             metadatas: Metadata for each vector
             ids: IDs for each vector
@@ -229,6 +364,9 @@ class PineconeConnection(VectorDBConnection):
         Returns:
             True if successful, False otherwise
         """
+        # Parse collection name
+        index_name, namespace = self._parse_collection_name(collection_name)
+
         # If embeddings not provided, compute using base helper
         if not embeddings and documents:
             try:
@@ -243,7 +381,7 @@ class PineconeConnection(VectorDBConnection):
             log_error("Embeddings are required for Pinecone but none were provided or computed")
             return False
 
-        index = self._get_index(collection_name)
+        index = self._get_index(index_name)
         if not index:
             return False
 
@@ -265,35 +403,46 @@ class PineconeConnection(VectorDBConnection):
 
                 vectors.append({"id": ids[i], "values": embedding, "metadata": metadata})
 
-            # Upsert in batches of 100 (Pinecone limit)
+            # Upsert in batches of 100 (Pinecone limit) with namespace
             batch_size = 100
             for i in range(0, len(vectors), batch_size):
                 batch = vectors[i : i + batch_size]
-                index.upsert(vectors=batch)
+                # For default namespace, omit the namespace parameter
+                if namespace:
+                    index.upsert(vectors=batch, namespace=namespace)
+                else:
+                    index.upsert(vectors=batch)
 
             return True
         except Exception as e:
             log_error("Failed to add items: %s", e)
             return False
 
-    def get_items(self, name: str, ids: List[str]) -> Dict[str, Any]:
+    def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:
         """
-        Retrieve items by IDs.
+        Retrieve items by IDs from a namespace.
 
         Args:
-            name: Index name
+            name: Collection name (format: 'index' or 'index::namespace')
             ids: List of vector IDs
 
         Returns:
             Dictionary with documents and metadatas
         """
-        index = self._get_index(name)
+        # Parse collection name
+        index_name, namespace = self._parse_collection_name(name)
+
+        index = self._get_index(index_name)
         if not index:
             return {"documents": [], "metadatas": []}
 
         try:
-            # Fetch vectors
-            result = index.fetch(ids=ids)
+            # Fetch vectors from namespace
+            # For default namespace, omit the namespace parameter
+            if namespace:
+                result = index.fetch(ids=ids, namespace=namespace)
+            else:
+                result = index.fetch(ids=ids)
 
             documents = []
             metadatas = []
@@ -318,10 +467,13 @@ class PineconeConnection(VectorDBConnection):
 
     def delete_collection(self, name: str) -> bool:
         """
-        Delete an index.
+        Delete an index or clear a namespace.
+
+        If name is just an index name, deletes the entire index.
+        If name includes '::namespace', deletes all vectors in that namespace.
 
         Args:
-            name: Index name
+            name: Collection name (format: 'index' or 'index::namespace')
 
         Returns:
             True if successful, False otherwise
@@ -330,31 +482,52 @@ class PineconeConnection(VectorDBConnection):
             return False
 
         try:
-            self._client.delete_index(name)
-            if self._current_index_name == name:
-                self._current_index = None
-                self._current_index_name = None
+            # Parse collection name
+            index_name, namespace = self._parse_collection_name(name)
+
+            if namespace:
+                # Delete all vectors in the namespace (keeps index and other namespaces)
+                index = self._get_index(index_name)
+                if not index:
+                    return False
+                index.delete(delete_all=True, namespace=namespace)
+            else:
+                # Delete the entire index
+                self._client.delete_index(index_name)
+                if self._current_index_name == index_name:
+                    self._current_index = None
+                    self._current_index_name = None
+
             return True
         except Exception as e:
-            log_error("Failed to delete index: %s", e)
+            log_error("Failed to delete collection: %s", e)
             return False
 
     def count_collection(self, name: str) -> int:
         """
-        Return the number of vectors in the index.
+        Return the number of vectors in the namespace.
 
         Args:
-            name: Index name
+            name: Collection name (format: 'index' or 'index::namespace')
 
         Returns:
             Number of vectors
         """
-        index = self._get_index(name)
+        # Parse collection name
+        index_name, namespace = self._parse_collection_name(name)
+
+        index = self._get_index(index_name)
         if not index:
             return 0
 
         try:
             stats = index.describe_index_stats()
+
+            # Get count for specific namespace
+            if namespace and "namespaces" in stats:
+                namespace_stats = stats["namespaces"].get(namespace, {})
+                return namespace_stats.get("vector_count", 0)
+
             return stats.get("total_vector_count", 0)
         except Exception:
             return 0
@@ -405,25 +578,27 @@ class PineconeConnection(VectorDBConnection):
     def query_collection(
         self,
         collection_name: str,
-        query_texts: Optional[List[str]] = None,
-        query_embeddings: Optional[List[List[float]]] = None,
+        query_texts: Optional[list[str]] = None,
+        query_embeddings: Optional[list[list[float]]] = None,
         n_results: int = 10,
-        where: Optional[Dict[str, Any]] = None,
-        where_document: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        where: Optional[dict[str, Any]] = None,
+        _where_document: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, Any]]:
         """
-        Query an index for similar vectors.
+        Query a namespace for similar vectors.
 
         Args:
-            collection_name: Name of index
+            collection_name: Collection name (format: 'index' or 'index::namespace')
             query_texts: Text queries (will be embedded if provided)
             query_embeddings: Query embedding vectors
             n_results: Number of results to return
             where: Metadata filter
-            where_document: Document content filter (not directly supported)
+            _where_document: Document content filter (not directly supported)
         Returns:
             Query results or None if failed
         """
+        # Parse collection name
+        index_name, namespace = self._parse_collection_name(collection_name)
 
         # If query_embeddings not provided, but query_texts are, embed them using the embedding function
         if query_embeddings is None and query_texts:
@@ -435,7 +610,7 @@ class PineconeConnection(VectorDBConnection):
             log_error("Query embeddings are required for Pinecone")
             return None
 
-        index = self._get_index(collection_name)
+        index = self._get_index(index_name)
         if not index:
             return None
 
@@ -453,13 +628,24 @@ class PineconeConnection(VectorDBConnection):
                 if where:
                     filter_dict = self._convert_filter(where)
 
-                result = index.query(
-                    vector=query_vector,
-                    top_k=n_results,
-                    include_metadata=True,
-                    include_values=True,
-                    filter=filter_dict,
-                )
+                # For default namespace, omit the namespace parameter
+                if namespace:
+                    result = index.query(
+                        vector=query_vector,
+                        top_k=n_results,
+                        include_metadata=True,
+                        include_values=True,
+                        filter=filter_dict,
+                        namespace=namespace,
+                    )
+                else:
+                    result = index.query(
+                        vector=query_vector,
+                        top_k=n_results,
+                        include_metadata=True,
+                        include_values=True,
+                        filter=filter_dict,
+                    )
 
                 # Extract results
                 ids = []
@@ -507,7 +693,7 @@ class PineconeConnection(VectorDBConnection):
             log_error("Query failed: %s\n%s", e, traceback.format_exc())
             return None
 
-    def _convert_filter(self, where: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_filter(self, where: dict[str, Any]) -> dict[str, Any]:
         """
         Convert generic filter to Pinecone filter format.
 
@@ -532,16 +718,16 @@ class PineconeConnection(VectorDBConnection):
         collection_name: str,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        where: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        where: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, Any]]:
         """
-        Get all items from an index using pagination.
+        Get all items from a namespace using pagination.
 
         Note: Uses Pinecone's list() method which returns a generator of ID lists.
         Offset-based pagination is simulated by skipping items.
 
         Args:
-            collection_name: Name of index
+            collection_name: Collection name (format: 'index' or 'index::namespace')
             limit: Maximum number of items to return
             offset: Number of items to skip
             where: Metadata filter (not supported in list operation)
@@ -549,7 +735,10 @@ class PineconeConnection(VectorDBConnection):
         Returns:
             Index items or None if failed
         """
-        index = self._get_index(collection_name)
+        # Parse collection name
+        index_name, namespace = self._parse_collection_name(collection_name)
+
+        index = self._get_index(index_name)
         if not index:
             return None
 
@@ -561,7 +750,9 @@ class PineconeConnection(VectorDBConnection):
             target_limit = limit or 100
 
             # list() returns a generator that yields lists of IDs
-            for id_list in index.list():  # type: ignore
+            # For default namespace, omit the namespace parameter
+            id_generator = index.list(namespace=namespace) if namespace else index.list()  # type: ignore
+            for id_list in id_generator:
                 if not id_list:
                     continue
 
@@ -594,7 +785,11 @@ class PineconeConnection(VectorDBConnection):
 
             for i in range(0, len(ids_to_fetch), batch_size):
                 batch_ids = ids_to_fetch[i : i + batch_size]
-                fetch_result = index.fetch(ids=batch_ids)
+                # For default namespace, omit the namespace parameter
+                if namespace:
+                    fetch_result = index.fetch(ids=batch_ids, namespace=namespace)
+                else:
+                    fetch_result = index.fetch(ids=batch_ids)
 
                 for vid in batch_ids:
                     if vid in fetch_result.vectors:
@@ -623,18 +818,18 @@ class PineconeConnection(VectorDBConnection):
     def update_items(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        ids: list[str],
+        documents: Optional[list[str]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
+        embeddings: Optional[list[list[float]]] = None,
     ) -> bool:
         """
-        Update items in an index.
+        Update items in a namespace.
 
         Note: Pinecone updates via upsert (add_items can be used)
 
         Args:
-            collection_name: Name of index
+            collection_name: Collection name (format: 'index' or 'index::namespace')
             ids: IDs of items to update
             documents: New document texts
             metadatas: New metadata
@@ -643,13 +838,20 @@ class PineconeConnection(VectorDBConnection):
         Returns:
             True if successful, False otherwise
         """
-        index = self._get_index(collection_name)
+        # Parse collection name
+        index_name, namespace = self._parse_collection_name(collection_name)
+
+        index = self._get_index(index_name)
         if not index:
             return False
 
         try:
             # Fetch existing vectors to preserve data not being updated
-            existing = index.fetch(ids=ids)
+            # For default namespace, omit the namespace parameter
+            if namespace:
+                existing = index.fetch(ids=ids, namespace=namespace)
+            else:
+                existing = index.fetch(ids=ids)
 
             vectors = []
             for i, vid in enumerate(ids):
@@ -689,11 +891,15 @@ class PineconeConnection(VectorDBConnection):
 
                 vectors.append({"id": vid, "values": values, "metadata": metadata})
 
-            # Upsert in batches
+            # Upsert in batches with namespace
             batch_size = 100
             for i in range(0, len(vectors), batch_size):
                 batch = vectors[i : i + batch_size]
-                index.upsert(vectors=batch)
+                # For default namespace, omit the namespace parameter
+                if namespace:
+                    index.upsert(vectors=batch, namespace=namespace)
+                else:
+                    index.upsert(vectors=batch)
 
             return True
         except Exception as e:
@@ -703,42 +909,55 @@ class PineconeConnection(VectorDBConnection):
     def delete_items(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None,
+        ids: Optional[list[str]] = None,
+        where: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
-        Delete items from an index.
+        Delete items from a namespace.
 
         Args:
-            collection_name: Name of index
+            collection_name: Collection name (format: 'index' or 'index::namespace')
             ids: IDs of items to delete
             where: Metadata filter for items to delete
 
         Returns:
             True if successful, False otherwise
         """
-        index = self._get_index(collection_name)
+        # Parse collection name
+        index_name, namespace = self._parse_collection_name(collection_name)
+
+        index = self._get_index(index_name)
         if not index:
             return False
 
         try:
             if ids:
-                # Delete by IDs
-                index.delete(ids=ids)
+                # Delete by IDs in namespace
+                # For default namespace, omit the namespace parameter
+                if namespace:
+                    index.delete(ids=ids, namespace=namespace)
+                else:
+                    index.delete(ids=ids)
             elif where:
-                # Delete by filter
+                # Delete by filter in namespace
                 filter_dict = self._convert_filter(where)
-                index.delete(filter=filter_dict)
+                if namespace:
+                    index.delete(filter=filter_dict, namespace=namespace)
+                else:
+                    index.delete(filter=filter_dict)
             else:
-                # Delete all (use with caution)
-                index.delete(delete_all=True)
+                # Delete all in namespace (use with caution)
+                if namespace:
+                    index.delete(delete_all=True, namespace=namespace)
+                else:
+                    index.delete(delete_all=True)
 
             return True
         except Exception as e:
             log_error("Failed to delete items: %s", e)
             return False
 
-    def get_connection_info(self) -> Dict[str, Any]:
+    def get_connection_info(self) -> dict[str, Any]:
         """
         Get information about the current connection.
 
@@ -757,7 +976,7 @@ class PineconeConnection(VectorDBConnection):
 
         return info
 
-    def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
+    def get_supported_filter_operators(self) -> list[dict[str, Any]]:
         """
         Get filter operators supported by Pinecone.
 
