@@ -47,6 +47,7 @@ class PineconeConnection(VectorDBConnection):
         self._client: Optional[Pinecone] = None
         self._current_index = None
         self._current_index_name: Optional[str] = None
+        self._hosted_models: dict[str, Optional[str]] = {}  # Cache: index_name -> model_name
 
     @staticmethod
     def _parse_collection_name(collection_name: str) -> tuple[str, str]:
@@ -184,6 +185,92 @@ class PineconeConnection(VectorDBConnection):
             log_error("Failed to get index: %s", e)
             return None
 
+    def _check_hosted_model(self, index_name: str) -> Optional[str]:
+        """
+        Check if an index uses a Pinecone-hosted embedding model.
+
+        Args:
+            index_name: Name of the Pinecone index
+
+        Returns:
+            Model name if hosted model is used, None otherwise
+        """
+        # Check cache first
+        if index_name in self._hosted_models:
+            return self._hosted_models[index_name]
+
+        # Query index description to check for hosted model
+        if not self._client:
+            return None
+
+        try:
+            index_description = self._client.describe_index(index_name)
+            hosted_model = None
+
+            # Check for model in embed field (Pinecone's hosted model info)
+            if hasattr(index_description, "embed"):
+                embed = index_description.embed
+                # embed might be a dict or an object
+                if isinstance(embed, dict) and "model" in embed:
+                    hosted_model = embed["model"]
+                elif hasattr(embed, "model") and embed.model:
+                    hosted_model = embed.model
+            # Also check spec (legacy/alternative location)
+            elif hasattr(index_description, "spec"):
+                spec = index_description.spec
+                if hasattr(spec, "model") and spec.model:
+                    hosted_model = spec.model
+                elif hasattr(spec, "index_config") and hasattr(spec.index_config, "model"):
+                    hosted_model = spec.index_config.model
+
+            # Cache the result
+            self._hosted_models[index_name] = hosted_model
+            if hosted_model:
+                log_error("✓ Detected Pinecone hosted model for '%s': %s", index_name, hosted_model)
+            return hosted_model
+        except Exception as e:
+            log_error("Failed to check hosted model for index %s: %s", index_name, e)
+            return None
+
+    def _embed_with_inference_api(
+        self, model: str, texts: list[str], input_type: str = "query"
+    ) -> list[list[float]]:
+        """
+        Use Pinecone's inference API to embed texts.
+
+        Args:
+            model: Model name (e.g., 'llama-text-embed-v2')
+            texts: List of texts to embed
+            input_type: 'query' or 'passage'
+
+        Returns:
+            List of embedding vectors
+
+        Raises:
+            Exception if inference API is not available or fails
+        """
+        if not self._client or not hasattr(self._client, "inference"):
+            raise Exception("Pinecone inference API not available on this client")
+
+        try:
+            result = self._client.inference.embed(
+                model=model, inputs=texts, parameters={"input_type": input_type}
+            )
+
+            # Extract embeddings from result
+            embeddings = []
+            for item in result:
+                if hasattr(item, "values"):
+                    embeddings.append(item.values)
+                elif isinstance(item, dict) and "values" in item:
+                    embeddings.append(item["values"])
+                else:
+                    raise Exception(f"Unexpected inference API response format: {type(item)}")
+
+            return embeddings
+        except Exception as e:
+            raise Exception(f"Inference API embedding failed: {e}") from e
+
     def get_collection_info(self, name: str) -> Optional[dict[str, Any]]:
         """
         Get index metadata and statistics for a specific namespace.
@@ -223,6 +310,26 @@ class PineconeConnection(VectorDBConnection):
             dimension = index_description.dimension
             metric = index_description.metric
 
+            # Check if index uses a Pinecone-hosted embedding model
+            hosted_model = None
+            if hasattr(index_description, "embed"):
+                embed = index_description.embed
+                # embed might be a dict or an object
+                if isinstance(embed, dict) and "model" in embed:
+                    hosted_model = embed["model"]
+                elif hasattr(embed, "model") and embed.model:
+                    hosted_model = embed.model
+            # Also check spec (legacy/alternative location)
+            elif hasattr(index_description, "spec"):
+                spec = index_description.spec
+                if hasattr(spec, "model") and spec.model:
+                    hosted_model = spec.model
+                elif hasattr(spec, "index_config") and hasattr(spec.index_config, "model"):
+                    hosted_model = spec.index_config.model
+
+            # Cache the hosted model info for this index
+            self._hosted_models[index_name] = hosted_model
+
             # Get metadata fields from a sample query (if vectors exist)
             metadata_fields = []
             if total_vector_count > 0:
@@ -242,7 +349,7 @@ class PineconeConnection(VectorDBConnection):
                 except Exception:
                     pass  # Metadata fields will remain empty
 
-            return {
+            info_dict = {
                 "name": name,
                 "index_name": index_name,
                 "namespace": namespace if namespace else "(default)",
@@ -260,6 +367,13 @@ class PineconeConnection(VectorDBConnection):
                 if hasattr(index_description, "spec")
                 else "N/A",
             }
+
+            # Add hosted model info if detected
+            if hosted_model:
+                info_dict["embedding_model"] = hosted_model
+                info_dict["embedding_model_type"] = "pinecone-hosted"
+
+            return info_dict
         except Exception as e:
             log_error("Failed to get index info: %s", e)
             return None
@@ -535,8 +649,23 @@ class PineconeConnection(VectorDBConnection):
     def _get_embedding_function_for_collection(self, collection_name: str):
         """
         Returns embedding function and model type for a given collection, matching ChromaDB/Qdrant API.
+
+        Note: For collections using Pinecone-hosted models, this should not be called.
+        Text queries are handled directly by Pinecone.
         """
         info = self.get_collection_info(collection_name)
+
+        # Check if this collection uses a Pinecone-hosted model
+        if info and info.get("embedding_model_type") == "pinecone-hosted":
+            hosted_model = info.get("embedding_model", "unknown")
+            log_error(
+                "Warning: Attempting to generate local embeddings for collection '%s' "
+                "that uses Pinecone-hosted model '%s'. This may indicate a configuration issue. "
+                "Consider using text queries instead.",
+                collection_name,
+                hosted_model,
+            )
+
         dim = info.get("vector_dimension") if info else None
         try:
             dim_int = int(dim) if dim is not None else None
@@ -587,9 +716,11 @@ class PineconeConnection(VectorDBConnection):
         """
         Query a namespace for similar vectors.
 
+        For indexes with hosted models, uses direct text-based search API.
+
         Args:
             collection_name: Collection name (format: 'index' or 'index::namespace')
-            query_texts: Text queries (will be embedded if provided)
+            query_texts: Text queries (for hosted models, searches directly; otherwise embedded locally)
             query_embeddings: Query embedding vectors
             n_results: Number of results to return
             where: Metadata filter
@@ -600,11 +731,25 @@ class PineconeConnection(VectorDBConnection):
         # Parse collection name
         index_name, namespace = self._parse_collection_name(collection_name)
 
-        # If query_embeddings not provided, but query_texts are, embed them using the embedding function
+        # Check if index uses hosted model
+        hosted_model = self._check_hosted_model(index_name)
+
+        # If hosted model and text queries, use direct text search
+        if hosted_model and query_texts and query_embeddings is None:
+            log_error("Using Pinecone hosted model '%s' for text-based search", hosted_model)
+            return self._query_with_hosted_model(
+                index_name, namespace, query_texts, n_results, where
+            )
+
+        # Otherwise, use vector-based query
+        # If query_embeddings not provided, embed the query texts
         if query_embeddings is None and query_texts:
-            embedding_fn, _ = self._get_embedding_function_for_collection(collection_name)
-            query_embeddings = [embedding_fn(q) for q in query_texts]
-            query_texts = None
+            try:
+                embedding_fn, _ = self._get_embedding_function_for_collection(collection_name)
+                query_embeddings = [embedding_fn(q) for q in query_texts]
+            except Exception as e:
+                log_error("Failed to generate embeddings for query. Error: %s", e)
+                return None
 
         if not query_embeddings:
             log_error("Query embeddings are required for Pinecone")
@@ -691,6 +836,138 @@ class PineconeConnection(VectorDBConnection):
             import traceback
 
             log_error("Query failed: %s\n%s", e, traceback.format_exc())
+            return None
+
+    def _query_with_hosted_model(
+        self,
+        index_name: str,
+        namespace: str,
+        query_texts: list[str],
+        n_results: int,
+        where: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, Any]]:
+        """
+        Query using Pinecone-hosted embedding model with direct text search.
+
+        Uses index.search() with text inputs - Pinecone embeds the text server-side.
+
+        Args:
+            index_name: Name of the Pinecone index
+            namespace: Namespace within the index
+            query_texts: Text queries (embedded server-side by Pinecone)
+            n_results: Number of results to return
+            where: Metadata filter
+
+        Returns:
+            Query results or None if failed
+        """
+        index = self._get_index(index_name)
+        if not index:
+            return None
+
+        try:
+            # Pinecone queries one text at a time for hosted models
+            all_ids = []
+            all_distances = []
+            all_documents = []
+            all_metadatas = []
+            all_embeddings = []
+
+            for query_text in query_texts:
+                # Build filter if provided
+                filter_dict = None
+                if where:
+                    filter_dict = self._convert_filter(where)
+
+                # Use index.search() with text input format for hosted models
+                query_dict = {
+                    "inputs": {"text": query_text},
+                    "top_k": n_results,
+                }
+
+                search_params: dict[str, Any] = {"query": query_dict}
+
+                # Add namespace if specified
+                if namespace:
+                    search_params["namespace"] = namespace
+
+                # Add filter if provided
+                if filter_dict:
+                    query_dict["filter"] = filter_dict
+
+                # Use search() method for text-based queries with hosted models
+                # Note: search() doesn't use include_metadata/include_values like query()
+                result = index.search(**search_params)
+
+                # Extract results
+                # Note: search() returns {'result': {'hits': [...]}} structure
+                # while query() returns {'matches': [...]} structure
+                ids = []
+                distances = []
+                documents = []
+                metadatas = []
+                embeddings = []
+
+                # Handle search() response structure
+                if hasattr(result, "result") and hasattr(result.result, "hits"):
+                    hits = result.result.hits
+                elif isinstance(result, dict) and "result" in result and "hits" in result["result"]:
+                    hits = result["result"]["hits"]
+                else:
+                    log_error("Unexpected search response structure: %s", result)
+                    hits = []
+
+                for hit in hits:
+                    # Extract ID (search uses '_id' not 'id')
+                    hit_id = hit.get("_id") if isinstance(hit, dict) else getattr(hit, "_id", None)
+                    if hit_id:
+                        ids.append(hit_id)
+
+                    # Extract score (search uses '_score' not 'score')
+                    score = (
+                        hit.get("_score") if isinstance(hit, dict) else getattr(hit, "_score", None)
+                    )
+                    if score is not None:
+                        # Convert similarity to distance for cosine metric
+                        distances.append(1.0 - score)
+                    else:
+                        distances.append(None)
+
+                    # Extract fields (search uses 'fields' not 'metadata')
+                    fields = (
+                        hit.get("fields", {})
+                        if isinstance(hit, dict)
+                        else getattr(hit, "fields", {})
+                    )
+                    if isinstance(fields, dict):
+                        metadata = dict(fields)
+                        doc = metadata.pop("document", "")
+                        documents.append(doc)
+                        metadatas.append(metadata)
+                    else:
+                        documents.append("")
+                        metadatas.append({})
+
+                    # search() doesn't return vector values
+                    embeddings.append([])
+
+                all_ids.append(ids)
+                all_distances.append(distances)
+                all_documents.append(documents)
+                all_metadatas.append(metadatas)
+                all_embeddings.append(embeddings)
+
+            return {
+                "ids": all_ids,
+                "distances": all_distances,
+                "documents": all_documents,
+                "metadatas": all_metadatas,
+                "embeddings": all_embeddings,
+            }
+        except Exception as e:
+            import traceback
+
+            log_error("Text query with hosted model failed: %s\n%s", e, traceback.format_exc())
             return None
 
     def _convert_filter(self, where: dict[str, Any]) -> dict[str, Any]:

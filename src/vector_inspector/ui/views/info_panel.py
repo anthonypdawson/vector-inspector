@@ -423,6 +423,11 @@ class InfoPanel(QWidget):
             details_list.append("• Provider: Pinecone")
             details_list.append("• Supports: Vectors, Metadata")
             details_list.append("• Cloud-hosted vector database")
+            # Check if using Pinecone-hosted embedding model
+            if collection_info.get("embedding_model_type") == "pinecone-hosted":
+                hosted_model = collection_info.get("embedding_model", "Unknown")
+                details_list.append(f"• Hosted Model: {hosted_model}")
+                details_list.append("• Supports text-based queries (no local embedding needed)")
             # Add Pinecone-specific info if available
             if "host" in collection_info:
                 details_list.append(f"• Host: {collection_info['host']}")
