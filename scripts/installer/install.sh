@@ -14,20 +14,7 @@ fi
 python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade vector-inspector
 
-echo "Creating desktop shortcut..."
-
-DESKTOP_DIR="$HOME/Desktop"
-SHORTCUT="$DESKTOP_DIR/Vector Inspector.desktop"
-
-cat > "$SHORTCUT" <<EOF
-[Desktop Entry]
-Type=Application
-Name=Vector Inspector
-Exec=vector-inspector
-Terminal=false
-EOF
-
-chmod +x "$SHORTCUT"
+echo "Type vector-inspector to launch the application."
 
 echo "Launching Vector Inspector..."
 vector-inspector &
