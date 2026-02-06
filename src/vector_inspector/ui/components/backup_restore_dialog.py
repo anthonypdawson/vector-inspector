@@ -245,12 +245,12 @@ class BackupRestoreDialog(QDialog):
             )
 
             item = QListWidgetItem(item_text)
-            item.setData(Qt.UserRole, backup["file_path"])
+            item.setData(Qt.ItemDataRole.UserRole, backup["file_path"])
             self.backups_list.addItem(item)
 
         if not backups:
             item = QListWidgetItem("No backups found in directory")
-            item.setFlags(Qt.NoItemFlags)
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.backups_list.addItem(item)
 
     def _on_backup_selected(self):
@@ -265,7 +265,7 @@ class BackupRestoreDialog(QDialog):
         if not selected_items:
             return
 
-        backup_file = selected_items[0].data(Qt.UserRole)
+        backup_file = selected_items[0].data(Qt.ItemDataRole.UserRole)
         if not backup_file:
             return
 
@@ -318,9 +318,14 @@ class BackupRestoreDialog(QDialog):
                 return
 
         # Confirm
-        reply = QMessageBox.question(self, "Confirm Restore", msg, QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(
+            self,
+            "Confirm Restore",
+            msg,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
 
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         # If the backup included embeddings, ask user how to handle them
@@ -401,7 +406,7 @@ class BackupRestoreDialog(QDialog):
                 layout.addLayout(button_layout)
 
                 # Show dialog and get choice
-                if dialog.exec() != QDialog.Accepted:
+                if dialog.exec() != QDialog.DialogCode.Accepted:
                     return
 
                 if use_stored_radio.isChecked():
@@ -444,7 +449,7 @@ class BackupRestoreDialog(QDialog):
         if not selected_items:
             return
 
-        backup_file = selected_items[0].data(Qt.UserRole)
+        backup_file = selected_items[0].data(Qt.ItemDataRole.UserRole)
         if not backup_file:
             return
 
@@ -453,10 +458,10 @@ class BackupRestoreDialog(QDialog):
             self,
             "Confirm Deletion",
             f"Delete this backup file?\n{Path(backup_file).name}",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             if self.backup_service.delete_backup(backup_file):
                 QMessageBox.information(self, "Deleted", "Backup deleted successfully.")
                 self._refresh_backups_list()

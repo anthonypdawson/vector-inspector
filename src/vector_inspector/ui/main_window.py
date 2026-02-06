@@ -96,7 +96,7 @@ class MainWindow(InspectorShell):
                 splash.setWindowModality(Qt.ApplicationModal)
                 splash.raise_()
                 splash.activateWindow()
-                if splash.exec() == QDialog.Accepted and splash.should_hide():
+                if splash.exec() == QDialog.DialogCode.Accepted and splash.should_hide():
                     self.settings_service.set("hide_splash_window", True)
             except Exception as e:
                 print(f"[SplashWindow] Failed to show splash: {e}")
@@ -288,7 +288,7 @@ class MainWindow(InspectorShell):
             from vector_inspector.ui.dialogs.settings_dialog import SettingsDialog
 
             dlg = SettingsDialog(self.settings_service, self)
-            if dlg.exec() == QDialog.Accepted:
+            if dlg.exec() == QDialog.DialogCode.Accepted:
                 self._apply_settings_to_views()
         except Exception as e:
             print(f"Failed to open preferences: {e}")
@@ -604,7 +604,7 @@ class MainWindow(InspectorShell):
         # Show dialog
         result = DialogService.show_backup_restore_dialog(connection, collection_name or "", self)
 
-        if result == QDialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             # Refresh collections after restore
             self._refresh_active_connection()
 

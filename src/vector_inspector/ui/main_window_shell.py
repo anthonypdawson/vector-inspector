@@ -1,14 +1,14 @@
 """Reusable UI shell for Vector Inspector applications."""
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
     QHBoxLayout,
+    QMainWindow,
     QSplitter,
     QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt
 
 
 class InspectorShell(QMainWindow):
@@ -38,7 +38,7 @@ class InspectorShell(QMainWindow):
         layout.setContentsMargins(5, 5, 5, 5)
 
         # Main splitter (left panel | right tabs)
-        self.main_splitter = QSplitter(Qt.Horizontal)
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Left panel container (will hold tabs)
         left_panel = QWidget()
