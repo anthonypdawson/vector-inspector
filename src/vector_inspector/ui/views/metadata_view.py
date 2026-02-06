@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -172,10 +173,22 @@ class MetadataView(QWidget):
 
         layout.addLayout(controls_layout)
 
+        # Show/Hide Filters button
+        filters_toggle_layout = QHBoxLayout()
+        self.show_filters_button = QPushButton("🔍 Show Filters")
+        self.show_filters_button.clicked.connect(self._toggle_filters)
+        self.show_filters_button.setCheckable(True)
+        filters_toggle_layout.addWidget(self.show_filters_button)
+        filters_toggle_layout.addStretch()
+        layout.addLayout(filters_toggle_layout)
+
+        # Create a splitter for resizable panels
+        splitter = QSplitter(Qt.Vertical)
+
         # Filter section
         filter_group = QGroupBox("Metadata Filters")
         filter_group.setCheckable(True)
-        filter_group.setChecked(False)
+        filter_group.setChecked(True)  # Checked by default when visible
         filter_group_layout = QVBoxLayout()
 
         self.filter_builder = FilterBuilder()
@@ -186,10 +199,12 @@ class MetadataView(QWidget):
         filter_group_layout.addWidget(self.filter_builder)
 
         filter_group.setLayout(filter_group_layout)
-        layout.addWidget(filter_group)
+        splitter.addWidget(filter_group)
         self.filter_group = filter_group
+        # Hide filter section by default
+        self.filter_group.setVisible(False)
 
-        # Data table
+        # Data table - takes up most of the space
         self.table = QTableWidget()
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setAlternatingRowColors(True)
@@ -198,7 +213,14 @@ class MetadataView(QWidget):
         # Enable context menu
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
-        layout.addWidget(self.table)
+        splitter.addWidget(self.table)
+
+        # Set initial sizes: filter section small, table large
+        splitter.setStretchFactor(0, 0)  # Filter section
+        splitter.setStretchFactor(1, 1)  # Table gets most space
+
+        # Add splitter to main layout
+        layout.addWidget(splitter, stretch=1)
 
         # Status bar
         self.status_label = QLabel("No collection selected")
@@ -663,6 +685,19 @@ class MetadataView(QWidget):
         if self.filter_group.isChecked() and self.current_collection:
             self.current_page = 0
             self._load_data()
+
+    def _toggle_filters(self):
+        """Toggle the visibility of the filter section."""
+        is_visible = self.filter_group.isVisible()
+        self.filter_group.setVisible(not is_visible)
+
+        # Update button text and state
+        if not is_visible:
+            self.show_filters_button.setText("🔍 Hide Filters")
+            self.show_filters_button.setChecked(True)
+        else:
+            self.show_filters_button.setText("🔍 Show Filters")
+            self.show_filters_button.setChecked(False)
 
     def _refresh_data(self):
         """Refresh data and invalidate cache."""
