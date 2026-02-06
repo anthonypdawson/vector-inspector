@@ -17,6 +17,7 @@ def main():
     """Launch the Vector Inspector application."""
     app = QApplication(sys.argv)
     app.setApplicationName("Vector Inspector")
+    app.setApplicationDisplayName("Vector Inspector")  # For some dialogs and OS integrations
     app.setOrganizationName("Vector Inspector")
 
     # Get version once for all uses
@@ -27,7 +28,7 @@ def main():
         app_name="Vector Inspector",
         version=f"v{app_version}",
         tagline="The missing toolset for your vector data",
-        loading_text="Initializing providers…"
+        loading_text="Initializing providers…",
     )
 
     # Heavy imports after loading screen is visible
