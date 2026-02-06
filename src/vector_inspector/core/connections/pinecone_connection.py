@@ -21,7 +21,7 @@ Examples:
 import time
 from typing import Any, Optional
 
-from pinecone import Pinecone, ServerlessSpec
+from pinecone import IndexModel, Pinecone, ServerlessSpec
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.logging import log_error
@@ -204,11 +204,11 @@ class PineconeConnection(VectorDBConnection):
             return None
 
         try:
-            index_description = self._client.describe_index(index_name)
+            index_description: IndexModel = self._client.describe_index(index_name)
             hosted_model = None
 
             # Check for model in embed field (Pinecone's hosted model info)
-            if hasattr(index_description, "embed"):
+            if hasattr(index_description, "embed") and index_description.embed is not None:
                 embed = index_description.embed
                 # embed might be a dict or an object
                 if isinstance(embed, dict) and "model" in embed:
@@ -216,7 +216,7 @@ class PineconeConnection(VectorDBConnection):
                 elif hasattr(embed, "model") and embed.model:
                     hosted_model = embed.model
             # Also check spec (legacy/alternative location)
-            elif hasattr(index_description, "spec"):
+            elif hasattr(index_description, "spec") and index_description.spec is not None:
                 spec = index_description.spec
                 if hasattr(spec, "model") and spec.model:
                     hosted_model = spec.model

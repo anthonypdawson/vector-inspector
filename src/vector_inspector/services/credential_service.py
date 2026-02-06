@@ -22,13 +22,19 @@ class CredentialService:
         try:
             import keyring
 
+            try:
+                from keyring.errors import PasswordDeleteError
+            except ImportError:
+                PasswordDeleteError = None
             self._keyring = keyring
+            self._PasswordDeleteError = PasswordDeleteError
             self._use_keyring = True
         except ImportError:
             log_info(
                 "Warning: keyring module not available. Credentials will not be persisted securely."
             )
             self._keyring = None
+            self._PasswordDeleteError = None
 
     def store_credentials(self, profile_id: str, credentials: dict) -> bool:
         """
@@ -95,12 +101,14 @@ class CredentialService:
         try:
             credential_key = f"profile:{profile_id}"
 
-            if self._use_keyring:
-                try:
+            if self._use_keyring and self._keyring:
+                import contextlib
+
+                if self._PasswordDeleteError:
+                    with contextlib.suppress(self._PasswordDeleteError):
+                        self._keyring.delete_password(self.SERVICE_NAME, credential_key)
+                else:
                     self._keyring.delete_password(self.SERVICE_NAME, credential_key)
-                except self._keyring.errors.PasswordDeleteError:
-                    # Credential doesn't exist, that's okay
-                    pass
             else:
                 # Fallback to in-memory
                 self._memory_store.pop(credential_key, None)
