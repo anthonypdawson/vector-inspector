@@ -1,7 +1,8 @@
 """Controller for managing connection lifecycle and threading."""
 
-from typing import Dict, Optional
-from PySide6.QtCore import QObject, Signal, QThread
+from typing import Optional
+
+from PySide6.QtCore import QObject, QThread, Signal
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from vector_inspector.core.connection_manager import ConnectionManager, ConnectionState
@@ -60,7 +61,7 @@ class ConnectionController(QObject):
         self.parent_widget = parent
 
         # State
-        self._connection_threads: Dict[str, ConnectionThread] = {}
+        self._connection_threads: dict[str, ConnectionThread] = {}
         self.loading_dialog = LoadingDialog("Loading...", parent)
 
     def connect_to_profile(self, profile_id: str) -> bool:

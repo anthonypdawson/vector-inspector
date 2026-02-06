@@ -183,12 +183,12 @@ class MetadataView(QWidget):
         layout.addLayout(filters_toggle_layout)
 
         # Create a splitter for resizable panels
-        splitter = QSplitter(Qt.Vertical)
+        splitter = QSplitter(Qt.Orientation.Vertical)
 
         # Filter section
         filter_group = QGroupBox("Metadata Filters")
         filter_group.setCheckable(True)
-        filter_group.setChecked(True)  # Checked by default when visible
+        filter_group.setChecked(False)  # Not checked by default when visible
         filter_group_layout = QVBoxLayout()
 
         self.filter_builder = FilterBuilder()
@@ -206,12 +206,12 @@ class MetadataView(QWidget):
 
         # Data table - takes up most of the space
         self.table = QTableWidget()
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.doubleClicked.connect(self._on_row_double_clicked)
         # Enable context menu
-        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
         splitter.addWidget(self.table)
 
@@ -270,8 +270,9 @@ class MetadataView(QWidget):
         self.current_page = 0
 
         # Update filter builder with supported operators
-        operators = self.connection.get_supported_filter_operators()
-        self.filter_builder.set_operators(operators)
+        if self.connection:
+            operators = self.connection.get_supported_filter_operators()
+            self.filter_builder.set_operators(operators)
 
         self._load_data_internal()
 
@@ -484,7 +485,7 @@ class MetadataView(QWidget):
         self.table.setRowCount(len(ids))
 
         # Populate rows
-        for row, (id_val, doc, meta) in enumerate(zip(ids, documents, metadatas)):
+        for row, (id_val, doc, meta) in enumerate(zip(ids, documents, metadatas, strict=True)):
             # ID column
             self.table.setItem(row, 0, QTableWidgetItem(str(id_val)))
 
@@ -503,7 +504,7 @@ class MetadataView(QWidget):
         self.table.resizeColumnsToContents()
         self.status_label.setText(f"Showing {len(ids)} items")
 
-    def _update_pagination_controls(self, total_count: int = None):
+    def _update_pagination_controls(self, total_count: Optional[int] = None):
         """Update pagination button states.
 
         If `total_count` is provided, use it to compute total pages. Otherwise
@@ -549,7 +550,7 @@ class MetadataView(QWidget):
 
         dialog = ItemDialog(self)
 
-        if dialog.exec() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             item_data = dialog.get_item_data()
             if not item_data:
                 return
@@ -567,67 +568,8 @@ class MetadataView(QWidget):
                 if self.current_database and self.current_collection:
                     self.cache_manager.invalidate(self.current_database, self.current_collection)
                 QMessageBox.information(self, "Success", "Item added successfully.")
-                # Preserve UI position: update the current table row in-place
-                try:
-                    # Remember scroll position
-                    vpos = self.table.verticalScrollBar().value()
-
-                    # Invalidate cache so future full reloads will fetch fresh data
-                    if self.current_database and self.current_collection:
-                        self.cache_manager.invalidate(
-                            self.current_database, self.current_collection
-                        )
-
-                    # Update in-memory current_data and visible table cells for this row
-                    if self.current_data:
-                        try:
-                            # Update documents list
-                            if "documents" in self.current_data and row < len(
-                                self.current_data["documents"]
-                            ):
-                                self.current_data["documents"][row] = (
-                                    updated_data["document"] if updated_data["document"] else ""
-                                )
-
-                            # Update metadatas list
-                            if "metadatas" in self.current_data and row < len(
-                                self.current_data["metadatas"]
-                            ):
-                                self.current_data["metadatas"][row] = (
-                                    updated_data["metadata"] if updated_data["metadata"] else {}
-                                )
-
-                            # Update table document cell
-                            doc_text = (
-                                str(self.current_data["documents"][row])
-                                if self.current_data["documents"][row]
-                                else ""
-                            )
-                            if len(doc_text) > 100:
-                                doc_text = doc_text[:100] + "..."
-                            self.table.setItem(row, 1, QTableWidgetItem(doc_text))
-
-                            # Update metadata columns based on current header names
-                            metadata_keys = []
-                            for col in range(2, self.table.columnCount()):
-                                hdr = self.table.horizontalHeaderItem(col)
-                                if hdr:
-                                    metadata_keys.append(hdr.text())
-
-                            if "metadatas" in self.current_data:
-                                meta = self.current_data["metadatas"][row]
-                                for col_idx, key in enumerate(metadata_keys, start=2):
-                                    value = meta.get(key, "")
-                                    self.table.setItem(row, col_idx, QTableWidgetItem(str(value)))
-
-                            # Restore scroll and selection
-                            self.table.verticalScrollBar().setValue(vpos)
-                            self.table.selectRow(row)
-                        except Exception:
-                            pass
-                except Exception:
-                    # Fallback to full reload if anything goes wrong
-                    self._load_data()
+                # Fallback to full reload (row index is not available here)
+                self._load_data()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add item.")
 
@@ -654,10 +596,10 @@ class MetadataView(QWidget):
             self,
             "Confirm Deletion",
             f"Delete {len(ids_to_delete)} item(s)?",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             success = self.connection.delete_items(self.current_collection, ids=ids_to_delete)
             if success:
                 # Invalidate cache after deletion
@@ -732,7 +674,7 @@ class MetadataView(QWidget):
         # Open edit dialog
         dialog = ItemDialog(self, item_data=item_data)
 
-        if dialog.exec() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             updated_data = dialog.get_item_data()
             if not updated_data:
                 return
@@ -874,7 +816,11 @@ class MetadataView(QWidget):
                                 model = self.table.model()
                                 top = model.index(row_idx, 0)
                                 bottom = model.index(row_idx, self.table.columnCount() - 1)
-                                model.dataChanged.emit(top, bottom, [Qt.DisplayRole, Qt.EditRole])
+                                model.dataChanged.emit(
+                                    top,
+                                    bottom,
+                                    [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole],
+                                )
                             except Exception:
                                 pass
 

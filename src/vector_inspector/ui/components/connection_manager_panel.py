@@ -77,7 +77,8 @@ class ConnectionManagerPanel(QWidget):
         # Connection tree
         self.connection_tree = QTreeWidget()
         self.connection_tree.setHeaderHidden(True)
-        self.connection_tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        # Use the correct enum for PySide6
+        self.connection_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.connection_tree.customContextMenuRequested.connect(self._show_context_menu)
         self.connection_tree.itemClicked.connect(self._on_item_clicked)
         self.connection_tree.itemExpanded.connect(self._on_item_expanded)
@@ -116,7 +117,9 @@ class ConnectionManagerPanel(QWidget):
         # Create tree item for connection
         item = QTreeWidgetItem(self.connection_tree)
         item.setText(0, instance.get_display_name())
-        item.setData(0, Qt.UserRole, {"type": "connection", "connection_id": connection_id})
+        item.setData(
+            0, Qt.ItemDataRole.UserRole, {"type": "connection", "connection_id": connection_id}
+        )
 
         # Set icon/indicator based on state
         self._update_connection_indicator(item, instance.state)
@@ -162,7 +165,7 @@ class ConnectionManagerPanel(QWidget):
         if collection_name:
             for i in range(item.childCount()):
                 child = item.child(i)
-                data = child.data(0, Qt.UserRole)
+                data = child.data(0, Qt.ItemDataRole.UserRole)
                 if data and data.get("collection_name") == collection_name:
                     self.connection_tree.setCurrentItem(child)
                     break
@@ -183,7 +186,7 @@ class ConnectionManagerPanel(QWidget):
             child.setText(0, collection_name)
             child.setData(
                 0,
-                Qt.UserRole,
+                Qt.ItemDataRole.UserRole,
                 {
                     "type": "collection",
                     "connection_id": connection_id,
@@ -202,16 +205,16 @@ class ConnectionManagerPanel(QWidget):
         else:
             indicator = "⚪"
 
-        data = item.data(0, Qt.UserRole)
+        data = item.data(0, Qt.ItemDataRole.UserRole)
         connection_id = data.get("connection_id")
         instance = self.connection_manager.get_connection(connection_id)
 
         if instance:
             item.setText(0, f"{indicator} {instance.get_display_name()}")
 
-    def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
+    def _on_item_clicked(self, item: QTreeWidgetItem):
         """Handle tree item click."""
-        data = item.data(0, Qt.UserRole)
+        data = item.data(0, Qt.ItemDataRole.UserRole)
         if not data:
             return
 
@@ -243,7 +246,7 @@ class ConnectionManagerPanel(QWidget):
         if not item:
             return
 
-        data = item.data(0, Qt.UserRole)
+        data = item.data(0, Qt.ItemDataRole.UserRole)
         if not data:
             return
 
@@ -347,10 +350,10 @@ class ConnectionManagerPanel(QWidget):
             self,
             "Disconnect",
             f"Disconnect from '{instance.name}'?",
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             self.connection_manager.close_connection(connection_id)
 
     def _view_collection_info(self, connection_id: str, collection_name: str):
@@ -384,7 +387,7 @@ class ConnectionManagerPanel(QWidget):
         warning_label.setStyleSheet(
             "font-size: 16px; font-weight: bold; color: #d32f2f; padding: 10px;"
         )
-        warning_label.setAlignment(Qt.AlignCenter)
+        warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(warning_label)
 
         # Details
@@ -423,14 +426,16 @@ class ConnectionManagerPanel(QWidget):
 
         # Buttons
         button_box = QDialogButtonBox()
-        delete_button = button_box.addButton("DELETE PERMANENTLY", QDialogButtonBox.DestructiveRole)
+        delete_button = button_box.addButton(
+            "DELETE PERMANENTLY", QDialogButtonBox.ButtonRole.DestructiveRole
+        )
         delete_button.setEnabled(False)  # Disabled until confirmed
         delete_button.setStyleSheet(
             "QPushButton { background-color: #d32f2f; color: white; font-weight: bold; "
             "padding: 8px 16px; } "
             "QPushButton:disabled { background-color: #cccccc; }"
         )
-        cancel_button = button_box.addButton(QDialogButtonBox.Cancel)
+        cancel_button = button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
 
         # Enable delete button only when both confirmations are met
         def check_confirmations():
@@ -447,7 +452,7 @@ class ConnectionManagerPanel(QWidget):
         layout.addWidget(button_box)
 
         # Show dialog
-        if dialog.exec() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         # Perform deletion
