@@ -1,0 +1,105 @@
+"""Worker thread for collection creation operations."""
+
+from PySide6.QtCore import QThread, Signal
+
+from vector_inspector.core.connections.base_connection import VectorDBConnection
+from vector_inspector.core.sample_data import SampleDataType
+from vector_inspector.services.collection_service import CollectionService
+
+
+class CollectionCreationWorker(QThread):
+    """Worker thread for creating collections with optional sample data."""
+
+    # Signals
+    progress_update = Signal(str, int, int)  # message, current, total
+    creation_complete = Signal(bool, str)  # success, message
+    error_occurred = Signal(str)  # error_message
+
+    def __init__(
+        self,
+        connection: VectorDBConnection,
+        collection_name: str,
+        dimension: int | None,
+        add_sample: bool,
+        sample_config: dict | None = None,
+        parent=None,
+    ):
+        """Initialize worker.
+
+        Args:
+            connection: Database connection
+            collection_name: Name for new collection
+            dimension: Vector dimension (if known)
+            add_sample: Whether to add sample data
+            sample_config: Configuration for sample data (count, data_type, embedder_name, embedder_type)
+            parent: Parent QObject
+        """
+        super().__init__(parent)
+        self.connection = connection
+        self.collection_name = collection_name
+        self.dimension = dimension
+        self.add_sample = add_sample
+        self.sample_config = sample_config or {}
+        self.collection_service = CollectionService()
+
+        # Connect service signals to our signals
+        self.collection_service.operation_progress.connect(self.progress_update)
+
+    def run(self):
+        """Execute the collection creation workflow."""
+        from vector_inspector.core.logging import log_error, log_info
+
+        try:
+            log_info(f"Starting collection creation: {self.collection_name}")
+
+            # Step 1: Create collection
+            self.progress_update.emit("Creating collection...", 1, 3)
+            log_info(f"Creating collection with dimension: {self.dimension}")
+
+            success = self.collection_service.create_collection(
+                connection=self.connection,
+                collection_name=self.collection_name,
+                dimension=self.dimension,
+            )
+
+            if not success:
+                error_msg = "Failed to create collection"
+                log_error(error_msg)
+                self.creation_complete.emit(False, error_msg)
+                return
+
+            log_info(f"Collection created successfully: {self.collection_name}")
+
+            # Step 2: Populate with sample data if requested
+            if self.add_sample and self.sample_config:
+                log_info(f"Adding sample data: {self.sample_config}")
+                self.progress_update.emit("Generating sample data...", 2, 3)
+
+                success, message = self.collection_service.populate_with_sample_data(
+                    connection=self.connection,
+                    collection_name=self.collection_name,
+                    count=self.sample_config.get("count", 10),
+                    data_type=SampleDataType(self.sample_config.get("data_type", "text")),
+                    embedder_name=self.sample_config["embedder_name"],
+                    embedder_type=self.sample_config.get("embedder_type", "sentence-transformer"),
+                )
+
+                if not success:
+                    error_msg = f"Collection created but sample data failed: {message}"
+                    log_error(error_msg)
+                    self.creation_complete.emit(False, error_msg)
+                    return
+
+                log_info(f"Sample data added successfully: {message}")
+                self.creation_complete.emit(True, message)
+            else:
+                success_msg = f"Collection '{self.collection_name}' created successfully"
+                log_info(success_msg)
+                self.creation_complete.emit(True, success_msg)
+
+        except Exception as e:
+            import traceback
+
+            error_msg = f"{e!s}\n{traceback.format_exc()}"
+            log_error(f"Collection creation exception: {error_msg}")
+            self.error_occurred.emit(str(e) if str(e) else "Unknown error occurred")

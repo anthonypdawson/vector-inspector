@@ -182,6 +182,14 @@ class MainWindow(InspectorShell):
         migrate_action.triggered.connect(self._show_migration_dialog)
         connection_menu.addAction(migrate_action)
 
+        # Tools menu
+        tools_menu = menubar.addMenu("&Tools")
+
+        create_collection_action = QAction("Create &Test Collection...", self)
+        create_collection_action.setShortcut("Ctrl+T")
+        create_collection_action.triggered.connect(self._create_test_collection)
+        tools_menu.addAction(create_collection_action)
+
         # View menu
         view_menu = menubar.addMenu("&View")
 
@@ -606,6 +614,22 @@ class MainWindow(InspectorShell):
 
         if result == QDialog.DialogCode.Accepted:
             # Refresh collections after restore
+            self._refresh_active_connection()
+
+    def _create_test_collection(self):
+        """Create a new collection with optional sample data."""
+        # Get active connection
+        active = self.connection_manager.get_active_connection()
+        if not active or not active.is_connected:
+            QMessageBox.information(
+                self, "No Connection", "Please connect to a database first to create a collection."
+            )
+            return
+
+        # Show dialog and create collection
+        if self.connection_controller.create_collection_with_dialog(active.id):
+            self.statusBar().showMessage("Collection created successfully", 3000)
+            # Refresh the active connection to show the new collection
             self._refresh_active_connection()
 
     def show_search_results(self, collection_name: str, results: dict, context_info: str = ""):
