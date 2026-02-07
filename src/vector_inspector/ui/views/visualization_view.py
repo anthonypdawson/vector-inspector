@@ -10,6 +10,7 @@ from PySide6.QtCore import QThread, Signal
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QGroupBox,
     QHBoxLayout,
@@ -72,6 +73,25 @@ class VisualizationView(QWidget):
         """Setup widget UI."""
         layout = QVBoxLayout(self)
 
+        # Shared controls (sample size + use all data) - left aligned
+        shared_layout = QHBoxLayout()
+        shared_layout.addWidget(QLabel("Sample size:"))
+        self.sample_spin = QSpinBox()
+        self.sample_spin.setMinimum(10)
+        self.sample_spin.setMaximum(10000)
+        self.sample_spin.setValue(500)
+        self.sample_spin.setSingleStep(100)
+        shared_layout.addWidget(self.sample_spin)
+        self.use_all_checkbox = QCheckBox("Use all data")
+        shared_layout.addWidget(self.use_all_checkbox)
+        shared_layout.addStretch()
+        layout.addLayout(shared_layout)
+
+        def on_use_all_changed():
+            self.sample_spin.setEnabled(not self.use_all_checkbox.isChecked())
+
+        self.use_all_checkbox.stateChanged.connect(on_use_all_changed)
+
         # Controls
         controls_group = QGroupBox("Visualization Settings")
         controls_layout = QHBoxLayout()
@@ -87,15 +107,6 @@ class VisualizationView(QWidget):
         self.dimensions_combo = QComboBox()
         self.dimensions_combo.addItems(["2D", "3D"])
         controls_layout.addWidget(self.dimensions_combo)
-
-        # Sample size
-        controls_layout.addWidget(QLabel("Sample size:"))
-        self.sample_spin = QSpinBox()
-        self.sample_spin.setMinimum(10)
-        self.sample_spin.setMaximum(10000)
-        self.sample_spin.setValue(500)
-        self.sample_spin.setSingleStep(100)
-        controls_layout.addWidget(self.sample_spin)
 
         controls_layout.addStretch()
 
@@ -144,9 +155,15 @@ class VisualizationView(QWidget):
         # Load data with embeddings (show loading immediately)
         self.loading_dialog.show_loading("Loading data for visualization...")
         QApplication.processEvents()
-        sample_size = self.sample_spin.value()
+        if hasattr(self, "use_all_checkbox") and self.use_all_checkbox.isChecked():
+            sample_size = None
+        else:
+            sample_size = self.sample_spin.value()
         try:
-            data = self.connection.get_all_items(self.current_collection, limit=sample_size)
+            if sample_size is None:
+                data = self.connection.get_all_items(self.current_collection)
+            else:
+                data = self.connection.get_all_items(self.current_collection, limit=sample_size)
         finally:
             self.loading_dialog.hide_loading()
 
@@ -220,6 +237,7 @@ class VisualizationView(QWidget):
             hover_texts.append(f"ID: {id_val}<br>Doc: {doc_preview}")
 
         # Create plot
+        method_name = self.method_combo.currentText()
         if self.reduced_data.shape[1] == 2:
             # 2D plot
             fig = go.Figure(
@@ -241,9 +259,9 @@ class VisualizationView(QWidget):
             )
 
             fig.update_layout(
-                title=f"Vector Visualization - {self.method_combo.currentText()}",
-                xaxis_title="Component 1",
-                yaxis_title="Component 2",
+                title=f"Vector Visualization - {method_name}",
+                xaxis_title=f"{method_name} Dimension 1",
+                yaxis_title=f"{method_name} Dimension 2",
                 hovermode="closest",
                 height=800,
                 width=1200,
@@ -269,11 +287,11 @@ class VisualizationView(QWidget):
                 ]
             )
             fig.update_layout(
-                title=f"Vector Visualization - {self.method_combo.currentText()}",
+                title=f"Vector Visualization - {method_name}",
                 scene={
-                    "xaxis_title": "Component 1",
-                    "yaxis_title": "Component 2",
-                    "zaxis_title": "Component 3",
+                    "xaxis_title": f"{method_name} Dimension 1",
+                    "yaxis_title": f"{method_name} Dimension 2",
+                    "zaxis_title": f"{method_name} Dimension 3",
                 },
                 height=800,
                 width=1200,

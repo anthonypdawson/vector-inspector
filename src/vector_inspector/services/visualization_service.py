@@ -1,7 +1,8 @@
 """Visualization service for dimensionality reduction."""
 
-from typing import Optional, List, Tuple, Any
 import warnings
+from typing import Any, Optional
+
 from vector_inspector.core.logging import log_error
 
 
@@ -10,7 +11,7 @@ class VisualizationService:
 
     @staticmethod
     def reduce_dimensions(
-        embeddings: List[List[float]], method: str = "pca", n_components: int = 2, **kwargs
+        embeddings: list[list[float]], method: str = "pca", n_components: int = 2, **kwargs
     ) -> Optional[Any]:
         """
         Reduce dimensionality of embeddings.
@@ -70,10 +71,10 @@ class VisualizationService:
     @staticmethod
     def prepare_plot_data(
         reduced_embeddings: Any,
-        labels: Optional[List[str]] = None,
-        metadata: Optional[List[dict]] = None,
+        labels: Optional[list[str]] = None,
+        metadata: Optional[list[dict]] = None,
         color_by: Optional[str] = None,
-    ) -> Tuple[Any, List[str], List[str]]:
+    ) -> tuple[Any, list[str], list[str]]:
         """
         Prepare data for plotting.
 
