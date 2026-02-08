@@ -70,6 +70,9 @@ class LanceDBConnection(VectorDBConnection):
             # Pull dataframe sample to infer metadata fields and vector dimension
             try:
                 df = tbl.to_pandas()
+                # Filter out dummy initialization row
+                if df is not None and "id" in df.columns:
+                    df = df[df["id"] != "__dummy_init__"]
             except Exception:
                 df = None
 
@@ -130,18 +133,22 @@ class LanceDBConnection(VectorDBConnection):
         if not self.is_connected:
             return False
         try:
-            import pyarrow as pa
-
-            # Use fixed_size_list for vectors to capture the known vector dimension
-            schema = pa.schema(
-                [
-                    pa.field("vector", pa.fixed_size_list(pa.float32(), vector_size)),
-                    pa.field("id", pa.string()),
-                    pa.field("metadata", pa.string()),
-                ]
+            # Create table with a dummy row so LanceDB identifies the vector column.
+            # Creating with only a schema (no data) prevents LanceDB from auto-detecting
+            # which column is the vector for search operations.
+            # The dummy row will remain but can be filtered out in queries if needed.
+            dummy_data = [
+                {
+                    "vector": [0.0] * vector_size,
+                    "id": "__dummy_init__",
+                    "document": "",
+                    "metadata": "{}",
+                }
+            ]
+            print(
+                f"LanceDB create_collection: Creating table '{name}' with vector_size={vector_size}"
             )
-            print(f"LanceDB create_collection: Creating table '{name}' with schema {schema}")
-            self._db.create_table(name, schema=schema)
+            self._db.create_table(name, data=dummy_data)
             print(f"LanceDB create_collection: Table '{name}' created successfully")
             return True
         except Exception as e:
@@ -166,7 +173,16 @@ class LanceDBConnection(VectorDBConnection):
             vectors = embeddings if embeddings else [[0.0] * len(documents)] * len(documents)
             meta = metadatas if metadatas else [{}] * len(documents)
             id_list = ids if ids else [str(i) for i in range(len(documents))]
-            arr = pa.table({"vector": vectors, "id": id_list, "metadata": [str(m) for m in meta]})
+            doc_list = documents if documents else [""] * len(vectors)
+
+            arr = pa.table(
+                {
+                    "vector": vectors,
+                    "id": id_list,
+                    "document": doc_list,
+                    "metadata": [str(m) for m in meta],
+                }
+            )
             tbl.add(arr)
             return True
         except Exception as e:
@@ -192,8 +208,16 @@ class LanceDBConnection(VectorDBConnection):
                         metadatas.append({"raw": m})
                 else:
                     metadatas.append(m)
+
+            # Get documents from 'document' column if present
+            if "document" in filtered.columns:
+                documents = filtered["document"].tolist()
+            else:
+                # Fallback to metadata column for older tables
+                documents = filtered["metadata"].tolist()
+
             return {
-                "documents": filtered["metadata"].tolist(),
+                "documents": documents,
                 "metadatas": metadatas,
             }
         except Exception as e:
@@ -236,17 +260,22 @@ class LanceDBConnection(VectorDBConnection):
             return 0
         try:
             tbl = self._db.open_table(name)
-            # LanceTable exposes num_rows; fall back to pandas length if needed
-            count = getattr(tbl, "num_rows", None)
-            if count is not None:
-                try:
-                    return int(count)
-                except Exception:
-                    pass
+            # Get count and filter out dummy row
             try:
                 df = tbl.to_pandas()
+                # Filter out dummy initialization row
+                if "id" in df.columns:
+                    df = df[df["id"] != "__dummy_init__"]
                 return len(df)
             except Exception:
+                # Fallback to num_rows if pandas fails (won't filter dummy though)
+                count = getattr(tbl, "num_rows", None)
+                if count is not None:
+                    try:
+                        # Subtract 1 if dummy row exists (best effort)
+                        return max(0, int(count) - 1)
+                    except Exception:
+                        pass
                 return 0
         except Exception as e:
             log_error("LanceDB count_collection failed: %s", e)
@@ -306,20 +335,98 @@ class LanceDBConnection(VectorDBConnection):
                         )
                         return None
 
-                results = tbl.search(emb).limit(n_results).to_pandas()
-                raw_meta = results["metadata"].tolist() if "metadata" in results else []
+                try:
+                    results = tbl.search(emb).limit(n_results + 1).to_pandas()
+                    # Filter out dummy row if present
+                    if "id" in results.columns:
+                        results = results[results["id"] != "__dummy_init__"]
+                    results = results.head(n_results)
+                except Exception as e_search:
+                    msg = str(e_search)
+                    if (
+                        "no vector column" in msg.lower()
+                        or "there is no vector column" in msg.lower()
+                    ):
+                        # Try explicit common vector column names as a fallback
+                        tried = []
+                        # Log available schema names if accessible
+                        try:
+                            schema_names = getattr(tbl, "schema", None)
+                            if schema_names is not None and hasattr(schema_names, "names"):
+                                schema_names = schema_names.names
+                            else:
+                                schema_names = None
+                        except Exception:
+                            schema_names = None
+
+                        candidates = [
+                            "vector",
+                            "embedding",
+                            "embeddings",
+                            "values",
+                            "features",
+                            "vector_embedding",
+                        ]
+                        # If pandas view available, prefer columns from that
+                        try:
+                            df_cols = list(tbl.to_pandas().columns)
+                            for c in df_cols:
+                                if c not in candidates:
+                                    candidates.append(c)
+                        except Exception:
+                            df_cols = None
+
+                        for col in candidates:
+                            try:
+                                tried.append(col)
+                                results = (
+                                    tbl.search(emb, vector_column=col)
+                                    .limit(n_results + 1)
+                                    .to_pandas()
+                                )
+                                # Filter out dummy row if present
+                                if "id" in results.columns:
+                                    results = results[results["id"] != "__dummy_init__"]
+                                results = results.head(n_results)
+                                break
+                            except Exception:
+                                results = None
+
+                        if results is None:
+                            log_error(
+                                "LanceDB search failed: no vector column found. Tried: %s. Schema names: %s. Error: %s",
+                                tried,
+                                schema_names,
+                                e_search,
+                            )
+                            return None
+                    else:
+                        log_error("LanceDB search failed: %s", e_search)
+                        return None
+                raw_meta = results["metadata"].tolist() if "metadata" in results.columns else []
                 metadatas = self._parse_metadata_list(raw_meta)
-                # Documents: try to use a 'document' key if present in metadata, else raw metadata
-                documents = [
-                    m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
-                    for raw, m in zip(raw_meta, metadatas)
-                ]
+
+                # Get documents from 'document' column if present, else fall back to metadata extraction
+                if "document" in results.columns:
+                    documents = results["document"].tolist()
+                else:
+                    # Fallback: try to use a 'document' key if present in metadata, else raw metadata
+                    documents = [
+                        m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
+                        for raw, m in zip(raw_meta, metadatas)
+                    ]
+
+                # LanceDB returns '_distance' not 'score'
+                ids = results["id"].tolist() if "id" in results.columns else []
+                distances = results["_distance"].tolist() if "_distance" in results.columns else []
+                vectors = results["vector"].tolist() if "vector" in results.columns else []
+
                 return {
-                    "ids": results["id"].tolist(),
-                    "distances": results["score"].tolist() if "score" in results else [],
+                    "ids": ids,
+                    "distances": distances,
                     "documents": documents,
                     "metadatas": metadatas,
-                    "embeddings": results["vector"].tolist() if "vector" in results else [],
+                    "embeddings": vectors,
                 }
             return None
         except Exception as e:
@@ -338,19 +445,28 @@ class LanceDBConnection(VectorDBConnection):
         try:
             tbl = self._db.open_table(collection_name)
             df = tbl.to_pandas()
+            # Filter out dummy initialization row
+            if "id" in df.columns:
+                df = df[df["id"] != "__dummy_init__"]
             if offset:
                 df = df[offset:]
             if limit:
                 df = df[:limit]
             raw_meta = df["metadata"].tolist() if "metadata" in df.columns else []
             metadatas = self._parse_metadata_list(raw_meta)
-            # Documents: prefer 'document' key inside metadata if present
-            documents = [
-                m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
-                for raw, m in zip(raw_meta, metadatas)
-            ]
+
+            # Get documents from 'document' column if present, else from metadata
+            if "document" in df.columns:
+                documents = df["document"].tolist()
+            else:
+                # Fallback: prefer 'document' key inside metadata if present
+                documents = [
+                    m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
+                    for raw, m in zip(raw_meta, metadatas)
+                ]
+
             return {
-                "ids": df["id"].tolist(),
+                "ids": df["id"].tolist() if "id" in df.columns else [],
                 "documents": documents,
                 "metadatas": metadatas,
                 "embeddings": df["vector"].tolist() if "vector" in df.columns else [],
@@ -393,13 +509,18 @@ class LanceDBConnection(VectorDBConnection):
             # Re-create table with remaining items
             import pyarrow as pa
 
-            arr = pa.table(
-                {
-                    "vector": df["vector"].tolist(),
-                    "id": df["id"].tolist(),
-                    "metadata": df["metadata"].tolist(),
-                }
-            )
+            # Preserve all columns including document
+            table_dict = {}
+            if "vector" in df.columns:
+                table_dict["vector"] = df["vector"].tolist()
+            if "id" in df.columns:
+                table_dict["id"] = df["id"].tolist()
+            if "document" in df.columns:
+                table_dict["document"] = df["document"].tolist()
+            if "metadata" in df.columns:
+                table_dict["metadata"] = df["metadata"].tolist()
+
+            arr = pa.table(table_dict)
             self._db.drop_table(collection_name)
             self._db.create_table(collection_name, arr.schema)
             self._db.open_table(collection_name).add(arr)
