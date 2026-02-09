@@ -47,6 +47,8 @@ class SearchView(QWidget):
     current_collection: str
     current_database: str
     search_results: Optional[dict[str, Any]]
+    _full_breadcrumb: str
+    _elide_mode: str
 
     def __init__(self, connection: Optional[ConnectionInstance] = None, parent=None):
         super().__init__(parent)
@@ -79,7 +81,9 @@ class SearchView(QWidget):
         )
         # Configure breadcrumb label sizing
         self.breadcrumb_label.setWordWrap(False)
-        self.breadcrumb_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.breadcrumb_label.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Preferred
+        )
         # Store full breadcrumb text for tooltip and eliding
         self._full_breadcrumb = ""
         # Elide mode: 'left' or 'middle'
@@ -99,7 +103,9 @@ class SearchView(QWidget):
         # Query input
         query_group_layout.addWidget(QLabel("Enter search text:"))
         self.query_input.setMaximumHeight(100)
-        self.query_input.setPlaceholderText("Enter text to search for similar vectors...")
+        self.query_input.setPlaceholderText(
+            "Enter text to search for similar vectors..."
+        )
         query_group_layout.addWidget(self.query_input)
 
         # Search controls
@@ -274,7 +280,9 @@ class SearchView(QWidget):
 
         try:
             # Get a small sample to extract field names
-            sample_data = self.connection.get_all_items(self.current_collection, limit=1)
+            sample_data = self.connection.get_all_items(
+                self.current_collection, limit=1
+            )
 
             if sample_data and sample_data.get("metadatas"):
                 metadatas = sample_data["metadatas"]
@@ -455,7 +463,9 @@ class SearchView(QWidget):
         self.results_table.setRowCount(len(ids))
 
         # Populate rows
-        for row, (id_val, doc, meta, dist) in enumerate(zip(ids, documents, metadatas, distances)):
+        for row, (id_val, doc, meta, dist) in enumerate(
+            zip(ids, documents, metadatas, distances)
+        ):
             # Rank
             self.results_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
 
@@ -475,7 +485,9 @@ class SearchView(QWidget):
             if meta:
                 for col_idx, key in enumerate(metadata_keys, start=4):
                     value = meta.get(key, "")
-                    self.results_table.setItem(row, col_idx, QTableWidgetItem(str(value)))
+                    self.results_table.setItem(
+                        row, col_idx, QTableWidgetItem(str(value))
+                    )
 
         self.results_table.resizeColumnsToContents()
         self.results_status.setText(f"Found {len(ids)} results")

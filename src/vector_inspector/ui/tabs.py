@@ -7,25 +7,28 @@ class TabDefinition:
     """Definition for a tab in the main content area."""
 
     title: str
-    widget_class: type
+    widget_class: type[QWidget]
     lazy_load: bool
 
-    def __init__(self, title: str, widget_class: type[QWidget], lazy_load: bool = False):
+    def __init__(
+        self, title: str, widget_class: type[QWidget], lazy_load: bool = False
+    ):
         self.title = title
         self.widget_class = widget_class
         self.lazy_load = lazy_load
 
 
 class InspectorTabs:
-    INFO_TAB: int
-    DATA_TAB: int
-    SEARCH_TAB: int
-    VISUALIZATION_TAB: int
+
     """Registry of standard Inspector tabs.
 
     This allows both Vector Inspector and Vector Fusion Studio to use
     the same tab definitions and add their own custom tabs.
     """
+    INFO_TAB: int
+    DATA_TAB: int
+    SEARCH_TAB: int
+    VISUALIZATION_TAB: int
 
     # Tab indices (for programmatic access)
     INFO_TAB = 0

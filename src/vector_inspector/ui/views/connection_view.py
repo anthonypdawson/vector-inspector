@@ -1,6 +1,7 @@
 """Connection configuration view."""
 
-from typing import Optional
+
+from typing import Any, Optional
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
@@ -439,11 +440,11 @@ class ConnectionView(QWidget):
     connection_changed = Signal(bool)
     connection_created = Signal(VectorDBConnection)  # Signal when new connection is created
 
-    _raw_connection: Any
+    _raw_connection: Optional[VectorDBConnection]
     connection: Optional[VectorDBConnection]
     loading_dialog: LoadingDialog
     settings_service: SettingsService
-    connection_thread: Any
+    connection_thread: Optional[ConnectionThread]
 
     def __init__(self, connection: Optional[VectorDBConnection] = None, parent=None):
         super().__init__(parent)

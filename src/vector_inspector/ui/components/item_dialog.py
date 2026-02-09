@@ -103,7 +103,7 @@ class ItemDialog(QDialog):
 
             self.metadata_input.setPlainText(json.dumps(metadata, indent=2))
 
-    def get_item_data(self) -> dict[str, Any]:
+    def get_item_data(self) -> Optional[dict[str, Any]]:
         """Get item data from dialog fields."""
         import json
 
