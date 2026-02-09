@@ -19,12 +19,12 @@ class TabDefinition:
 
 
 class InspectorTabs:
-
     """Registry of standard Inspector tabs.
 
     This allows both Vector Inspector and Vector Fusion Studio to use
     the same tab definitions and add their own custom tabs.
     """
+
     INFO_TAB: int
     DATA_TAB: int
     SEARCH_TAB: int

@@ -1,7 +1,6 @@
 """Connection configuration view."""
 
-
-from typing import Any, Optional
+from typing import Optional
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
@@ -317,7 +316,9 @@ class ConnectionDialog(QDialog):
                     "type": "http",
                     "host": self.host_input.text(),
                     "port": int(self.port_input.text()),
-                    "api_key": self.api_key_input.text() if self.api_key_input.text() else None,
+                    "api_key": self.api_key_input.text()
+                    if self.api_key_input.text()
+                    else None,
                 }
             )
         else:
@@ -438,7 +439,9 @@ class ConnectionView(QWidget):
     """Widget for managing database connection."""
 
     connection_changed = Signal(bool)
-    connection_created = Signal(VectorDBConnection)  # Signal when new connection is created
+    connection_created = Signal(
+        VectorDBConnection
+    )  # Signal when new connection is created
 
     _raw_connection: Optional[VectorDBConnection]
     connection: Optional[VectorDBConnection]
@@ -517,7 +520,9 @@ class ConnectionView(QWidget):
                 self.connection = QdrantConnection(path=config.get("path"))
             elif conn_type == "http":
                 self.connection = QdrantConnection(
-                    host=config.get("host"), port=config.get("port"), api_key=config.get("api_key")
+                    host=config.get("host"),
+                    port=config.get("port"),
+                    api_key=config.get("api_key"),
                 )
             else:  # ephemeral/memory
                 self.connection = QdrantConnection()
@@ -566,7 +571,9 @@ class ConnectionView(QWidget):
                 if path:
                     details.append(f"path: {path}")
             # Show host/port for HTTP or PgVector
-            if provider in ("qdrant", "chromadb", "pgvector") and hasattr(self.connection, "host"):
+            if provider in ("qdrant", "chromadb", "pgvector") and hasattr(
+                self.connection, "host"
+            ):
                 host = getattr(self.connection, "host", None)
                 port = getattr(self.connection, "port", None)
                 if host:
