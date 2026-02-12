@@ -3,19 +3,14 @@
 from typing import Any
 
 
-def update_filter_fields(filter_builder, data: dict[str, Any]):
+def update_filter_fields(filter_builder: Any, data: dict[str, Any]) -> None:
     """Update filter builder with available metadata field names.
 
     Args:
         filter_builder: FilterBuilder instance to update
         data: Collection data dictionary with documents and metadatas
     """
-    field_names = []
-
-    # Add 'document' field if documents exist
-    documents = data.get("documents", [])
-    if documents and any(doc for doc in documents if doc):
-        field_names.append("document")
+    field_names: list[str] = []
 
     # Add metadata fields
     metadatas = data.get("metadatas", [])

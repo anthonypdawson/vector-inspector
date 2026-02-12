@@ -6,58 +6,66 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from vector_inspector.services.import_export_service import ImportExportService
 from vector_inspector.services.settings_service import SettingsService
+from vector_inspector.ui.views.metadata.context import MetadataContext
 
 
 def export_data(
     parent: QWidget,
-    current_data: Optional[dict[str, Any]],
-    current_collection: str,
+    ctx: MetadataContext,
     format_type: str,
-    table=None,
+    table: Any = None,  # Optional QTableWidget
 ) -> bool:
     """Export current table data to file (visible rows or selected rows).
 
     Args:
         parent: Parent widget for dialogs
-        current_data: Current data dictionary (optional)
-        current_collection: Name of current collection
+        ctx: MetadataContext containing data and collection info
         format_type: Export format ('json', 'csv', 'parquet')
         table: Optional QTableWidget to check for selected rows
 
     Returns:
         True if export succeeded, False otherwise
     """
-    if not current_collection:
+    if not ctx.current_collection:
         QMessageBox.warning(parent, "No Collection", "Please select a collection first.")
         return False
 
-    if not current_data or not current_data.get("ids"):
+    if not ctx.current_data or not ctx.current_data.get("ids"):
         QMessageBox.warning(parent, "No Data", "No data to export.")
         return False
+
+    current_data = ctx.current_data
+    current_collection = ctx.current_collection
 
     # Check if there are selected rows
     selected_rows = table.selectionModel().selectedRows() if table else []
 
     if selected_rows:
         # Export only selected rows
-        export_data = {"ids": [], "documents": [], "metadatas": [], "embeddings": []}
+        export_data_subset: dict[str, list[Any]] = {
+            "ids": [],
+            "documents": [],
+            "metadatas": [],
+            "embeddings": [],
+        }
 
         for index in selected_rows:
             row = index.row()
             if row < len(current_data["ids"]):
-                export_data["ids"].append(current_data["ids"][row])
+                export_data_subset["ids"].append(current_data["ids"][row])
                 if "documents" in current_data and row < len(current_data["documents"]):
-                    export_data["documents"].append(current_data["documents"][row])
+                    export_data_subset["documents"].append(current_data["documents"][row])
                 if "metadatas" in current_data and row < len(current_data["metadatas"]):
-                    export_data["metadatas"].append(current_data["metadatas"][row])
+                    export_data_subset["metadatas"].append(current_data["metadatas"][row])
                 if "embeddings" in current_data and row < len(current_data["embeddings"]):
-                    export_data["embeddings"].append(current_data["embeddings"][row])
+                    export_data_subset["embeddings"].append(current_data["embeddings"][row])
+        final_export_data: dict[str, Any] = export_data_subset
     else:
         # Export all visible data from current table
-        export_data = current_data
+        final_export_data = current_data
 
     # Select file path
-    file_filters = {
+    file_filters: dict[str, str] = {
         "json": "JSON Files (*.json)",
         "csv": "CSV Files (*.csv)",
         "parquet": "Parquet Files (*.parquet)",
@@ -81,14 +89,14 @@ def export_data(
 
     # Export
     service = ImportExportService()
-    success = False
+    success: bool = False
 
     if format_type == "json":
-        success = service.export_to_json(export_data, file_path)
+        success = service.export_to_json(final_export_data, file_path)
     elif format_type == "csv":
-        success = service.export_to_csv(export_data, file_path)
+        success = service.export_to_csv(final_export_data, file_path)
     elif format_type == "parquet":
-        success = service.export_to_parquet(export_data, file_path)
+        success = service.export_to_parquet(final_export_data, file_path)
 
     if success:
         # Save the directory for next time
@@ -99,7 +107,7 @@ def export_data(
         QMessageBox.information(
             parent,
             "Export Successful",
-            f"Exported {len(export_data['ids'])} items to {file_path}",
+            f"Exported {len(final_export_data['ids'])} items to {file_path}",
         )
         return True
     QMessageBox.warning(parent, "Export Failed", "Failed to export data.")
@@ -108,17 +116,15 @@ def export_data(
 
 def import_data(
     parent: QWidget,
-    connection,
-    current_collection: str,
+    ctx: MetadataContext,
     format_type: str,
-    loading_dialog,
+    loading_dialog: Any,  # LoadingDialog
 ) -> Optional[dict[str, Any]]:
     """Import data from file into collection.
 
     Args:
         parent: Parent widget for dialogs
-        connection: Database connection instance
-        current_collection: Name of current collection
+        ctx: MetadataContext containing connection and collection info
         format_type: Import format ('json', 'csv', 'parquet')
         loading_dialog: Loading dialog to show progress
 
@@ -127,12 +133,15 @@ def import_data(
     """
     from PySide6.QtWidgets import QApplication
 
+    connection = ctx.connection
+    current_collection = ctx.current_collection
+
     if not current_collection:
         QMessageBox.warning(parent, "No Collection", "Please select a collection first.")
         return None
 
     # Select file to import
-    file_filters = {
+    file_filters: dict[str, str] = {
         "json": "JSON Files (*.json)",
         "csv": "CSV Files (*.csv)",
         "parquet": "Parquet Files (*.parquet)",
@@ -155,7 +164,7 @@ def import_data(
 
     try:
         service = ImportExportService()
-        imported_data = None
+        imported_data: Optional[dict[str, Any]] = None
 
         if format_type == "json":
             imported_data = service.import_from_json(file_path)
@@ -194,9 +203,9 @@ def import_data(
 
             # Convert IDs to Qdrant-compatible format (integers or UUIDs)
             # Store original IDs in metadata
-            original_ids = imported_data.get("ids", [])
-            qdrant_ids = []
-            metadatas = imported_data.get("metadatas", [])
+            original_ids: list[Any] = imported_data.get("ids", [])
+            qdrant_ids: list[int] = []
+            metadatas: list[dict[str, Any]] = imported_data.get("metadatas", [])
 
             for i, orig_id in enumerate(original_ids):
                 # Try to convert to integer, otherwise use index

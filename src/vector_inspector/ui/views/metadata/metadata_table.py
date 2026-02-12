@@ -1,23 +1,33 @@
 """Table population and interaction logic for metadata view."""
 
 import math
+from collections.abc import Callable
 from typing import Any, Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMenu, QTableWidget, QTableWidgetItem
 
 from vector_inspector.core.logging import log_info
+from vector_inspector.ui.views.metadata.context import MetadataContext
 
 
-def populate_table(table: QTableWidget, data: dict[str, Any], current_page: int, page_size: int):
+def populate_table(
+    table: QTableWidget,
+    ctx: MetadataContext,
+) -> None:
     """Populate table with data.
 
     Args:
         table: QTableWidget to populate
-        data: Collection data dictionary
-        current_page: Current page number (0-indexed)
-        page_size: Number of items per page
+        ctx: MetadataContext containing data and pagination info
     """
+    if not ctx.current_data:
+        table.setRowCount(0)
+        return
+
+    data = ctx.current_data
+    current_page = ctx.current_page
+    page_size = ctx.page_size
     ids = data.get("ids", [])
     documents = data.get("documents", [])
     metadatas = data.get("metadatas", [])
@@ -27,8 +37,8 @@ def populate_table(table: QTableWidget, data: dict[str, Any], current_page: int,
         return
 
     # Determine columns
-    columns = ["ID", "Document"]
-    metadata_keys = []
+    columns: list[str] = ["ID", "Document"]
+    metadata_keys: list[str] = []
     if metadatas and metadatas[0]:
         metadata_keys = list(metadatas[0].keys())
         columns.extend(metadata_keys)
@@ -65,29 +75,29 @@ def populate_table(table: QTableWidget, data: dict[str, Any], current_page: int,
 
 
 def update_pagination_controls(
-    current_data: Optional[dict],
-    current_page: int,
-    page_size: int,
-    page_label,
-    prev_button,
-    next_button,
+    ctx: MetadataContext,
+    page_label: Any,  # QLabel
+    prev_button: Any,  # QPushButton
+    next_button: Any,  # QPushButton
     total_count: Optional[int] = None,
     has_next_page: Optional[bool] = None,
-):
+) -> None:
     """Update pagination button states.
 
     Args:
-        current_data: Current data dictionary
-        current_page: Current page number (0-indexed)
-        page_size: Number of items per page
+        ctx: MetadataContext containing data and pagination info
         page_label: QLabel widget to update with page information
         prev_button: Previous page button
         next_button: Next page button
         total_count: If provided, compute total pages for client-side pagination
         has_next_page: If provided (for server-side pagination), explicitly sets whether Next is enabled
     """
-    if not current_data:
+    if not ctx.current_data:
         return
+
+
+    current_page = ctx.current_page
+    page_size = ctx.page_size
 
     if total_count is not None:
         # Client-side pagination with known total
@@ -109,28 +119,27 @@ def update_pagination_controls(
 
 def show_context_menu(
     table: QTableWidget,
-    position,
-    current_data: Optional[dict[str, Any]],
-    current_collection: str,
-    current_database: str,
-    connection,
-    on_row_double_clicked_callback,
-):
+    position: Any,  # QPoint
+    ctx: MetadataContext,
+    on_row_double_clicked_callback: Callable[[Any], None],
+) -> None:
     """Show context menu for table rows.
 
     Args:
         table: QTableWidget instance
         position: Position where context menu was requested
-        current_data: Current data dictionary (optional)
-        current_collection: Name of current collection
-        current_database: Name of current database
-        connection: Database connection instance
+        ctx: MetadataContext containing data and connection info
         on_row_double_clicked_callback: Callback for row edit action
     """
     # Get the item at the position
     item = table.itemAt(position)
-    if not item or not current_data:
+    if not item or not ctx.current_data:
         return
+
+    current_data = ctx.current_data
+    current_collection = ctx.current_collection
+    current_database = ctx.current_database
+    connection = ctx.connection
 
     row = item.row()
     if row < 0 or row >= table.rowCount():
@@ -170,19 +179,23 @@ def show_context_menu(
 
 def update_row_in_place(
     table: QTableWidget,
-    current_data: dict[str, Any],
+    ctx: MetadataContext,
     updated_data: dict[str, Any],
 ) -> bool:
     """Update a row in-place in the table without reloading.
 
     Args:
         table: QTableWidget instance
-        current_data: Current data dictionary
+        ctx: MetadataContext containing current data
         updated_data: Updated item data with 'id', 'document', 'metadata'
 
     Returns:
         True if update succeeded, False otherwise
     """
+    if not ctx.current_data:
+        return False
+
+    current_data = ctx.current_data
     updated_id = updated_data.get("id")
     if (
         not current_data
@@ -192,7 +205,7 @@ def update_row_in_place(
         return False
 
     try:
-        row_idx = current_data["ids"].index(updated_id)
+        row_idx: int = current_data["ids"].index(updated_id)
 
         # Update in-memory lists
         if "documents" in current_data and row_idx < len(current_data["documents"]):
@@ -213,7 +226,7 @@ def update_row_in_place(
         table.setItem(row_idx, 1, QTableWidgetItem(doc_text))
 
         # Update metadata columns based on current header names
-        metadata_keys = []
+        metadata_keys: list[str] = []
         for col in range(2, table.columnCount()):
             hdr = table.horizontalHeaderItem(col)
             if hdr:
@@ -248,35 +261,30 @@ def update_row_in_place(
 
 
 def find_updated_item_page(
-    connection,
-    current_collection: str,
+    ctx: MetadataContext,
     updated_id: Optional[str],
-    page_size: int,
-    server_filter=None,
 ) -> Optional[int]:
     """Find which page an updated item is on after server-side changes.
 
     Args:
-        connection: Database connection instance
-        current_collection: Name of current collection
+        ctx: MetadataContext containing connection and pagination info
         updated_id: ID of updated item to find (optional)
-        page_size: Number of items per page
-        server_filter: Optional server-side filter
 
     Returns:
         Page number (0-indexed) where item is located, or None if not found
     """
     if not updated_id:
         return None
+
     try:
-        full = connection.get_all_items(
-            current_collection, limit=None, offset=None, where=server_filter
+        full = ctx.connection.get_all_items(
+            ctx.current_collection, limit=None, offset=None, where=ctx.server_filter
         )
         if full and full.get("ids"):
             all_ids = full.get("ids", [])
             if updated_id in all_ids:
                 idx = all_ids.index(updated_id)
-                return idx // page_size
+                return idx // ctx.page_size
     except Exception:
         pass
     return None

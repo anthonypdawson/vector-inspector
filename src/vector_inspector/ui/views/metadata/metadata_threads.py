@@ -1,8 +1,10 @@
 """Background threads for metadata view operations."""
 
-from typing import Any
+from typing import Optional
 
 from PySide6.QtCore import QThread, Signal
+
+from vector_inspector.ui.views.metadata.context import MetadataContext
 
 
 class DataLoadThread(QThread):
@@ -10,25 +12,34 @@ class DataLoadThread(QThread):
 
     finished = Signal(dict)
     error = Signal(str)
-    connection: Any
-    collection: Any
-    page_size: int
-    offset: int
-    server_filter: Any
 
-    def __init__(self, connection, collection, page_size, offset, server_filter):
+    ctx: MetadataContext
+    req_limit: Optional[int]
+    req_offset: Optional[int]
+
+    def __init__(
+        self,
+        ctx: MetadataContext,
+        req_limit: Optional[int],
+        req_offset: Optional[int],
+    ) -> None:
         super().__init__()
-        self.connection = connection
-        self.collection = collection
-        self.page_size = page_size
-        self.offset = offset
-        self.server_filter = server_filter
+        self.ctx = ctx
+        self.req_limit = req_limit
+        self.req_offset = req_offset
 
-    def run(self):
+    def run(self) -> None:
         """Load data from database."""
         try:
-            data = self.connection.get_all_items(
-                self.collection, limit=self.page_size, offset=self.offset, where=self.server_filter
+            if not self.ctx.connection:
+                self.error.emit("No database connection available")
+                return
+
+            data = self.ctx.connection.get_all_items(
+                self.ctx.current_collection,
+                limit=self.req_limit,
+                offset=self.req_offset,
+                where=self.ctx.server_filter,
             )
             if data:
                 self.finished.emit(data)
