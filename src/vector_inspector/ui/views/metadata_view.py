@@ -1,14 +1,12 @@
 """Metadata browsing and data view."""
 
-import math
 from typing import Any, Optional
 
-from PySide6.QtCore import Qt, QThread, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QDialog,
-    QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -18,7 +16,6 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QSplitter,
     QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -27,44 +24,21 @@ from vector_inspector.core.cache_manager import CacheEntry, get_cache_manager
 from vector_inspector.core.connection_manager import ConnectionInstance
 from vector_inspector.core.logging import log_info
 from vector_inspector.services.filter_service import apply_client_side_filters
-from vector_inspector.services.import_export_service import ImportExportService
 from vector_inspector.services.settings_service import SettingsService
 from vector_inspector.ui.components.filter_builder import FilterBuilder
 from vector_inspector.ui.components.item_dialog import ItemDialog
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
-
-
-class DataLoadThread(QThread):
-    """Background thread for loading collection data."""
-
-    finished = Signal(dict)
-    error = Signal(str)
-    connection: Any
-    collection: Any
-    page_size: int
-    offset: int
-    server_filter: Any
-
-    def __init__(self, connection, collection, page_size, offset, server_filter):
-        super().__init__()
-        self.connection = connection
-        self.collection = collection
-        self.page_size = page_size
-        self.offset = offset
-        self.server_filter = server_filter
-
-    def run(self):
-        """Load data from database."""
-        try:
-            data = self.connection.get_all_items(
-                self.collection, limit=self.page_size, offset=self.offset, where=self.server_filter
-            )
-            if data:
-                self.finished.emit(data)
-            else:
-                self.error.emit("Failed to load data")
-        except Exception as e:
-            self.error.emit(str(e))
+from vector_inspector.ui.views.metadata import (
+    DataLoadThread,
+    export_data,
+    find_updated_item_page,
+    import_data,
+    populate_table,
+    show_context_menu,
+    update_filter_fields,
+    update_pagination_controls,
+    update_row_in_place,
+)
 
 
 class MetadataView(QWidget):
@@ -262,9 +236,46 @@ class MetadataView(QWidget):
             # Restore from cache
             self.current_page = 0
             self.current_data = cached.data
-            self._populate_table(cached.data)
-            self._update_pagination_controls()
-            self._update_filter_fields(cached.data)
+            populate_table(self.table, cached.data, self.current_page, self.page_size)
+
+            # For cached data, check if it's less than page_size (no next page)
+            # or if it might be the full dataset (client-side filtered)
+            cached_count = len(cached.data.get("ids", []))
+            if cached_count < self.page_size:
+                # Definitely no next page
+                update_pagination_controls(
+                    self.current_data,
+                    self.current_page,
+                    self.page_size,
+                    self.page_label,
+                    self.prev_button,
+                    self.next_button,
+                    has_next_page=False,
+                )
+            elif cached.search_query:
+                # Has filters, likely the full filtered dataset
+                update_pagination_controls(
+                    self.current_data,
+                    self.current_page,
+                    self.page_size,
+                    self.page_label,
+                    self.prev_button,
+                    self.next_button,
+                    total_count=cached_count,
+                )
+            else:
+                # Best guess: enable Next if we have a full page
+                update_pagination_controls(
+                    self.current_data,
+                    self.current_page,
+                    self.page_size,
+                    self.page_label,
+                    self.prev_button,
+                    self.next_button,
+                    has_next_page=(cached_count >= self.page_size),
+                )
+
+            update_filter_fields(self.filter_builder, cached.data)
 
             # Restore UI state
             if cached.scroll_position:
@@ -330,6 +341,9 @@ class MetadataView(QWidget):
         if self.client_filters:
             req_limit = None
             req_offset = None
+        else:
+            # Request one extra item to check if there's more data beyond this page
+            req_limit = self.page_size + 1
 
         # Start background thread to load data
         self.load_thread = DataLoadThread(
@@ -346,8 +360,21 @@ class MetadataView(QWidget):
     def _on_data_loaded(self, data: dict[str, Any]):
         """Handle data loaded from background thread."""
         # If no data returned
-        if not data:
-            self.status_label.setText("No data after filtering")
+        if not data or not data.get("ids"):
+            # If we're on a page beyond 0 and got no data, go back to previous page
+            if self.current_page > 0:
+                self.current_page -= 1
+                self.status_label.setText("No more data available")
+                update_pagination_controls(
+                    self.current_data,
+                    self.current_page,
+                    self.page_size,
+                    self.page_label,
+                    self.prev_button,
+                    self.next_button,
+                )
+            else:
+                self.status_label.setText("No data after filtering")
             self.table.setRowCount(0)
             return
 
@@ -376,11 +403,19 @@ class MetadataView(QWidget):
             self.current_data_full = full_data
             self.current_data = page_data
 
-            self._populate_table(page_data)
-            self._update_pagination_controls(total_count=total_count)
+            populate_table(self.table, page_data, self.current_page, self.page_size)
+            update_pagination_controls(
+                self.current_data,
+                self.current_page,
+                self.page_size,
+                self.page_label,
+                self.prev_button,
+                self.next_button,
+                total_count=total_count,
+            )
 
             # Update filter fields based on the full filtered dataset
-            self._update_filter_fields(full_data)
+            update_filter_fields(self.filter_builder, full_data)
 
             # Save full filtered dataset to cache
             if self.current_database and self.current_collection:
@@ -417,13 +452,50 @@ class MetadataView(QWidget):
             except Exception:
                 self._select_id_after_load = None
 
-        # No client-side filters: display server-paginated data as before
+        # No client-side filters: display server-paginated data
+        # Check if we fetched more items than page_size (to detect next page)
+        item_count = len(data.get("ids", []))
+        has_next_page = item_count > self.page_size
+
+        # If we got more than page_size, trim to page_size
+        if has_next_page:
+            trimmed_data = {}
+            for key in ("ids", "documents", "metadatas", "embeddings"):
+                lst = data.get(key, [])
+                # Avoid truth-value check on numpy arrays or other array-like objects
+                try:
+                    has_items = lst is not None and len(lst) > 0
+                except Exception:
+                    # Fallback: treat as non-empty if truthy without raising
+                    has_items = bool(lst)
+
+                if has_items:
+                    try:
+                        trimmed_data[key] = lst[: self.page_size]
+                    except Exception:
+                        # If slicing fails, convert to list then slice
+                        try:
+                            trimmed_data[key] = list(lst)[: self.page_size]
+                        except Exception:
+                            trimmed_data[key] = []
+                else:
+                    trimmed_data[key] = []
+            data = trimmed_data
+
         self.current_data = data
-        self._populate_table(data)
-        self._update_pagination_controls()
+        populate_table(self.table, data, self.current_page, self.page_size)
+        update_pagination_controls(
+            self.current_data,
+            self.current_page,
+            self.page_size,
+            self.page_label,
+            self.prev_button,
+            self.next_button,
+            has_next_page=has_next_page,
+        )
 
         # Update filter builder with available metadata fields
-        self._update_filter_fields(data)
+        update_filter_fields(self.filter_builder, data)
 
         # Save to cache
         if self.current_database and self.current_collection:
@@ -456,87 +528,6 @@ class MetadataView(QWidget):
         """Handle error from background thread."""
         self.status_label.setText(f"Failed to load data: {error_msg}")
         self.table.setRowCount(0)
-
-    def _update_filter_fields(self, data: dict[str, Any]):
-        """Update filter builder with available metadata field names."""
-        field_names = []
-
-        # Add 'document' field if documents exist
-        documents = data.get("documents", [])
-        if documents and any(doc for doc in documents if doc):
-            field_names.append("document")
-
-        # Add metadata fields
-        metadatas = data.get("metadatas", [])
-        if metadatas and len(metadatas) > 0 and metadatas[0]:
-            # Get all unique metadata keys from the first item
-            metadata_keys = sorted(metadatas[0].keys())
-            field_names.extend(metadata_keys)
-
-        if field_names:
-            self.filter_builder.set_available_fields(field_names)
-
-    def _populate_table(self, data: dict[str, Any]):
-        """Populate table with data."""
-        ids = data.get("ids", [])
-        documents = data.get("documents", [])
-        metadatas = data.get("metadatas", [])
-
-        if not ids:
-            self.table.setRowCount(0)
-            self.status_label.setText("No data in collection")
-            return
-
-        # Determine columns
-        columns = ["ID", "Document"]
-        if metadatas and metadatas[0]:
-            metadata_keys = list(metadatas[0].keys())
-            columns.extend(metadata_keys)
-
-        self.table.setColumnCount(len(columns))
-        self.table.setHorizontalHeaderLabels(columns)
-        self.table.setRowCount(len(ids))
-
-        # Populate rows
-        for row, (id_val, doc, meta) in enumerate(zip(ids, documents, metadatas, strict=True)):
-            # ID column
-            self.table.setItem(row, 0, QTableWidgetItem(str(id_val)))
-
-            # Document column
-            doc_text = str(doc) if doc else ""
-            if len(doc_text) > 100:
-                doc_text = doc_text[:100] + "..."
-            self.table.setItem(row, 1, QTableWidgetItem(doc_text))
-
-            # Metadata columns
-            if meta:
-                for col_idx, key in enumerate(metadata_keys, start=2):
-                    value = meta.get(key, "")
-                    self.table.setItem(row, col_idx, QTableWidgetItem(str(value)))
-
-        self.table.resizeColumnsToContents()
-        self.status_label.setText(f"Showing {len(ids)} items")
-
-    def _update_pagination_controls(self, total_count: Optional[int] = None):
-        """Update pagination button states.
-
-        If `total_count` is provided, use it to compute total pages. Otherwise
-        fall back to best-effort behavior based on current page size and items.
-        """
-        if not self.current_data:
-            return
-
-        if total_count is not None:
-            total_pages = max(1, math.ceil(total_count / self.page_size))
-            has_more = (self.current_page + 1) < total_pages
-            self.page_label.setText(f"{self.current_page + 1} / {total_pages}")
-        else:
-            item_count = len(self.current_data.get("ids", []))
-            has_more = item_count == self.page_size
-            self.page_label.setText(f"{self.current_page + 1}")
-
-        self.prev_button.setEnabled(self.current_page > 0)
-        self.next_button.setEnabled(has_more)
 
     def _previous_page(self):
         """Go to previous page."""
@@ -776,96 +767,27 @@ class MetadataView(QWidget):
                     # currently-visible page, update the in-memory page and
                     # table cells and emit `dataChanged` so the view refreshes
                     # immediately without a full reload.
-                    updated_id = updated_data.get("id")
-                    if (
-                        self.current_data
-                        and self.current_data.get("ids")
-                        and updated_id in self.current_data.get("ids", [])
-                    ):
-                        try:
-                            row_idx = self.current_data["ids"].index(updated_id)
+                    if update_row_in_place(self.table, self.current_data, updated_data):
+                        return
 
-                            # Update in-memory lists
-                            if "documents" in self.current_data and row_idx < len(
-                                self.current_data["documents"]
-                            ):
-                                self.current_data["documents"][row_idx] = (
-                                    updated_data["document"] if updated_data["document"] else ""
-                                )
-                            if "metadatas" in self.current_data and row_idx < len(
-                                self.current_data["metadatas"]
-                            ):
-                                self.current_data["metadatas"][row_idx] = (
-                                    updated_data["metadata"] if updated_data["metadata"] else {}
-                                )
-
-                            # Update table cell text for document column
-                            doc_text = (
-                                str(self.current_data["documents"][row_idx])
-                                if self.current_data["documents"][row_idx]
-                                else ""
-                            )
-                            if len(doc_text) > 100:
-                                doc_text = doc_text[:100] + "..."
-                            self.table.setItem(row_idx, 1, QTableWidgetItem(doc_text))
-
-                            # Update metadata columns based on current header names
-                            metadata_keys = []
-                            for col in range(2, self.table.columnCount()):
-                                hdr = self.table.horizontalHeaderItem(col)
-                                if hdr:
-                                    metadata_keys.append(hdr.text())
-
-                            if "metadatas" in self.current_data:
-                                meta = self.current_data["metadatas"][row_idx]
-                                for col_idx, key in enumerate(metadata_keys, start=2):
-                                    value = meta.get(key, "")
-                                    self.table.setItem(
-                                        row_idx, col_idx, QTableWidgetItem(str(value))
-                                    )
-
-                            # Emit dataChanged on the underlying model so views refresh
-                            try:
-                                model = self.table.model()
-                                top = model.index(row_idx, 0)
-                                bottom = model.index(row_idx, self.table.columnCount() - 1)
-                                model.dataChanged.emit(
-                                    top,
-                                    bottom,
-                                    [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole],
-                                )
-                            except Exception:
-                                pass
-
-                            # Restore selection/scroll and return
-                            self.table.verticalScrollBar().setValue(
-                                self.table.verticalScrollBar().value()
-                            )
-                            self.table.selectRow(row_idx)
-                            self.table.scrollToItem(self.table.item(row_idx, 0))
-                            return
-                        except Exception:
-                            # Fall through to server-side search if in-place update fails
-                            pass
-
+                    # If in-place update failed, try to find the item on the server
                     server_filter = None
                     if self.filter_group.isChecked() and self.filter_builder.has_filters():
                         server_filter, _ = self.filter_builder.get_filters_split()
 
-                    full = self.connection.get_all_items(
-                        self.current_collection, limit=None, offset=None, where=server_filter
+                    target_page = find_updated_item_page(
+                        self.connection,
+                        self.current_collection,
+                        updated_data.get("id"),
+                        self.page_size,
+                        server_filter,
                     )
-                    if full and full.get("ids"):
-                        all_ids = full.get("ids", [])
-                        updated_id = updated_data.get("id")
-                        if updated_id in all_ids:
-                            idx = all_ids.index(updated_id)
-                            target_page = idx // self.page_size
-                            # set selection flag and load target page
-                            self._select_id_after_load = updated_id
-                            self.current_page = target_page
-                            self._load_data()
-                            return
+                    if target_page is not None:
+                        # set selection flag and load target page
+                        self._select_id_after_load = updated_data.get("id")
+                        self.current_page = target_page
+                        self._load_data()
+                        return
                 except Exception:
                     pass
 
@@ -876,251 +798,37 @@ class MetadataView(QWidget):
 
     def _export_data(self, format_type: str):
         """Export current table data to file (visible rows or selected rows)."""
-        if not self.current_collection:
-            QMessageBox.warning(self, "No Collection", "Please select a collection first.")
-            return
-
-        if not self.current_data or not self.current_data.get("ids"):
-            QMessageBox.warning(self, "No Data", "No data to export.")
-            return
-
-        # Check if there are selected rows
-        selected_rows = self.table.selectionModel().selectedRows()
-
-        if selected_rows:
-            # Export only selected rows
-            export_data = {"ids": [], "documents": [], "metadatas": [], "embeddings": []}
-
-            for index in selected_rows:
-                row = index.row()
-                if row < len(self.current_data["ids"]):
-                    export_data["ids"].append(self.current_data["ids"][row])
-                    if "documents" in self.current_data and row < len(
-                        self.current_data["documents"]
-                    ):
-                        export_data["documents"].append(self.current_data["documents"][row])
-                    if "metadatas" in self.current_data and row < len(
-                        self.current_data["metadatas"]
-                    ):
-                        export_data["metadatas"].append(self.current_data["metadatas"][row])
-                    if "embeddings" in self.current_data and row < len(
-                        self.current_data["embeddings"]
-                    ):
-                        export_data["embeddings"].append(self.current_data["embeddings"][row])
-        else:
-            # Export all visible data from current table
-            export_data = self.current_data
-
-        # Select file path
-        file_filters = {
-            "json": "JSON Files (*.json)",
-            "csv": "CSV Files (*.csv)",
-            "parquet": "Parquet Files (*.parquet)",
-        }
-
-        # Get last used directory from settings
-        last_dir = self.settings_service.get("last_import_export_dir", "")
-        default_path = (
-            f"{last_dir}/{self.current_collection}.{format_type}"
-            if last_dir
-            else f"{self.current_collection}.{format_type}"
+        export_data(
+            self,
+            self.current_data,
+            self.current_collection,
+            format_type,
+            self.table,
         )
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, f"Export to {format_type.upper()}", default_path, file_filters[format_type]
-        )
-
-        if not file_path:
-            return
-
-        # Export
-        service = ImportExportService()
-        success = False
-
-        if format_type == "json":
-            success = service.export_to_json(export_data, file_path)
-        elif format_type == "csv":
-            success = service.export_to_csv(export_data, file_path)
-        elif format_type == "parquet":
-            success = service.export_to_parquet(export_data, file_path)
-
-        if success:
-            # Save the directory for next time
-            from pathlib import Path
-
-            self.settings_service.set("last_import_export_dir", str(Path(file_path).parent))
-
-            QMessageBox.information(
-                self,
-                "Export Successful",
-                f"Exported {len(export_data['ids'])} items to {file_path}",
-            )
-        else:
-            QMessageBox.warning(self, "Export Failed", "Failed to export data.")
 
     def _show_context_menu(self, position):
         """Show context menu for table rows."""
-        # Get the item at the position
-        item = self.table.itemAt(position)
-        if not item:
-            return
-
-        row = item.row()
-        if row < 0 or row >= self.table.rowCount():
-            return
-
-        # Create context menu
-        menu = QMenu(self)
-
-        # Add standard "Edit" action
-        edit_action = menu.addAction("✏️ Edit")
-        edit_action.triggered.connect(
-            lambda: self._on_row_double_clicked(self.table.model().index(row, 0))
+        show_context_menu(
+            self.table,
+            position,
+            self.current_data,
+            self.current_collection,
+            self.current_database,
+            self.connection,
+            self._on_row_double_clicked,
         )
-
-        # Call extension hooks to add custom menu items
-        try:
-            from vector_inspector.extensions import table_context_menu_hook
-
-            table_context_menu_hook.trigger(
-                menu=menu,
-                table=self.table,
-                row=row,
-                data={
-                    "current_data": self.current_data,
-                    "collection_name": self.current_collection,
-                    "database_name": self.current_database,
-                    "connection": self.connection,
-                    "view_type": "metadata",
-                },
-            )
-        except Exception as e:
-            log_info("Extension hook error: %s", e)
-
-        # Show menu
-        menu.exec(self.table.viewport().mapToGlobal(position))
 
     def _import_data(self, format_type: str):
         """Import data from file into collection."""
-        if not self.current_collection:
-            QMessageBox.warning(self, "No Collection", "Please select a collection first.")
-            return
-
-        # Select file to import
-        file_filters = {
-            "json": "JSON Files (*.json)",
-            "csv": "CSV Files (*.csv)",
-            "parquet": "Parquet Files (*.parquet)",
-        }
-
-        # Get last used directory from settings
-        last_dir = self.settings_service.get("last_import_export_dir", "")
-
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, f"Import from {format_type.upper()}", last_dir, file_filters[format_type]
+        imported_data = import_data(
+            self,
+            self.connection,
+            self.current_collection,
+            format_type,
+            self.loading_dialog,
         )
-
-        if not file_path:
-            return
-
-        # Import
-        self.loading_dialog.show_loading("Importing data...")
-        QApplication.processEvents()
-
-        try:
-            service = ImportExportService()
-            imported_data = None
-
-            if format_type == "json":
-                imported_data = service.import_from_json(file_path)
-            elif format_type == "csv":
-                imported_data = service.import_from_csv(file_path)
-            elif format_type == "parquet":
-                imported_data = service.import_from_parquet(file_path)
-
-            if not imported_data:
-                QMessageBox.warning(self, "Import Failed", "Failed to parse import file.")
-                return
-
-            # Handle Qdrant-specific requirements (similar to backup/restore)
-            from vector_inspector.core.connections.qdrant_connection import QdrantConnection
-
-            if isinstance(self.connection, QdrantConnection):
-                # Check if embeddings are missing and need to be generated
-                if not imported_data.get("embeddings"):
-                    self.loading_dialog.setLabelText("Generating embeddings for Qdrant...")
-                    QApplication.processEvents()
-                    try:
-                        from sentence_transformers import SentenceTransformer
-
-                        model = SentenceTransformer("all-MiniLM-L6-v2")
-                        documents = imported_data.get("documents", [])
-                        imported_data["embeddings"] = model.encode(
-                            documents, show_progress_bar=False
-                        ).tolist()
-                    except Exception as e:
-                        QMessageBox.warning(
-                            self,
-                            "Import Failed",
-                            f"Qdrant requires embeddings. Failed to generate: {e}",
-                        )
-                        return
-
-                # Convert IDs to Qdrant-compatible format (integers or UUIDs)
-                # Store original IDs in metadata
-                original_ids = imported_data.get("ids", [])
-                qdrant_ids = []
-                metadatas = imported_data.get("metadatas", [])
-
-                for i, orig_id in enumerate(original_ids):
-                    # Try to convert to integer, otherwise use index
-                    try:
-                        # If it's like "doc_123", extract the number
-                        if isinstance(orig_id, str) and "_" in orig_id:
-                            qdrant_id = int(orig_id.split("_")[-1])
-                        else:
-                            qdrant_id = int(orig_id)
-                    except (ValueError, AttributeError):
-                        # Use index as ID if can't convert
-                        qdrant_id = i
-
-                    qdrant_ids.append(qdrant_id)
-
-                    # Store original ID in metadata
-                    if i < len(metadatas):
-                        if metadatas[i] is None:
-                            metadatas[i] = {}
-                        metadatas[i]["original_id"] = orig_id
-                    else:
-                        metadatas.append({"original_id": orig_id})
-
-                imported_data["ids"] = qdrant_ids
-                imported_data["metadatas"] = metadatas
-
-            # Add items to collection
-            success = self.connection.add_items(
-                self.current_collection,
-                documents=imported_data["documents"],
-                metadatas=imported_data.get("metadatas"),
-                ids=imported_data.get("ids"),
-                embeddings=imported_data.get("embeddings"),
-            )
-        finally:
-            self.loading_dialog.hide_loading()
-
-        if success:
+        if imported_data:
             # Invalidate cache after import
             if self.current_database and self.current_collection:
                 self.cache_manager.invalidate(self.current_database, self.current_collection)
-
-            # Save the directory for next time
-            from pathlib import Path
-
-            self.settings_service.set("last_import_export_dir", str(Path(file_path).parent))
-
-            QMessageBox.information(
-                self, "Import Successful", f"Imported {len(imported_data['ids'])} items."
-            )
             self._load_data()
-        else:
-            QMessageBox.warning(self, "Import Failed", "Failed to import data.")
