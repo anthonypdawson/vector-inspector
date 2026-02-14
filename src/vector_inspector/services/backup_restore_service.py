@@ -1,6 +1,6 @@
 """Service for backing up and restoring collections."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -54,7 +54,7 @@ class BackupRestoreService:
 
             backup_metadata = {
                 "collection_name": collection_name,
-                "backup_timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                "backup_timestamp": datetime.now(tz=UTC).isoformat(),
                 "item_count": len(all_data["ids"]),
                 "collection_info": collection_info,
                 "include_embeddings": include_embeddings,
@@ -98,7 +98,7 @@ class BackupRestoreService:
                 # Embedding metadata is optional; log failure but do not abort backup.
                 log_debug("Failed to populate embedding metadata for %s: %s", collection_name, e)
 
-            timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{collection_name}_backup_{timestamp}.zip"
             backup_path = Path(backup_dir) / backup_filename
 
@@ -164,8 +164,10 @@ class BackupRestoreService:
 
                     # Fallback: inspect embeddings in backup data
                     if inferred_size is None and data and data.get("embeddings"):
+                        from vector_inspector.utils import has_embedding
+
                         first_emb = data.get("embeddings")[0]
-                        if first_emb is not None:
+                        if has_embedding(first_emb):
                             inferred_size = len(first_emb)
 
                     # Final fallback: common default

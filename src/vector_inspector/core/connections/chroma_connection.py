@@ -1,15 +1,16 @@
 """ChromaDB connection manager."""
 
-from typing import Optional, List, Dict, Any, cast
 import os
 from pathlib import Path
+from typing import Any, Optional, cast
+
 import chromadb
+from chromadb import Documents, EmbeddingFunction, Embeddings
 from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
-from chromadb import Documents, EmbeddingFunction, Embeddings
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
-from vector_inspector.core.logging import log_info, log_error
+from vector_inspector.core.logging import log_error, log_info
 
 
 class DimensionAwareEmbeddingFunction(EmbeddingFunction):
@@ -120,7 +121,7 @@ class ChromaDBConnection(VectorDBConnection):
         """Check if connected to ChromaDB."""
         return self._client is not None
 
-    def list_collections(self) -> List[str]:
+    def list_collections(self) -> list[str]:
         """
         Get list of all collections.
 
@@ -142,7 +143,7 @@ class ChromaDBConnection(VectorDBConnection):
             return None
         try:
             return self._client.get_collection(name=name)
-        except Exception as e:
+        except Exception:
             return None
 
     def _get_embedding_function_for_collection(self, name: str) -> Optional[EmbeddingFunction]:
@@ -158,9 +159,11 @@ class ChromaDBConnection(VectorDBConnection):
             embeddings = sample.get("embeddings") if sample else None
             # Avoid numpy array truthiness issues - check is not None explicitly
             if embeddings is not None and len(embeddings) > 0:
+                from vector_inspector.utils import has_embedding
+
                 first_embedding = embeddings[0]
                 # Check if embedding exists and has content
-                if first_embedding is not None and len(first_embedding) > 0:
+                if has_embedding(first_embedding):
                     vector_dim = len(first_embedding)
                     log_info("[ChromaDB] Collection '%s' has %dd vectors", name, vector_dim)
                     return DimensionAwareEmbeddingFunction(vector_dim)
@@ -198,7 +201,7 @@ class ChromaDBConnection(VectorDBConnection):
             log_error("Failed to get collection: %s", e)
             return None
 
-    def get_collection_info(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_collection_info(self, name: str) -> Optional[dict[str, Any]]:
         """
         Get collection metadata and statistics.
 
@@ -226,8 +229,11 @@ class ChromaDBConnection(VectorDBConnection):
 
             # Determine vector dimensions from embeddings
             embeddings = sample.get("embeddings") if sample else None
-            if embeddings is not None and len(embeddings) > 0 and embeddings[0] is not None:
-                vector_dimension = len(embeddings[0])
+            if embeddings is not None and len(embeddings) > 0:
+                from vector_inspector.utils import has_embedding
+
+                if has_embedding(embeddings[0]):
+                    vector_dimension = len(embeddings[0])
 
             # ChromaDB uses cosine distance by default (or can be configured)
             # Try to get metadata from collection if available
@@ -270,12 +276,12 @@ class ChromaDBConnection(VectorDBConnection):
     def query_collection(
         self,
         collection_name: str,
-        query_texts: Optional[List[str]] = None,
-        query_embeddings: Optional[List[List[float]]] = None,
+        query_texts: Optional[list[str]] = None,
+        query_embeddings: Optional[list[list[float]]] = None,
         n_results: int = 10,
-        where: Optional[Dict[str, Any]] = None,
-        where_document: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        where: Optional[dict[str, Any]] = None,
+        where_document: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, Any]]:
         """
         Query a collection for similar vectors.
 
@@ -317,7 +323,7 @@ class ChromaDBConnection(VectorDBConnection):
                 where_document=where_document,  # type: ignore
                 include=["metadatas", "documents", "distances", "embeddings"],
             )
-            return cast(Dict[str, Any], results)
+            return cast(dict[str, Any], results)
         except Exception as e:
             import traceback
 
@@ -329,8 +335,8 @@ class ChromaDBConnection(VectorDBConnection):
         collection_name: str,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        where: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        where: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, Any]]:
         """
         Get all items from a collection.
 
@@ -354,7 +360,7 @@ class ChromaDBConnection(VectorDBConnection):
                 where=where,
                 include=["metadatas", "documents", "embeddings"],
             )
-            return cast(Dict[str, Any], results)
+            return cast(dict[str, Any], results)
         except Exception as e:
             log_error("Failed to get items: %s", e)
             return None
@@ -362,10 +368,10 @@ class ChromaDBConnection(VectorDBConnection):
     def add_items(
         self,
         collection_name: str,
-        documents: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        documents: list[str],
+        metadatas: Optional[list[dict[str, Any]]] = None,
+        ids: Optional[list[str]] = None,
+        embeddings: Optional[list[list[float]]] = None,
     ) -> bool:
         """
         Add items to a collection.
@@ -409,10 +415,10 @@ class ChromaDBConnection(VectorDBConnection):
     def update_items(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        embeddings: Optional[List[List[float]]] = None,
+        ids: list[str],
+        documents: Optional[list[str]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
+        embeddings: Optional[list[list[float]]] = None,
     ) -> bool:
         """
         Update items in a collection.
@@ -456,8 +462,8 @@ class ChromaDBConnection(VectorDBConnection):
     def delete_items(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None,
+        ids: Optional[list[str]] = None,
+        where: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         Delete items from a collection.
@@ -537,13 +543,13 @@ class ChromaDBConnection(VectorDBConnection):
             log_error("Failed to create collection: %s", e)
             return False
 
-    def get_items(self, name: str, ids: List[str]) -> Dict[str, Any]:
+    def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:
         """Retrieve items by IDs."""
         col = self.get_collection(name)
         if not col:
             raise RuntimeError("Collection not available")
         return cast(
-            Dict[str, Any], col.get(ids=ids, include=["metadatas", "documents", "embeddings"])
+            dict[str, Any], col.get(ids=ids, include=["metadatas", "documents", "embeddings"])
         )
 
     def count_collection(self, name: str) -> int:
@@ -556,7 +562,7 @@ class ChromaDBConnection(VectorDBConnection):
         except Exception:
             return 0
 
-    def get_supported_filter_operators(self) -> List[Dict[str, Any]]:
+    def get_supported_filter_operators(self) -> list[dict[str, Any]]:
         """
         Get filter operators supported by ChromaDB.
 

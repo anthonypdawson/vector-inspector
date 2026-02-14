@@ -1,5 +1,6 @@
 """Search interface for similarity queries."""
 
+import json
 import time
 import uuid
 from typing import Any, Optional
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMenu,
+    QMessageBox,
     QPushButton,
     QSizePolicy,
     QSpinBox,
@@ -29,6 +31,7 @@ from vector_inspector.core.logging import log_info
 from vector_inspector.services.filter_service import apply_client_side_filters
 from vector_inspector.services.telemetry_service import TelemetryService
 from vector_inspector.ui.components.filter_builder import FilterBuilder
+from vector_inspector.ui.components.item_details_dialog import ItemDetailsDialog
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
 
 
@@ -156,6 +159,8 @@ class SearchView(QWidget):
         self.results_table.setAlternatingRowColors(True)
         # Enable context menu
         self.results_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        # Enable double-click to view details
+        self.results_table.doubleClicked.connect(self._on_row_double_clicked)
         self.results_table.customContextMenuRequested.connect(self._show_context_menu)
         results_group_layout.addWidget(self.results_table)
 
@@ -421,6 +426,143 @@ class SearchView(QWidget):
                 },
             )
 
+    def _on_row_double_clicked(self, index):
+        """Handle double-click on a row to view item details."""
+        if not self.search_results:
+            return
+
+        row = index.row()
+        if row < 0 or row >= self.results_table.rowCount():
+            return
+
+        # Get item data for this row
+        ids = self._unwrap_result_list("ids")
+        documents = self._unwrap_result_list("documents")
+        metadatas = self._unwrap_result_list("metadatas")
+        distances = self._unwrap_result_list("distances")
+
+        if row >= len(ids):
+            return
+
+        item_data = {
+            "id": ids[row],
+            "document": documents[row] if row < len(documents) else "",
+            "metadata": metadatas[row] if row < len(metadatas) else {},
+            "distance": distances[row] if row < len(distances) else None,
+            "rank": row + 1,
+        }
+
+        # Show details dialog
+        dialog = ItemDetailsDialog(self, item_data=item_data, show_search_info=True)
+        dialog.exec()
+
+    def _unwrap_result_list(self, key: str) -> list:
+        """Safely unwrap nested result lists."""
+        if not self.search_results:
+            return []
+        val = self.search_results.get(key)
+        if not val:
+            return []
+        # If provider returned a list-of-lists (per-query), take first inner list
+        if isinstance(val, list) and len(val) > 0:
+            first = val[0]
+            if isinstance(first, (list, tuple)):
+                return list(first)
+            # If it's already a flat list, return it
+            return val
+        return []
+
+    def _copy_vectors_to_json(self, selected_rows: list[int]):
+        """Copy vector(s) from selected row(s) to clipboard as JSON."""
+        if not self.search_results:
+            QMessageBox.warning(
+                self,
+                "No Vector Data",
+                "No vector embeddings available for the selected row(s).",
+            )
+            return
+
+        # Search results typically don't include embeddings
+        # So we need to get them from the connection
+        ids = self._unwrap_result_list("ids")
+
+        if not ids:
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "No search results available.",
+            )
+            return
+
+        # Collect vectors for selected rows
+        vectors_data = []
+        for row in selected_rows:
+            if row < len(ids):
+                item_id = ids[row]
+
+                # Try to get the full item with embedding from the collection
+                try:
+                    item_data = self.connection.get_all_items(
+                        self.current_collection,
+                        ids=[item_id],
+                        include=["embeddings", "documents"],
+                    )
+
+                    if (
+                        item_data
+                        and item_data.get("embeddings")
+                        and len(item_data["embeddings"]) > 0
+                    ):
+                        vector = item_data["embeddings"][0]
+                        vector_list = vector.tolist() if hasattr(vector, "tolist") else list(vector)
+
+                        vectors_data.append(
+                            {
+                                "id": str(item_id),
+                                "vector": vector_list,
+                                "dimension": len(vector_list),
+                            }
+                        )
+                except Exception as e:
+                    log_info("Error processing vector for row %d: %s", row, e)
+                    continue
+
+        if not vectors_data:
+            QMessageBox.information(
+                self,
+                "No Vectors",
+                "Could not retrieve vector embeddings for the selected item(s). "
+                "Some vector databases may not return embeddings in search results.",
+            )
+            return
+
+        # Format as JSON (single object if one row, list if multiple)
+        try:
+            if len(vectors_data) == 1:
+                json_output = json.dumps(vectors_data[0], indent=2)
+            else:
+                json_output = json.dumps(vectors_data, indent=2)
+
+            # Copy to clipboard
+            clipboard = QApplication.clipboard()
+            clipboard.setText(json_output)
+
+            # Show success message
+            count = len(vectors_data)
+            item_text = "vector" if count == 1 else "vectors"
+            QMessageBox.information(
+                self,
+                "Success",
+                f"Copied {count} {item_text} to clipboard as JSON.",
+            )
+        except Exception as e:
+            log_info("Error copying vectors to JSON: %s", e)
+            QMessageBox.warning(
+                self,
+                "Error",
+                f"Failed to copy vector data: {e}",
+            )
+
     def _show_context_menu(self, position):
         """Show context menu for results table rows."""
         # Get the item at the position
@@ -435,7 +577,26 @@ class SearchView(QWidget):
         # Create context menu
         menu = QMenu(self)
 
-        # Call extension hooks to add custom menu items
+        # Add standard "View Details" action
+        view_action = menu.addAction("👁️ View Details")
+        view_action.triggered.connect(
+            lambda: self._on_row_double_clicked(self.results_table.model().index(row, 0))
+        )
+
+        # Add "Copy vector to JSON" action
+        selected_rows = [
+            index.row() for index in self.results_table.selectionModel().selectedRows()
+        ]
+        if not selected_rows:
+            selected_rows = [row]
+
+        copy_vector_action = menu.addAction("📋 Copy vector to JSON")
+        copy_vector_action.triggered.connect(lambda: self._copy_vectors_to_json(selected_rows))
+
+        # Add separator before extension items
+        menu.addSeparator()
+
+        # Call extension hooks to add custom menu items (for Vector Studio, etc.)
         try:
             from vector_inspector.extensions import table_context_menu_hook
 
@@ -497,7 +658,9 @@ class SearchView(QWidget):
         self.results_table.setRowCount(len(ids))
 
         # Populate rows
-        for row, (id_val, doc, meta, dist) in enumerate(zip(ids, documents, metadatas, distances)):
+        for row, (id_val, doc, meta, dist) in enumerate(
+            zip(ids, documents, metadatas, distances, strict=True)
+        ):
             # Rank
             self.results_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
 

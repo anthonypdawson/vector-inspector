@@ -723,12 +723,14 @@ class MetadataView(QWidget):
 
             if not generate_on_edit:
                 # Try to preserve existing embedding for this row if present
+                from vector_inspector.utils import has_embedding
+
                 existing_embs = (
                     self.ctx.current_data.get("embeddings", []) if self.ctx.current_data else []
                 )
                 if row < len(existing_embs):
                     existing = existing_embs[row]
-                    if existing:
+                    if has_embedding(existing):
                         embeddings_arg = [existing]
 
             # Update item in collection

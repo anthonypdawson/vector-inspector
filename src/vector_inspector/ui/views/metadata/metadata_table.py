@@ -6,9 +6,16 @@ from collections.abc import Callable
 from typing import Any, Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QTableWidget, QTableWidgetItem
+from PySide6.QtWidgets import (
+    QApplication,
+    QMenu,
+    QMessageBox,
+    QTableWidget,
+    QTableWidgetItem,
+)
 
 from vector_inspector.core.logging import log_info
+from vector_inspector.ui.components.item_details_dialog import ItemDetailsDialog
 from vector_inspector.ui.views.metadata.context import MetadataContext
 
 
@@ -238,11 +245,24 @@ def show_context_menu(
     # Create context menu
     menu = QMenu(table)
 
-    # Add standard "Edit" action
+    # Get item data for this row
+    ids = current_data.get("ids", [])
+
+    if row >= len(ids):
+        return
+
+    # Add "View Details" action (read-only)
+    view_action = menu.addAction("👁️ View Details")
+    view_action.triggered.connect(lambda: _show_item_details(table, ctx, row))
+
+    # Add "Edit" action
     edit_action = menu.addAction("✏️ Edit")
     edit_action.triggered.connect(
         lambda: on_row_double_clicked_callback(table.model().index(row, 0))
     )
+
+    # Add separator
+    menu.addSeparator()
 
     # Add "Copy vector to JSON" action
     selected_rows = [index.row() for index in table.selectionModel().selectedRows()]
@@ -252,7 +272,10 @@ def show_context_menu(
     copy_vector_action = menu.addAction("📋 Copy vector to JSON")
     copy_vector_action.triggered.connect(lambda: copy_vectors_to_json(table, ctx, selected_rows))
 
-    # Call extension hooks to add custom menu items
+    # Add separator before extension items
+    menu.addSeparator()
+
+    # Call extension hooks to add custom menu items (for Vector Studio, etc.)
     try:
         from vector_inspector.extensions import table_context_menu_hook
 
@@ -273,6 +296,37 @@ def show_context_menu(
 
     # Show menu
     menu.exec(table.viewport().mapToGlobal(position))
+
+
+def _show_item_details(table: QTableWidget, ctx: MetadataContext, row: int) -> None:
+    """Show read-only details dialog for an item.
+
+    Args:
+        table: QTableWidget instance
+        ctx: MetadataContext containing data
+        row: Row index
+    """
+    if not ctx.current_data:
+        return
+
+    ids = ctx.current_data.get("ids", [])
+    documents = ctx.current_data.get("documents", [])
+    metadatas = ctx.current_data.get("metadatas", [])
+    embeddings = ctx.current_data.get("embeddings", [])
+
+    if row >= len(ids):
+        return
+
+    item_data = {
+        "id": ids[row],
+        "document": documents[row] if row < len(documents) else "",
+        "metadata": metadatas[row] if row < len(metadatas) else {},
+        "embedding": embeddings[row] if row < len(embeddings) else None,
+    }
+
+    # Show details dialog
+    dialog = ItemDetailsDialog(table, item_data=item_data, show_search_info=False)
+    dialog.exec()
 
 
 def update_row_in_place(
