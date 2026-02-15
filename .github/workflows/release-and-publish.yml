@@ -95,10 +95,10 @@ jobs:
       run: |
         # Always use docs/RELEASE_REASON.md if it exists
         if [ -f docs/RELEASE_REASON.md ]; then
-          # Use safe multiline output for GitHub Actions
-          echo "reason<<EOF" >> "$GITHUB_OUTPUT"
+          # Use safe multiline output for GitHub Actions with unique delimiter
+          echo "reason<<RELEASE_REASON_DELIMITER_9a8b7c6d" >> "$GITHUB_OUTPUT"
           cat docs/RELEASE_REASON.md >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_REASON_DELIMITER_9a8b7c6d" >> "$GITHUB_OUTPUT"
         else
           echo "reason=" >> "$GITHUB_OUTPUT"
         fi
@@ -107,9 +107,7 @@ jobs:
       if: steps.get_version.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true')
       run: |
         cp README.md README.md.bak
-        # Safely write multiline release reason to a temp file, then prepend
-        if [ -n "${{ steps.release_reason.outputs.reason }}" ]; then
-          Directly prepend docs/RELEASE_REASON.md if it exists
+        # Directly prepend docs/RELEASE_REASON.md if it exists
         if [ -f docs/RELEASE_REASON.md ]; then
           cat docs/RELEASE_REASON.md README.md.bak > README.md
         fi
