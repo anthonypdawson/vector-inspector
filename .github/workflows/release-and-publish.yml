@@ -98,6 +98,8 @@ jobs:
           # Use safe multiline output for GitHub Actions with unique delimiter
           echo "reason<<RELEASE_REASON_DELIMITER_9a8b7c6d" >> "$GITHUB_OUTPUT"
           cat docs/RELEASE_REASON.md >> "$GITHUB_OUTPUT"
+          # Ensure newline before closing delimiter (in case file doesn't end with newline)
+          echo "" >> "$GITHUB_OUTPUT"
           echo "RELEASE_REASON_DELIMITER_9a8b7c6d" >> "$GITHUB_OUTPUT"
         else
           echo "reason=" >> "$GITHUB_OUTPUT"
