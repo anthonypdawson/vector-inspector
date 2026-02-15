@@ -763,7 +763,8 @@ class SearchView(QWidget):
             self.results_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
 
             # Distance/similarity score
-            self.results_table.setItem(row, 1, QTableWidgetItem(f"{dist:.4f}"))
+            dist_text = f"{dist:.4f}" if dist is not None else "N/A"
+            self.results_table.setItem(row, 1, QTableWidgetItem(dist_text))
 
             # ID
             self.results_table.setItem(row, 2, QTableWidgetItem(str(id_val)))
