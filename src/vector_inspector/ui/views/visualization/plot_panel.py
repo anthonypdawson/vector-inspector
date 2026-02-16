@@ -33,6 +33,7 @@ class PlotPanel(QWidget):
         self._current_ids = []
         self._selected_index = None
         self._selected_id = None
+        self._cluster_labels = None
         self._event_bridge = PlotEventBridge(self)
         self._event_bridge.point_selected.connect(self._on_point_selected)
         self._setup_ui()
@@ -63,6 +64,11 @@ class PlotPanel(QWidget):
 
         button_layout.addStretch()
 
+        self.clear_selection_button = QPushButton("Clear Selection")
+        self.clear_selection_button.setEnabled(False)
+        self.clear_selection_button.clicked.connect(self._on_clear_selection_clicked)
+        button_layout.addWidget(self.clear_selection_button)
+
         self.view_data_button = QPushButton("View Selected Point in Data Browser")
         self.view_data_button.setEnabled(False)
         self.view_data_button.clicked.connect(self._on_view_data_clicked)
@@ -80,13 +86,37 @@ class PlotPanel(QWidget):
             self.selection_label.setText("No point selected")
             self.selection_label.setStyleSheet("color: gray; font-style: italic;")
             self.view_data_button.setEnabled(False)
+            self.clear_selection_button.setEnabled(False)
         else:
             # Selection
             self._selected_index = point_index
             self._selected_id = point_id
-            self.selection_label.setText(f"Selected: Point #{point_index + 1} (ID: {point_id})")
+            
+            # Build label with cluster info if available
+            label_text = f"Selected: Point #{point_index + 1} (ID: {point_id})"
+            if self._cluster_labels is not None and point_index < len(self._cluster_labels):
+                cluster_id = int(self._cluster_labels[point_index])
+                cluster_text = "Noise" if cluster_id == -1 else str(cluster_id)
+                label_text += f" | Cluster: {cluster_text}"
+            
+            self.selection_label.setText(label_text)
             self.selection_label.setStyleSheet("color: green;")
             self.view_data_button.setEnabled(True)
+            self.clear_selection_button.setEnabled(True)
+
+    def _on_clear_selection_clicked(self):
+        """Handle Clear Selection button click."""
+        # Clear selection in the plot
+        js_code = """
+        var plotDiv = document.getElementsByClassName('plotly-graph-div')[0];
+        if (plotDiv && typeof Plotly !== 'undefined') {
+            Plotly.restyle(plotDiv, {'selectedpoints': [null]});
+        }
+        """
+        self.web_view.page().runJavaScript(js_code)
+        
+        # Trigger deselection in UI
+        self._on_point_selected(-1, "")
 
     def _on_view_data_clicked(self):
         """Handle View in Data Browser button click."""
@@ -114,9 +144,11 @@ class PlotPanel(QWidget):
         # Clear previous selection when creating new plot
         self._selected_index = None
         self._selected_id = None
+        self._cluster_labels = cluster_labels
         self.selection_label.setText("No point selected")
         self.selection_label.setStyleSheet("color: gray; font-style: italic;")
         self.view_data_button.setEnabled(False)
+        self.clear_selection_button.setEnabled(False)
 
         # Show/hide selection UI based on plot type (2D vs 3D)
         is_2d = reduced_data.shape[1] == 2
