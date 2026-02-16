@@ -91,14 +91,14 @@ class PlotPanel(QWidget):
             # Selection
             self._selected_index = point_index
             self._selected_id = point_id
-            
+
             # Build label with cluster info if available
             label_text = f"Selected: Point #{point_index + 1} (ID: {point_id})"
             if self._cluster_labels is not None and point_index < len(self._cluster_labels):
                 cluster_id = int(self._cluster_labels[point_index])
                 cluster_text = "Noise" if cluster_id == -1 else str(cluster_id)
                 label_text += f" | Cluster: {cluster_text}"
-            
+
             self.selection_label.setText(label_text)
             self.selection_label.setStyleSheet("color: green;")
             self.view_data_button.setEnabled(True)
@@ -114,7 +114,7 @@ class PlotPanel(QWidget):
         }
         """
         self.web_view.page().runJavaScript(js_code)
-        
+
         # Trigger deselection in UI
         self._on_point_selected(-1, "")
 
