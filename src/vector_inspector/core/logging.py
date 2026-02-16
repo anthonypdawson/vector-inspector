@@ -5,6 +5,7 @@ to the standard `logging` module but keep call sites concise.
 """
 
 import logging
+import os
 from typing import Any
 
 _logger = logging.getLogger("vector_inspector")
@@ -13,8 +14,12 @@ if not _logger.handlers:
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
     handler.setFormatter(formatter)
     _logger.addHandler(handler)
-    # Default to WARNING to reduce console noise; set to DEBUG for troubleshooting
-    _logger.setLevel(logging.WARNING)
+    # Set log level from LOG_LEVEL env var if present, else default to WARNING
+    log_level_str = os.environ.get("LOG_LEVEL", "WARNING").upper()
+    try:
+        _logger.setLevel(getattr(logging, log_level_str))
+    except Exception:
+        _logger.setLevel(logging.WARNING)
 
 
 def log_info(msg: str, *args: Any, **kwargs: Any) -> None:
