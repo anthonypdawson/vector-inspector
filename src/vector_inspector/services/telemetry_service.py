@@ -1,5 +1,6 @@
 import json
 import platform
+import sys
 import uuid
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import requests
 from vector_inspector import get_version
 from vector_inspector.core.logging import log_error, log_info
 from vector_inspector.services.settings_service import SettingsService
+from vector_inspector.utils.hardware_info import get_hardware_info
 
 TELEMETRY_ENDPOINT = "https://api.divinedevops.com/api/v1/telemetry"
 
@@ -25,6 +27,9 @@ class TelemetryService:
         self.queue_file = Path.home() / ".vector-inspector" / "telemetry_queue.json"
         self.app_version = app_version or get_version()
         self.client_type = client_type
+        # Disable telemetry if running under pytest or unittest
+        if "pytest" in sys.modules or "unittest" in sys.modules:
+            self.settings.set("telemetry.enabled", False)
         self._load_queue()
 
     def _load_queue(self):
@@ -101,12 +106,20 @@ class TelemetryService:
         if not self.is_enabled():
             log_info("[Telemetry] Telemetry is not enabled; skipping launch ping.")
             return
+        # Import hardware info utility here to avoid import cycles
+        try:
+            hardware = get_hardware_info()
+        except Exception as e:
+            hardware = {"error": str(e)}
         event = {
             "hwid": self.get_hwid(),
             "event_name": "app_launch",
             "app_version": app_version,
             "client_type": client_type,
-            "metadata": {"os": platform.system() + "-" + platform.release()},
+            "metadata": {
+                "os": platform.system() + "-" + platform.release(),
+                "hardware": hardware,
+            },
         }
         log_info(f"[Telemetry] Launch event payload: {json.dumps(event, indent=2)}")
         self.queue_event(event)
