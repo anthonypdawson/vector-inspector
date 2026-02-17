@@ -7,6 +7,7 @@ from vector_inspector.core.connections.chroma_connection import ChromaDBConnecti
 from vector_inspector.core.connections.pgvector_connection import PgVectorConnection
 from vector_inspector.core.connections.pinecone_connection import PineconeConnection
 from vector_inspector.core.connections.qdrant_connection import QdrantConnection
+from vector_inspector.core.connections.weaviate_connection import WeaviateConnection
 
 
 class ProviderFactory:
@@ -19,7 +20,7 @@ class ProviderFactory:
         """Create a connection object for the specified provider.
 
         Args:
-            provider: Provider type (chromadb, qdrant, pinecone, pgvector)
+            provider: Provider type (chromadb, qdrant, pinecone, pgvector, lancedb, weaviate)
             config: Provider-specific configuration
             credentials: Optional credentials (API keys, passwords, etc.)
 
@@ -41,6 +42,8 @@ class ProviderFactory:
             return ProviderFactory._create_pgvector(config, credentials)
         if provider == "lancedb":
             return ProviderFactory._create_lancedb(config, credentials)
+        if provider == "weaviate":
+            return ProviderFactory._create_weaviate(config, credentials)
         raise ValueError(f"Unsupported provider: {provider}")
 
     @staticmethod
@@ -105,3 +108,34 @@ class ProviderFactory:
             )
 
         raise ValueError("Unsupported connection type for PgVector profile")
+
+    @staticmethod
+    def _create_weaviate(config: dict[str, Any], credentials: dict[str, Any]) -> WeaviateConnection:
+        """Create a Weaviate connection."""
+        conn_type = config.get("type")
+        api_key = credentials.get("api_key")
+
+        if conn_type == "persistent":
+            # Embedded mode
+            return WeaviateConnection(
+                mode="embedded",
+                persistence_directory=config.get("path"),
+            )
+        elif conn_type == "cloud":
+            # Weaviate Cloud (WCD)
+            return WeaviateConnection(
+                url=config.get("url"),
+                api_key=api_key,
+                use_grpc=config.get("use_grpc", True),
+            )
+        elif conn_type == "http":
+            # Local or self-hosted HTTP
+            return WeaviateConnection(
+                host=config.get("host"),
+                port=config.get("port"),
+                api_key=api_key,
+                use_grpc=config.get("use_grpc", True),
+            )
+        else:
+            # Default to embedded ephemeral
+            return WeaviateConnection(mode="embedded")

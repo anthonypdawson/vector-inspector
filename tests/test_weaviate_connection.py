@@ -70,9 +70,7 @@ def test_weaviate_connection_with_url():
 
 def test_weaviate_connection_with_api_key():
     """Test Weaviate connection initialization with API key."""
-    conn = WeaviateConnection(
-        url="https://my-weaviate.weaviate.network", api_key="my-secret-key"
-    )
+    conn = WeaviateConnection(url="https://my-weaviate.weaviate.network", api_key="my-secret-key")
     assert conn.api_key == "my-secret-key"
 
 
@@ -176,9 +174,7 @@ def test_weaviate_add_items_with_embeddings(mock_weaviate_client):
     embeddings = [[0.1, 0.2], [0.3, 0.4]]
     ids = ["id1", "id2"]
 
-    result = conn.add_items(
-        "TestCollection", documents=documents, embeddings=embeddings, ids=ids
-    )
+    result = conn.add_items("TestCollection", documents=documents, embeddings=embeddings, ids=ids)
 
     assert result is True
 
@@ -457,7 +453,7 @@ def test_weaviate_embedded_mode_auto_detect():
     """Test auto-detection of embedded mode from persistence_directory."""
     # Connection without mode but with persistence_directory should be detected as embedded
     conn = WeaviateConnection(persistence_directory="/tmp/weaviate_test")
-    
+
     # Check that get_connection_info recognizes it as embedded
     info = conn.get_connection_info()
     assert info["mode"] == "embedded"
@@ -499,4 +495,3 @@ def test_weaviate_embedded_collections(mock_weaviate_client):
     collections = conn.list_collections()
 
     assert "EmbeddedCollection" in collections
-

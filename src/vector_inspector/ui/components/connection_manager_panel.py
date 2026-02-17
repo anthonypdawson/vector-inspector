@@ -309,7 +309,7 @@ class ConnectionManagerPanel(QWidget):
             font.setBold(True)
             delete_action.setFont(font)
 
-        menu.exec_(self.connection_tree.mapToGlobal(pos))
+        menu.exec(self.connection_tree.mapToGlobal(pos))
 
     def _rename_connection(self, connection_id: str):
         """Rename a connection."""

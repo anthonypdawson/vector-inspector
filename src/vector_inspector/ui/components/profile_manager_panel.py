@@ -6,6 +6,7 @@ from typing import Optional
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -221,7 +222,7 @@ class ProfileManagerPanel(QWidget):
         delete_action = menu.addAction("Delete")
         delete_action.triggered.connect(lambda: self._delete_profile(profile_id))
 
-        menu.exec_(self.profile_list.mapToGlobal(pos))
+        menu.exec(self.profile_list.mapToGlobal(pos))
 
     def _edit_profile(self, profile_id: str):
         """Edit a profile."""
@@ -401,6 +402,20 @@ class ProfileEditorDialog(QDialog):
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
         details_layout.addRow("API Key:", self.api_key_input)
 
+        # gRPC toggle (Weaviate only)
+        self.grpc_checkbox = QCheckBox("Use gRPC (Weaviate only)")
+        self.grpc_checkbox.setChecked(True)
+        details_layout.addRow("gRPC:", self.grpc_checkbox)
+
+        # Weaviate cloud selector (only for Weaviate provider)
+        self.weaviate_cloud_checkbox = QCheckBox("Weaviate Cloud (WCD)")
+        self.weaviate_cloud_checkbox.setToolTip(
+            "When checked, use a cloud cluster URL (no port) and API key."
+        )
+        self.weaviate_cloud_checkbox.setChecked(False)
+        self.weaviate_cloud_checkbox.toggled.connect(self._on_weaviate_cloud_toggled)
+        details_layout.addRow("Cloud:", self.weaviate_cloud_checkbox)
+
         # (Database field moved to end of form)
 
         self.user_input = QLineEdit()
@@ -505,7 +520,7 @@ class ProfileEditorDialog(QDialog):
             self.persistent_radio.setText("Embedded (In-Process)")
             self.http_radio.setEnabled(True)
             self.ephemeral_radio.setEnabled(False)
-            
+
             is_persistent = self.persistent_radio.isChecked()
             if is_persistent:
                 # Embedded mode: enable path for persistence directory
@@ -514,6 +529,15 @@ class ProfileEditorDialog(QDialog):
                 self.host_input.setEnabled(False)
                 self.port_input.setEnabled(False)
                 self.api_key_input.setEnabled(False)
+                # disable gRPC and cloud selector when embedded
+                try:
+                    self.grpc_checkbox.setEnabled(False)
+                except Exception:
+                    pass
+                try:
+                    self.weaviate_cloud_checkbox.setEnabled(False)
+                except Exception:
+                    pass
             else:
                 # HTTP mode: enable host/port/api_key
                 self.path_input.setEnabled(False)
@@ -521,7 +545,16 @@ class ProfileEditorDialog(QDialog):
                 self.host_input.setEnabled(True)
                 self.port_input.setEnabled(True)
                 self.api_key_input.setEnabled(True)
-            
+                # enable gRPC for HTTP mode
+                try:
+                    self.grpc_checkbox.setEnabled(True)
+                except Exception:
+                    pass
+                try:
+                    self.weaviate_cloud_checkbox.setEnabled(True)
+                except Exception:
+                    pass
+
             self.database_input.setEnabled(False)
             self.user_input.setEnabled(False)
             self.password_input.setEnabled(False)
@@ -575,6 +608,15 @@ class ProfileEditorDialog(QDialog):
             self.host_input.setEnabled(is_http)
             self.port_input.setEnabled(is_http)
             self.api_key_input.setEnabled(is_http)
+            # gRPC checkbox enabled only when HTTP selected
+            try:
+                self.grpc_checkbox.setEnabled(is_http)
+            except Exception:
+                pass
+            try:
+                self.weaviate_cloud_checkbox.setEnabled(is_http)
+            except Exception:
+                pass
             self.database_input.setEnabled(False)
             self.user_input.setEnabled(False)
             self.password_input.setEnabled(False)
@@ -602,6 +644,40 @@ class ProfileEditorDialog(QDialog):
         if path:
             self.path_input.setText(path)
 
+    def _on_weaviate_cloud_toggled(self, is_cloud: bool):
+        """Handle Weaviate cloud checkbox toggle.
+        
+        When cloud mode is enabled:
+        - Disable port field (cloud URLs don't use ports)
+        - Disable gRPC checkbox (client automatically infers gRPC for cloud)
+        - Update host field placeholder to show cloud URL format
+        """
+        if self.provider_combo.currentData() == "weaviate" and self.http_radio.isChecked():
+            if is_cloud:
+                # Cloud mode: disable port and gRPC (automatically handled by client)
+                self.port_input.setEnabled(False)
+                self.port_input.setText("")  # Clear port
+                try:
+                    self.grpc_checkbox.setEnabled(False)
+                    self.grpc_checkbox.setToolTip(
+                        "gRPC is automatically inferred by the Weaviate client for cloud connections"
+                    )
+                except Exception:
+                    pass
+                # Update host field placeholder
+                self.host_input.setPlaceholderText("cluster-id.weaviate.cloud")
+            else:
+                # Local/self-hosted mode: enable port and gRPC
+                self.port_input.setEnabled(True)
+                if not self.port_input.text():
+                    self.port_input.setText("8080")  # Restore default port
+                try:
+                    self.grpc_checkbox.setEnabled(True)
+                    self.grpc_checkbox.setToolTip("Use gRPC (Weaviate only)")
+                except Exception:
+                    pass
+                self.host_input.setPlaceholderText("localhost")
+
     def _load_profile_data(self):
         """Load existing profile data into form."""
         if not self.profile:
@@ -624,15 +700,40 @@ class ProfileEditorDialog(QDialog):
 
         # Set connection type
         if conn_type == "cloud":
-            # Pinecone cloud connection
+            # Cloud connection. For Pinecone this is a cloud API key flow.
+            # For Weaviate cloud (WCD) we treat it as an HTTP/cloud URL.
             self.http_radio.setChecked(True)
+            if profile_data.get("provider") == "weaviate":
+                try:
+                    self.weaviate_cloud_checkbox.setChecked(True)
+                    # Store full cluster URL in host input for editing
+                    self.host_input.setText(config.get("url", ""))
+                    # Port is not used for cloud URLs
+                    self.port_input.setText("")
+                    # Restore gRPC preference
+                    self.grpc_checkbox.setChecked(bool(config.get("use_grpc", True)))
+                except Exception:
+                    pass
         elif conn_type == "persistent":
             self.persistent_radio.setChecked(True)
             self.path_input.setText(config.get("path", ""))
         elif conn_type == "http":
             self.http_radio.setChecked(True)
             self.host_input.setText(config.get("host", "localhost"))
-            self.port_input.setText(str(config.get("port", "8000")))
+            # If port was not set in config, keep the input empty
+            port_val = config.get("port")
+            self.port_input.setText(str(port_val) if port_val is not None else "")
+            # restore gRPC preference if present
+            try:
+                self.grpc_checkbox.setChecked(bool(config.get("use_grpc", True)))
+            except Exception:
+                pass
+            # Ensure weaviate cloud checkbox is unchecked for regular HTTP mode
+            if profile_data.get("provider") == "weaviate":
+                try:
+                    self.weaviate_cloud_checkbox.setChecked(False)
+                except Exception:
+                    pass
             # PgVector HTTP-style config may include DB credentials
             self.database_input.setCurrentText(config.get("database", ""))
             self.user_input.setText(config.get("user", ""))
@@ -649,6 +750,11 @@ class ProfileEditorDialog(QDialog):
 
     def _test_connection(self):
         """Test the connection with current settings."""
+
+        # Test connection progress dialog
+        progress = QProgressDialog("Testing connection...", "Cancel", 0, 0, self)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.show()
         # Get config
         config = self._get_config()
         provider = self.provider_combo.currentData()
@@ -671,11 +777,12 @@ class ProfileEditorDialog(QDialog):
             elif provider == "chromadb":
                 conn = ChromaDBConnection(**self._get_connection_kwargs(config))
             elif provider == "pgvector":
+                # Use parsed config values to avoid int() on empty port
                 conn = PgVectorConnection(
-                    host=self.host_input.text(),
-                    port=int(self.port_input.text()),
-                    database=self.database_input.currentText(),
-                    user=self.user_input.text(),
+                    host=config.get("host"),
+                    port=config.get("port"),
+                    database=config.get("database"),
+                    user=config.get("user"),
                     password=self.password_input.text(),
                 )
             elif provider == "lancedb":
@@ -690,31 +797,43 @@ class ProfileEditorDialog(QDialog):
                         persistence_directory=self.path_input.text(),
                     )
                 else:
-                    # HTTP mode (local or cloud)
-                    conn = WeaviateConnection(
-                        host=self.host_input.text() if config_type == "http" else None,
-                        port=int(self.port_input.text()) if config_type == "http" else None,
-                        url=config.get("url"),
-                        api_key=self.api_key_input.text() if self.api_key_input.text() else None,
-                    )
+                    # HTTP mode (local or cloud) - use config values (port may be None)
+                    if config_type == "cloud":
+                        # For cloud, use the cluster URL (host_input holds URL)
+                        conn = WeaviateConnection(
+                            url=config.get("url") or self.host_input.text(),
+                            api_key=self.api_key_input.text()
+                            if self.api_key_input.text()
+                            else None,
+                            use_grpc=self.grpc_checkbox.isChecked()
+                            if hasattr(self, "grpc_checkbox")
+                            else True,
+                        )
+                    else:
+                        conn = WeaviateConnection(
+                            host=config.get("host") if config_type == "http" else None,
+                            port=config.get("port") if config_type == "http" else None,
+                            url=config.get("url"),
+                            api_key=self.api_key_input.text()
+                            if self.api_key_input.text()
+                            else None,
+                            use_grpc=self.grpc_checkbox.isChecked()
+                            if hasattr(self, "grpc_checkbox")
+                            else True,
+                        )
             else:
                 conn = QdrantConnection(**self._get_connection_kwargs(config))
-
-            # Test connection
-            progress = QProgressDialog("Testing connection...", "Cancel", 0, 0, self)
-            progress.setWindowModality(Qt.WindowModality.WindowModal)
-            progress.show()
 
             success = conn.connect()
             progress.close()
 
             if success:
                 QMessageBox.information(self, "Success", "Connection test successful!")
-                conn.disconnect()
                 # For pgvector, populate database suggestions after a successful connect
                 if provider == "pgvector":
                     with contextlib.suppress(Exception):
                         self._fetch_databases()
+                conn.disconnect()
             else:
                 QMessageBox.warning(self, "Failed", "Connection test failed.")
         except Exception as e:
@@ -734,11 +853,35 @@ class ProfileEditorDialog(QDialog):
         elif self.http_radio.isChecked():
             config["type"] = "http"
             config["host"] = self.host_input.text()
-            config["port"] = int(self.port_input.text())
+            # Allow empty port (some Weaviate configs use URL without port)
+            port_text = self.port_input.text().strip()
+            if port_text:
+                try:
+                    config["port"] = int(port_text)
+                except ValueError:
+                    # Leave out invalid port to allow using URL-only connections
+                    pass
+            # If provider is Weaviate and cloud checkbox checked, mark as cloud
+            if provider == "weaviate":
+                try:
+                    if self.weaviate_cloud_checkbox.isChecked():
+                        config["type"] = "cloud"
+                        # store cluster URL instead of host/port
+                        config["url"] = self.host_input.text()
+                        # ensure port not included
+                        config.pop("config")
+                except Exception:
+                    pass
             if self.database_input.currentText():
                 config["database"] = self.database_input.currentText()
             if self.user_input.text():
                 config["user"] = self.user_input.text()
+        # include gRPC preference for Weaviate regardless of http/cloud/persistent
+        if provider == "weaviate":
+            try:
+                config["use_grpc"] = bool(self.grpc_checkbox.isChecked())
+            except Exception:
+                pass
         else:
             config["type"] = "ephemeral"
 

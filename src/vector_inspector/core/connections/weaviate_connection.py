@@ -8,9 +8,9 @@ Connection Modes:
    - Requires: host, port (default: 8080)
    - Optional: API key for authentication
 
-2. Cloud: Connect to Weaviate Cloud Services (WCS)
+2. Cloud: Connect to Weaviate Cloud (WCD)
    - Requires: cluster URL, API key
-   - Format: https://<cluster-id>.weaviate.network
+   - Format: <cluster-id>.weaviate.cloud
 
 3. Embedded: Run Weaviate within the Python process
    - Requires: persistence_directory (optional)
@@ -56,10 +56,10 @@ class WeaviateConnection(VectorDBConnection):
         Initialize Weaviate connection.
 
         Args:
-            url: Full URL for Weaviate instance (e.g., "http://localhost:8080" or WCS URL)
+            url: Full URL for Weaviate instance (e.g., "http://localhost:8080" or WCD URL)
             host: Host for local instance (alternative to url)
             port: Port for local instance (default: 8080)
-            api_key: API key for authentication (required for WCS, optional for local)
+            api_key: API key for authentication (required for WCD, optional for local)
             use_grpc: Use gRPC for data operations (faster, default: True)
             timeout: Request timeout in seconds (default: 300)
             mode: Connection mode ("local", "cloud", "embedded")
@@ -68,7 +68,8 @@ class WeaviateConnection(VectorDBConnection):
         """
         self.url = url
         self.host = host
-        self.port = port or 8080
+        # allow port to be None (no port configured)
+        self.port = port
         self.api_key = api_key
         self.use_grpc = use_grpc
         self.timeout = timeout
@@ -129,33 +130,79 @@ class WeaviateConnection(VectorDBConnection):
                 return True
 
             # Remote connection (local or cloud)
-            # Determine connection URL
+            # Determine connection URL. If `url` is provided use it directly.
             if self.url:
                 connection_url = self.url
             elif self.host:
-                connection_url = f"http://{self.host}:{self.port}"
+                # If port provided include it, otherwise default to 8080
+                # Use a concrete default here to avoid passing `None` into
+                # ProtocolParams (pydantic validation errors). Profiles may
+                # still persist an empty port, but for connection attempts
+                # assume the common default port 8080.
+                if self.port:
+                    connection_url = f"http://{self.host}:{self.port}"
+                else:
+                    connection_url = f"http://{self.host}:8080"
             else:
+                # Fallback to localhost default
                 connection_url = "http://localhost:8080"
 
-            # Build connection params
-            connection_params = weaviate.connect.ConnectionParams.from_url(
-                url=connection_url,
-                grpc_port=50051 if self.use_grpc else None,
+            # Check if this is a cloud URL (contains weaviate.cloud, weaviate.network, or .wcd.)
+            is_cloud = (
+                "weaviate.cloud" in connection_url
+                or "weaviate.network" in connection_url
+                or ".wcd." in connection_url.lower()
             )
 
-            # Configure authentication if API key provided
-            auth_config = None
-            if self.api_key:
-                auth_config = weaviate.auth.AuthApiKey(api_key=self.api_key)
+            # Build connection params and create client
+            if is_cloud and self.api_key:
+                # Use Weaviate Cloud helper - strip scheme if present as it expects bare hostname
+                cluster_url = connection_url
+                if cluster_url.startswith(("http://", "https://")):
+                    cluster_url = cluster_url.split("://", 1)[1]
 
-            # Create client
-            self._client = weaviate.WeaviateClient(
-                connection_params=connection_params,
-                auth_client_secret=auth_config,
-                additional_config=weaviate.config.AdditionalConfig(
-                    timeout=(self.timeout, self.timeout)  # (connect, read) timeouts
-                ),
-            )
+                log_info("Connecting to Weaviate Cloud at %s", cluster_url)
+                self._client = weaviate.connect_to_weaviate_cloud(
+                    cluster_url=cluster_url,
+                    auth_credentials=weaviate.auth.AuthApiKey(api_key=self.api_key),
+                    additional_config=weaviate.config.AdditionalConfig(
+                        timeout=(self.timeout, self.timeout)
+                    ),
+                )
+            else:
+                # Local or self-hosted instance
+                # Ensure URL has a scheme for ConnectionParams.from_url()
+                local_url = connection_url
+                if not local_url.startswith(("http://", "https://")):
+                    local_url = f"http://{local_url}"
+
+                # Determine grpc_port only when gRPC requested and not cloud
+                grpc_port = None
+                if self.use_grpc and self.port:
+                    grpc_port = 50051
+
+                auth_config = None
+                if self.api_key:
+                    auth_config = weaviate.auth.AuthApiKey(api_key=self.api_key)
+
+                # Build connection params - only pass grpc_port if it's set
+                if grpc_port:
+                    connection_params = weaviate.connect.ConnectionParams.from_url(
+                        url=local_url,
+                        grpc_port=grpc_port,
+                    )
+                else:
+                    connection_params = weaviate.connect.ConnectionParams.from_url(
+                        url=local_url,
+                    )
+
+                self._client = weaviate.WeaviateClient(
+                    connection_params=connection_params,
+                    auth_client_secret=auth_config,
+                    additional_config=weaviate.config.AdditionalConfig(
+                        timeout=(self.timeout, self.timeout)  # (connect, read) timeouts
+                    ),
+                )
 
             # Connect and test
             self._client.connect()
@@ -243,24 +290,28 @@ class WeaviateConnection(VectorDBConnection):
             vector_dimension = "Unknown"
             distance_metric = "Unknown"
 
-            # Weaviate v4 uses vectorizer_config
+            # Try to get dimensions from vector_config
             if hasattr(config, "vector_config"):
                 vector_configs = config.vector_config
                 if vector_configs:
                     # Get first vector config (Weaviate supports named vectors)
-                    first_config = next(iter(vector_configs.values())) if isinstance(
-                        vector_configs, dict
-                    ) else vector_configs
+                    first_config = (
+                        next(iter(vector_configs.values()))
+                        if isinstance(vector_configs, dict)
+                        else vector_configs
+                    )
 
+                    # Try to get dimension from vector_index_config
                     if hasattr(first_config, "vector_index_config"):
-                        vector_dimension = getattr(
-                            first_config.vector_index_config, "dimensions", "Unknown"
-                        )
-
-                    if hasattr(first_config, "vector_index_config"):
-                        distance = getattr(
-                            first_config.vector_index_config, "distance_metric", None
-                        )
+                        # Try different possible attribute names for dimensions
+                        vec_idx_cfg = first_config.vector_index_config
+                        if hasattr(vec_idx_cfg, "dimensions"):
+                            vector_dimension = vec_idx_cfg.dimensions
+                        elif hasattr(vec_idx_cfg, "dimension"):
+                            vector_dimension = vec_idx_cfg.dimension
+                        
+                        # Get distance metric
+                        distance = getattr(vec_idx_cfg, "distance_metric", None)
                         if distance:
                             # Map Weaviate distance metrics to readable names
                             distance_str = str(distance).upper()
@@ -277,6 +328,23 @@ class WeaviateConnection(VectorDBConnection):
                             else:
                                 distance_metric = distance_str
 
+            # If dimension still unknown, try to get from a sample vector
+            if vector_dimension == "Unknown" or vector_dimension is None:
+                try:
+                    response = collection.query.fetch_objects(limit=1, include_vector=True)
+                    if response.objects and len(response.objects) > 0:
+                        obj = response.objects[0]
+                        if hasattr(obj, "vector") and obj.vector:
+                            # Check if it's a dict (named vectors) or list
+                            if isinstance(obj.vector, dict):
+                                # Get first named vector
+                                first_vector = next(iter(obj.vector.values()))
+                                vector_dimension = len(first_vector) if first_vector else "Unknown"
+                            elif isinstance(obj.vector, list):
+                                vector_dimension = len(obj.vector)
+                except Exception as e:
+                    log_error("Failed to get dimension from sample vector: %s", e)
+
             # Get metadata fields from a sample object
             metadata_fields = []
             try:
@@ -286,9 +354,7 @@ class WeaviateConnection(VectorDBConnection):
                     obj = response.objects[0]
                     # Exclude internal fields and 'document'
                     metadata_fields = [
-                        k
-                        for k in obj.properties
-                        if k != "document" and not k.startswith("_")
+                        k for k in obj.properties if k != "document" and not k.startswith("_")
                     ]
             except Exception as e:
                 log_error("Failed to get sample object for metadata fields: %s", e)
@@ -305,9 +371,11 @@ class WeaviateConnection(VectorDBConnection):
             if hasattr(config, "vectorizer_config") and config.vectorizer_config:
                 vectorizer_configs = config.vectorizer_config
                 if vectorizer_configs:
-                    first_vectorizer = next(iter(vectorizer_configs.values())) if isinstance(
-                        vectorizer_configs, dict
-                    ) else vectorizer_configs
+                    first_vectorizer = (
+                        next(iter(vectorizer_configs.values()))
+                        if isinstance(vectorizer_configs, dict)
+                        else vectorizer_configs
+                    )
 
                     if hasattr(first_vectorizer, "model"):
                         result["embedding_model"] = first_vectorizer.model.get("model", "Unknown")
@@ -349,7 +417,9 @@ class WeaviateConnection(VectorDBConnection):
                 "hamming": weaviate.classes.config.VectorDistances.HAMMING,
             }
 
-            weaviate_distance = distance_map.get(distance.lower(), weaviate.classes.config.VectorDistances.COSINE)
+            weaviate_distance = distance_map.get(
+                distance.lower(), weaviate.classes.config.VectorDistances.COSINE
+            )
 
             # Create collection with manual vectorization (we provide embeddings)
             # Use Property to define schema
@@ -361,13 +431,20 @@ class WeaviateConnection(VectorDBConnection):
                         data_type=weaviate.classes.config.DataType.TEXT,
                     ),
                 ],
-                vectorizer_config=weaviate.classes.config.Configure.Vectorizer.none(),
-                vector_index_config=weaviate.classes.config.Configure.VectorIndex.hnsw(
-                    distance_metric=weaviate_distance,
+                # Use new vector_config syntax (replaces deprecated vectorizer_config + vector_index_config)
+                vector_config=weaviate.classes.config.Configure.Vectors.self_provided(
+                    vector_index_config=weaviate.classes.config.Configure.VectorIndex.hnsw(
+                        distance_metric=weaviate_distance,
+                    ),
                 ),
             )
 
-            log_info("Created collection '%s' with dimension %d and distance %s", name, vector_size, distance)
+            log_info(
+                "Created collection '%s' with dimension %d and distance %s",
+                name,
+                vector_size,
+                distance,
+            )
             return True
 
         except Exception as e:
@@ -418,10 +495,6 @@ class WeaviateConnection(VectorDBConnection):
         try:
             collection = self._client.collections.get(collection_name)
 
-            # Generate UUIDs if not provided
-            if not ids:
-                ids = [str(uuid.uuid4()) for _ in documents]
-
             # Prepare data objects for batch insert
             weaviate = self._weaviate_module
             data_objects = []
@@ -434,11 +507,27 @@ class WeaviateConnection(VectorDBConnection):
                     # Add metadata fields as properties
                     properties.update(metadatas[i])
 
+                # Handle UUID for this item
+                item_uuid = None
+                if ids and i < len(ids) and ids[i]:
+                    # Try to use provided ID as UUID
+                    try:
+                        # Validate if it's already a valid UUID
+                        item_uuid = uuid.UUID(ids[i])
+                    except (ValueError, AttributeError):
+                        # Not a valid UUID - generate deterministic UUID from the string
+                        # Using uuid5 ensures same string always generates same UUID
+                        namespace = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')  # DNS namespace
+                        item_uuid = uuid.uuid5(namespace, ids[i])
+                else:
+                    # No ID provided - generate random UUID
+                    item_uuid = uuid.uuid4()
+
                 # Create data object
                 data_obj = weaviate.classes.data.DataObject(
                     properties=properties,
                     vector=embeddings[i],
-                    uuid=ids[i] if ids[i] else None,
+                    uuid=item_uuid,
                 )
                 data_objects.append(data_obj)
 
@@ -930,14 +1019,22 @@ class WeaviateConnection(VectorDBConnection):
         }
 
         # Check for embedded mode first
-        if self.mode == "embedded" or (not self.url and not self.host and self.persistence_directory):
+        if self.mode == "embedded" or (
+            not self.url and not self.host and self.persistence_directory
+        ):
             info["mode"] = "embedded"
             if self.persistence_directory:
                 info["persistence_directory"] = self.persistence_directory
             if self.embedded_version:
                 info["version"] = self.embedded_version
         elif self.url:
-            info["mode"] = "cloud" if "weaviate.network" in self.url or "wcs" in self.url.lower() else "remote"
+            info["mode"] = (
+                "cloud"
+                if "weaviate.cloud" in self.url
+                or "weaviate.network" in self.url
+                or "wcd" in self.url.lower()
+                else "remote"
+            )
             info["url"] = self.url
         elif self.host:
             info["mode"] = "local"
