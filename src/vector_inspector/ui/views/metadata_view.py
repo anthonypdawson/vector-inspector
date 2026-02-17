@@ -211,6 +211,9 @@ class MetadataView(QWidget):
         # Data table - takes up most of the space
         self.table = QTableWidget()
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )  # Disable inline editing
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.doubleClicked.connect(self._on_row_double_clicked)
@@ -803,24 +806,31 @@ class MetadataView(QWidget):
                     if has_embedding(existing):
                         embeddings_arg = [existing]
 
-            # Update item in collection
-            if embeddings_arg is None:
-                # No embeddings passed -> will trigger regeneration when update_items supports it
-                success = self.ctx.connection.update_items(
-                    self.ctx.current_collection,
-                    ids=[updated_data["id"]],
-                    documents=[updated_data["document"]] if updated_data["document"] else None,
-                    metadatas=[updated_data["metadata"]] if updated_data["metadata"] else None,
-                )
-            else:
-                # Pass existing embeddings to preserve them
-                success = self.ctx.connection.update_items(
-                    self.ctx.current_collection,
-                    ids=[updated_data["id"]],
-                    documents=[updated_data["document"]] if updated_data["document"] else None,
-                    metadatas=[updated_data["metadata"]] if updated_data["metadata"] else None,
-                    embeddings=embeddings_arg,
-                )
+            # Show loading dialog during update
+            self.loading_dialog.show_loading("Updating item...")
+
+            try:
+                # Update item in collection
+                if embeddings_arg is None:
+                    # No embeddings passed -> will trigger regeneration when update_items supports it
+                    success = self.ctx.connection.update_items(
+                        self.ctx.current_collection,
+                        ids=[updated_data["id"]],
+                        documents=[updated_data["document"]] if updated_data["document"] else None,
+                        metadatas=[updated_data["metadata"]] if updated_data["metadata"] else None,
+                    )
+                else:
+                    # Pass existing embeddings to preserve them
+                    success = self.ctx.connection.update_items(
+                        self.ctx.current_collection,
+                        ids=[updated_data["id"]],
+                        documents=[updated_data["document"]] if updated_data["document"] else None,
+                        metadatas=[updated_data["metadata"]] if updated_data["metadata"] else None,
+                        embeddings=embeddings_arg,
+                    )
+            finally:
+                # Always hide loading dialog when update completes
+                self.loading_dialog.hide_loading()
 
             if success:
                 # Invalidate cache after updating item
