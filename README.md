@@ -1,8 +1,6 @@
 
 # Vector Inspector
 
-> **Disclaimer:** This tool is currently under active development and is **not production ready**. Not all features have been thoroughly tested and code is released frequently. Use with caution in critical or production environments.
-
 [![CI](https://github.com/anthonypdawson/vector-inspector/actions/workflows/ci-tests.yml/badge.svg?branch=master)](https://github.com/anthonypdawson/vector-inspector/actions/workflows/ci-tests.yml)
 [![Publish](https://github.com/anthonypdawson/vector-inspector/actions/workflows/release-and-publish.yml/badge.svg?branch=master)](https://github.com/anthonypdawson/vector-inspector/actions/workflows/release-and-publish.yml)
 
@@ -59,8 +57,46 @@ vector-inspector
 
 This opens the full desktop application.
 
----
+### From PyPI (Recommended)
 
+```bash
+pip install vector-inspector
+vector-inspector
+```
+
+### From a Downloaded Wheel or Tarball (e.g., GitHub Release)
+
+Download the `.whl` or `.tar.gz` file from the [GitHub Releases](https://github.com/anthonypdawson/vector-inspector/releases) page, then install with:
+
+```bash
+pip install <your-filename.whl>
+# or
+pip install <your-filename.tar.gz>
+```
+
+After installation, run the application with:
+
+```bash
+vector-inspector
+```
+Note: pip install does **not** create a desktop shortcut.  
+Use the bootstrap installer for the full experience.
+
+### From Source
+
+```bash
+# Clone the repository
+git clone https://github.com/anthonypdawson/vector-inspector.git
+cd vector-inspector
+
+# Install dependencies using PDM
+pdm install
+
+# Launch application
+scripts/run.sh     # Linux/macOS
+scripts/run.bat    # Windows
+```
+---
 
 ## Overview
 
@@ -74,7 +110,6 @@ Vector Inspector bridges the gap between vector databases and user-friendly data
 - [Use Cases](#use-cases)
 - [Feature Access](#feature-access)
 - [Roadmap](#roadmap)
-- [Installation](#installation)
 - [Configuration](#configuration)
 - [Development Setup](#development-setup)
 - [Contributing](#contributing)
@@ -192,48 +227,6 @@ Vector Inspector follows a user-friendly monetization model:
 
 See [ROADMAP.md](docs/ROADMAP.md) for the complete development roadmap and planned features.
 
-
-## Installation
-
-### From PyPI (Recommended)
-
-```bash
-pip install vector-inspector
-vector-inspector
-```
-
-### From a Downloaded Wheel or Tarball (e.g., GitHub Release)
-
-Download the `.whl` or `.tar.gz` file from the [GitHub Releases](https://github.com/anthonypdawson/vector-inspector/releases) page, then install with:
-
-```bash
-pip install <your-filename.whl>
-# or
-pip install <your-filename.tar.gz>
-```
-
-After installation, run the application with:
-
-```bash
-vector-inspector
-```
-Note: pip install does **not** create a desktop shortcut.  
-Use the bootstrap installer for the full experience.
-
-### From Source
-
-```bash
-# Clone the repository
-git clone https://github.com/anthonypdawson/vector-inspector.git
-cd vector-inspector
-
-# Install dependencies using PDM
-pdm install
-
-# Launch application
-scripts/run.sh     # Linux/macOS
-scripts/run.bat    # Windows
-```
 
 ## Configuration
 
