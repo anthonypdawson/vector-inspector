@@ -309,7 +309,7 @@ class WeaviateConnection(VectorDBConnection):
                             vector_dimension = vec_idx_cfg.dimensions
                         elif hasattr(vec_idx_cfg, "dimension"):
                             vector_dimension = vec_idx_cfg.dimension
-                        
+
                         # Get distance metric
                         distance = getattr(vec_idx_cfg, "distance_metric", None)
                         if distance:
@@ -517,7 +517,9 @@ class WeaviateConnection(VectorDBConnection):
                     except (ValueError, AttributeError):
                         # Not a valid UUID - generate deterministic UUID from the string
                         # Using uuid5 ensures same string always generates same UUID
-                        namespace = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')  # DNS namespace
+                        namespace = uuid.UUID(
+                            "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+                        )  # DNS namespace
                         item_uuid = uuid.uuid5(namespace, ids[i])
                 else:
                     # No ID provided - generate random UUID
@@ -972,13 +974,7 @@ class WeaviateConnection(VectorDBConnection):
         """
         Delete items from a collection.
 
-        Args:mode == "embedded" or (not self.url and not self.host and self.persistence_directory):
-            info["mode"] = "embedded"
-            if self.persistence_directory:
-                info["persistence_directory"] = self.persistence_directory
-            if self.embedded_version:
-                info["version"] = self.embedded_version
-        elif self.
+        Args:
             collection_name: Name of collection
             ids: IDs of items to delete
             where: Metadata filter for items to delete

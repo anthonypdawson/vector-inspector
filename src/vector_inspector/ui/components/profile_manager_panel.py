@@ -646,7 +646,7 @@ class ProfileEditorDialog(QDialog):
 
     def _on_weaviate_cloud_toggled(self, is_cloud: bool):
         """Handle Weaviate cloud checkbox toggle.
-        
+
         When cloud mode is enabled:
         - Disable port field (cloud URLs don't use ports)
         - Disable gRPC checkbox (client automatically infers gRPC for cloud)
@@ -869,7 +869,7 @@ class ProfileEditorDialog(QDialog):
                         # store cluster URL instead of host/port
                         config["url"] = self.host_input.text()
                         # ensure port not included
-                        config.pop("config")
+                        config.pop("port", None)
                 except Exception:
                     pass
             if self.database_input.currentText():

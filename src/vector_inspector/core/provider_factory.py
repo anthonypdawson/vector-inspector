@@ -121,14 +121,14 @@ class ProviderFactory:
                 mode="embedded",
                 persistence_directory=config.get("path"),
             )
-        elif conn_type == "cloud":
+        if conn_type == "cloud":
             # Weaviate Cloud (WCD)
             return WeaviateConnection(
                 url=config.get("url"),
                 api_key=api_key,
                 use_grpc=config.get("use_grpc", True),
             )
-        elif conn_type == "http":
+        if conn_type == "http":
             # Local or self-hosted HTTP
             return WeaviateConnection(
                 host=config.get("host"),
@@ -136,6 +136,5 @@ class ProviderFactory:
                 api_key=api_key,
                 use_grpc=config.get("use_grpc", True),
             )
-        else:
-            # Default to embedded ephemeral
-            return WeaviateConnection(mode="embedded")
+        # Default to embedded ephemeral
+        return WeaviateConnection(mode="embedded")

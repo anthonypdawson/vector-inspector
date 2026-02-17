@@ -127,8 +127,11 @@ class CollectionService(QObject):
 
             try:
                 # Use the unified add_items method
-                # Generate proper UUIDs for Weaviate compatibility
-                ids = [str(uuid.uuid4()) for i in range(len(texts))]
+                # Generate proper UUIDs for Weaviate compatibility, otherwise use sample_{i}
+                if connection.__class__.__name__.lower().startswith("weaviate"):
+                    ids = [str(uuid.uuid4()) for _ in range(len(texts))]
+                else:
+                    ids = [f"sample_{i}" for i in range(len(texts))]
                 success = connection.add_items(
                     collection_name=collection_name,
                     documents=texts,
