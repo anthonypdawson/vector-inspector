@@ -1,5 +1,7 @@
 """Service for managing collections and sample data."""
 
+import uuid
+
 from PySide6.QtCore import QObject, Signal
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
@@ -125,7 +127,11 @@ class CollectionService(QObject):
 
             try:
                 # Use the unified add_items method
-                ids = [f"sample_{i}" for i in range(len(texts))]
+                # Generate proper UUIDs for Weaviate compatibility, otherwise use sample_{i}
+                if connection.__class__.__name__.lower().startswith("weaviate"):
+                    ids = [str(uuid.uuid4()) for _ in range(len(texts))]
+                else:
+                    ids = [f"sample_{i}" for i in range(len(texts))]
                 success = connection.add_items(
                     collection_name=collection_name,
                     documents=texts,
@@ -139,6 +145,26 @@ class CollectionService(QObject):
                     log_error(error_msg)
                     self.operation_completed.emit("populate_sample_data", False, error_msg)
                     return False, error_msg
+
+                # Save embedding model info to settings for future reference
+                try:
+                    from vector_inspector.services.settings_service import SettingsService
+
+                    profile_name = getattr(connection, "profile_name", None)
+                    if profile_name:
+                        settings = SettingsService()
+                        settings.save_embedding_model(
+                            profile_name=profile_name,
+                            collection_name=collection_name,
+                            model_name=embedder_name,
+                            model_type=embedder_type,
+                        )
+                        log_info(
+                            f"Saved embedding model '{embedder_name}' for collection '{collection_name}'"
+                        )
+                except Exception as e:
+                    # Don't fail the operation if saving settings fails
+                    log_error(f"Failed to save embedding model to settings: {e}")
 
                 success_msg = f"Successfully added {count} sample items to '{collection_name}'"
                 log_info(success_msg)
