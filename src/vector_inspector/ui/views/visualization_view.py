@@ -23,7 +23,9 @@ from PySide6.QtWidgets import (
 from vector_inspector.core.connection_manager import ConnectionInstance
 from vector_inspector.core.feature_flags import are_advanced_features_enabled, get_feature_tooltip
 from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.services import ClusterRunner, ThreadedTaskRunner
 from vector_inspector.services.visualization_service import VisualizationService
+from vector_inspector.state import AppState
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
 from vector_inspector.ui.views.visualization import ClusteringPanel, DRPanel, PlotPanel
 
@@ -118,9 +120,46 @@ class VisualizationView(QWidget):
     # Signal emitted when user wants to view a point in data browser
     view_in_data_browser_requested = Signal(str)  # item_id
 
-    def __init__(self, connection: Optional[ConnectionInstance] = None, parent=None):
+    app_state: Optional[AppState]
+    task_runner: Optional[ThreadedTaskRunner]
+    cluster_runner: Optional[ClusterRunner]
+
+    def __init__(
+        self,
+        app_state_or_connection=None,
+        task_runner: Optional[ThreadedTaskRunner] = None,
+        parent=None,
+        **kwargs,
+    ):
         super().__init__(parent)
-        self.connection = connection
+
+        # Handle legacy keyword argument 'connection'
+        if "connection" in kwargs:
+            app_state_or_connection = kwargs["connection"]
+
+        # Support both old pattern (connection) and new pattern (app_state, task_runner)
+        if isinstance(app_state_or_connection, AppState):
+            # New pattern
+            self.app_state = app_state_or_connection
+            self.task_runner = task_runner
+            self.cluster_runner = ClusterRunner()
+            self.connection = self.app_state.provider
+        elif (
+            isinstance(app_state_or_connection, ConnectionInstance)
+            or app_state_or_connection is None
+        ):
+            # Legacy pattern
+            self.app_state = None
+            self.task_runner = None
+            self.cluster_runner = None
+            self.connection = app_state_or_connection
+        else:
+            # Assume it's a connection
+            self.app_state = None
+            self.task_runner = None
+            self.cluster_runner = None
+            self.connection = app_state_or_connection
+
         self.current_collection = ""
         self.current_data = None
         self.reduced_data = None
@@ -133,6 +172,69 @@ class VisualizationView(QWidget):
         self.loading_dialog = LoadingDialog("Loading visualization...", self)
         self._setup_ui()
         self._connect_plot_signals()
+
+        # Connect to AppState signals if using new pattern
+        if self.app_state:
+            self._connect_state_signals()
+            # Update services with current connection if available
+            if self.app_state.provider:
+                self._on_provider_changed(self.app_state.provider)
+
+    def _connect_state_signals(self) -> None:
+        """Subscribe to AppState changes (new pattern only)."""
+        if not self.app_state:
+            return
+
+        # React to connection changes
+        self.app_state.provider_changed.connect(self._on_provider_changed)
+
+        # React to collection changes
+        self.app_state.collection_changed.connect(self._on_collection_changed)
+
+        # React to loading state
+        self.app_state.loading_started.connect(self._on_loading_started)
+        self.app_state.loading_finished.connect(self._on_loading_finished)
+
+        # React to errors
+        self.app_state.error_occurred.connect(self._on_error)
+
+    def _on_provider_changed(self, connection: Optional[ConnectionInstance]) -> None:
+        """React to provider/connection change (new pattern)."""
+        if not self.app_state:
+            return
+
+        # Update services
+        if self.cluster_runner:
+            self.cluster_runner.set_connection(connection)
+
+        # Update connection
+        self.connection = connection
+
+    def _on_collection_changed(self, collection: str) -> None:
+        """React to collection change (new pattern)."""
+        if not self.app_state:
+            return
+
+        if collection:
+            self.set_collection(collection)
+
+    def _on_loading_started(self, message: str) -> None:
+        """React to loading started (new pattern)."""
+        if not self.app_state:
+            return
+        self.loading_dialog.show_loading(message)
+
+    def _on_loading_finished(self) -> None:
+        """React to loading finished (new pattern)."""
+        if not self.app_state:
+            return
+        self.loading_dialog.hide()
+
+    def _on_error(self, error: str) -> None:
+        """React to error (new pattern)."""
+        if not self.app_state:
+            return
+        QMessageBox.critical(self, "Error", error)
 
     def _connect_plot_signals(self):
         """Connect plot panel signals."""
@@ -490,7 +592,9 @@ class VisualizationView(QWidget):
         self.cluster_labels = None
         # Clear clustering results when switching collection/provider
         try:
-            if hasattr(self, "clustering_panel") and hasattr(self.clustering_panel, "cluster_result_label"):
+            if hasattr(self, "clustering_panel") and hasattr(
+                self.clustering_panel, "cluster_result_label"
+            ):
                 self.clustering_panel.cluster_result_label.setVisible(False)
                 self.clustering_panel.cluster_result_label.setText("")
         except Exception:

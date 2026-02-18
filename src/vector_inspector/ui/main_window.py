@@ -16,6 +16,8 @@ from vector_inspector.core.connection_manager import ConnectionInstance, Connect
 from vector_inspector.core.logging import log_error
 from vector_inspector.services.profile_service import ProfileService
 from vector_inspector.services.settings_service import SettingsService
+from vector_inspector.services.task_runner import ThreadedTaskRunner
+from vector_inspector.state import AppState
 from vector_inspector.ui.components.connection_manager_panel import ConnectionManagerPanel
 from vector_inspector.ui.components.profile_manager_panel import ProfileManagerPanel
 from vector_inspector.ui.controllers.connection_controller import ConnectionController
@@ -40,6 +42,10 @@ class MainWindow(InspectorShell):
 
     def __init__(self):
         super().__init__()
+
+        # Shared application state and task runner
+        self.app_state = AppState()
+        self.task_runner = ThreadedTaskRunner()
 
         # Core services
         self.connection_manager = ConnectionManager()
@@ -124,7 +130,9 @@ class MainWindow(InspectorShell):
         tab_defs = InspectorTabs.get_standard_tabs()
 
         for i, tab_def in enumerate(tab_defs):
-            widget = InspectorTabs.create_tab_widget(tab_def, connection=None)
+            widget = InspectorTabs.create_tab_widget(
+                tab_def, connection=None, app_state=self.app_state, task_runner=self.task_runner
+            )
             self.add_main_tab(widget, tab_def.title)
 
             # Store references to views (except placeholder)
@@ -503,17 +511,24 @@ class MainWindow(InspectorShell):
 
     def _update_views_with_connection(self, connection: Optional[ConnectionInstance]):
         """Update all views with a new connection."""
-        # Clear current collection when switching connections
+        # Update AppState (new pattern - triggers reactive views)
+        self.app_state.set_provider(connection)
+
+        # Clear current collection when switching connections (legacy pattern)
         self.info_panel.current_collection = None
-        self.metadata_view.current_collection = None
-        self.search_view.current_collection = None
+        if hasattr(self.metadata_view, "current_collection"):
+            self.metadata_view.current_collection = None
+        if hasattr(self.search_view, "current_collection"):
+            self.search_view.current_collection = None
         if self.visualization_view is not None:
             self.visualization_view.current_collection = None
 
-        # Update connection references
+        # Update connection references (legacy pattern)
         self.info_panel.connection = connection
-        self.metadata_view.connection = connection
-        self.search_view.connection = connection
+        if hasattr(self.metadata_view, "connection"):
+            self.metadata_view.connection = connection
+        if hasattr(self.search_view, "connection"):
+            self.search_view.connection = connection
 
         if self.visualization_view is not None:
             self.visualization_view.connection = connection
@@ -529,9 +544,16 @@ class MainWindow(InspectorShell):
             active = self.connection_manager.get_active_connection()
             database_name = active.id if active else ""
 
+            # Update AppState (new pattern - triggers reactive views)
+            self.app_state.set_collection(collection_name)
+            self.app_state.set_database(database_name)
+
+            # Update views (legacy pattern - for views not yet refactored)
             self.info_panel.set_collection(collection_name, database_name)
-            self.metadata_view.set_collection(collection_name, database_name)
-            self.search_view.set_collection(collection_name, database_name)
+            if hasattr(self.metadata_view, "set_collection"):
+                self.metadata_view.set_collection(collection_name, database_name)
+            if hasattr(self.search_view, "set_collection"):
+                self.search_view.set_collection(collection_name, database_name)
 
             if self.visualization_view is not None:
                 self.visualization_view.set_collection(collection_name)

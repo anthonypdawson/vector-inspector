@@ -28,8 +28,10 @@ from PySide6.QtWidgets import (
 from vector_inspector.core.cache_manager import get_cache_manager
 from vector_inspector.core.connection_manager import ConnectionInstance
 from vector_inspector.core.logging import log_info
+from vector_inspector.services import SearchRunner, ThreadedTaskRunner
 from vector_inspector.services.filter_service import apply_client_side_filters
 from vector_inspector.services.telemetry_service import TelemetryService
+from vector_inspector.state import AppState
 from vector_inspector.ui.components.filter_builder import FilterBuilder
 from vector_inspector.ui.components.inline_details_pane import InlineDetailsPane
 from vector_inspector.ui.components.item_details_dialog import ItemDetailsDialog
@@ -40,6 +42,9 @@ from vector_inspector.ui.views.search_threads import SearchThread
 class SearchView(QWidget):
     """View for performing similarity searches."""
 
+    app_state: Optional[AppState]
+    task_runner: Optional[ThreadedTaskRunner]
+    search_runner: Optional[SearchRunner]
     breadcrumb_label: QLabel
     query_input: QTextEdit
     results_table: QTableWidget
@@ -59,9 +64,42 @@ class SearchView(QWidget):
     _full_breadcrumb: str
     _elide_mode: str
 
-    def __init__(self, connection: Optional[ConnectionInstance] = None, parent=None):
+    def __init__(
+        self,
+        app_state_or_connection=None,
+        task_runner: Optional[ThreadedTaskRunner] = None,
+        parent=None,
+        **kwargs,
+    ):
         super().__init__(parent)
-        self.connection = connection
+
+        # Handle legacy keyword argument 'connection'
+        if "connection" in kwargs:
+            app_state_or_connection = kwargs["connection"]
+
+        # Support both old pattern (connection) and new pattern (app_state, task_runner)
+        if isinstance(app_state_or_connection, AppState):
+            # New pattern
+            self.app_state = app_state_or_connection
+            self.task_runner = task_runner
+            self.search_runner = SearchRunner()
+            self.connection = self.app_state.provider
+        elif (
+            isinstance(app_state_or_connection, ConnectionInstance)
+            or app_state_or_connection is None
+        ):
+            # Legacy pattern
+            self.app_state = None
+            self.task_runner = None
+            self.search_runner = None
+            self.connection = app_state_or_connection
+        else:
+            # Assume it's a connection
+            self.app_state = None
+            self.task_runner = None
+            self.search_runner = None
+            self.connection = app_state_or_connection
+
         self.current_collection = ""
         self.current_database = ""
         self.search_results = None
@@ -69,6 +107,77 @@ class SearchView(QWidget):
         self.search_thread = None
         self.cache_manager = get_cache_manager()
         self._setup_ui()
+
+        # Connect to AppState signals if using new pattern
+        if self.app_state:
+            self._connect_state_signals()
+            # Update services with current connection if available
+            if self.app_state.provider:
+                self._on_provider_changed(self.app_state.provider)
+
+    def _connect_state_signals(self) -> None:
+        """Subscribe to AppState changes (new pattern only)."""
+        if not self.app_state:
+            return
+
+        # React to connection changes
+        self.app_state.provider_changed.connect(self._on_provider_changed)
+
+        # React to collection changes
+        self.app_state.collection_changed.connect(self._on_collection_changed)
+
+        # React to loading state
+        self.app_state.loading_started.connect(self._on_loading_started)
+        self.app_state.loading_finished.connect(self._on_loading_finished)
+
+        # React to errors
+        self.app_state.error_occurred.connect(self._on_error)
+
+    def _on_provider_changed(self, connection: Optional[ConnectionInstance]) -> None:
+        """React to provider/connection change (new pattern)."""
+        if not self.app_state:
+            return
+
+        # Update services
+        if self.search_runner:
+            self.search_runner.set_connection(connection)
+
+        # Update connection
+        self.connection = connection
+
+        # Clear results
+        self.results_table.setRowCount(0)
+        self.results_status.setText(
+            "No search performed" if not connection else "Connected - enter query"
+        )
+
+    def _on_collection_changed(self, collection: str) -> None:
+        """React to collection change (new pattern)."""
+        if not self.app_state:
+            return
+
+        if collection:
+            # Use AppState's database name
+            database_name = self.app_state.database or ""
+            self.set_collection(collection, database_name)
+
+    def _on_loading_started(self, message: str) -> None:
+        """React to loading started (new pattern)."""
+        if not self.app_state:
+            return
+        self.loading_dialog.show_loading(message)
+
+    def _on_loading_finished(self) -> None:
+        """React to loading finished (new pattern)."""
+        if not self.app_state:
+            return
+        self.loading_dialog.hide()
+
+    def _on_error(self, error: str) -> None:
+        """React to error (new pattern)."""
+        if not self.app_state:
+            return
+        QMessageBox.critical(self, "Error", error)
 
     def _setup_ui(self):
         """Setup widget UI."""
