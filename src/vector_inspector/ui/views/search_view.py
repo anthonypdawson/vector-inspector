@@ -392,7 +392,7 @@ class SearchView(QWidget):
         self.search_thread.finished.connect(self._on_search_finished)
         self.search_thread.error.connect(self._on_search_error)
 
-        # Show loading indicator
+        # Show loading indicator and run in background thread
         self.loading_dialog.show_loading("Searching for similar vectors...")
         self.search_thread.start()
 

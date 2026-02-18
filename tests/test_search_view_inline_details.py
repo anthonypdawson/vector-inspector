@@ -60,6 +60,7 @@ def test_pane_shows_on_result_selection(qtbot, search_view, mock_connection):
     # Perform search
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
 
     # Initially should have no item
     assert search_view.details_pane._current_item is None
@@ -85,6 +86,7 @@ def test_pane_hides_on_refresh(qtbot, search_view, mock_connection):
     # Perform search and show pane with data
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
 
     item_data = {"id": "result1", "document": "doc1", "rank": 1}
     search_view.details_pane.update_item(item_data)
@@ -115,6 +117,7 @@ def test_pane_shows_search_metrics(qtbot, search_view, mock_connection):
     # Perform search
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
 
     # Select first result
     search_view.results_table.selectRow(0)
@@ -130,6 +133,7 @@ def test_pane_updates_on_selection_change(qtbot, search_view, mock_connection):
     # Perform search
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
 
     # Select first result
     search_view.results_table.selectRow(0)
@@ -155,6 +159,8 @@ def test_pane_hides_on_empty_results(qtbot, search_view, mock_connection):
 
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    # Wait until search finishes (loading dialog hidden) since there will be no results
+    qtbot.waitUntil(lambda: not search_view.loading_dialog.isVisible(), timeout=2000)
 
     # Should be hidden
     assert search_view.details_pane.isVisible() is False
@@ -225,6 +231,7 @@ def test_open_full_details_from_search_pane(qtbot, search_view, mock_connection)
     # Perform search and select result
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
     search_view.results_table.selectRow(0)
     search_view._on_selection_changed()
 
@@ -284,6 +291,7 @@ def test_similarity_calculation(qtbot, search_view, mock_connection):
     # Perform search
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
 
     # Select first result (distance = 0.1)
     search_view.results_table.selectRow(0)
@@ -299,6 +307,7 @@ def test_rank_display(qtbot, search_view, mock_connection):
     # Perform search
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
 
     # Select first result
     search_view.results_table.selectRow(0)
@@ -344,6 +353,7 @@ def test_double_click_opens_details_in_search(qtbot, search_view, mock_connectio
     # Perform search
     search_view.query_input.setText("test query")
     search_view._perform_search()
+    qtbot.waitUntil(lambda: search_view.results_table.rowCount() > 0, timeout=2000)
 
     with patch("vector_inspector.ui.views.search_view.ItemDetailsDialog") as MockDialog:
         mock_dialog = MockDialog.return_value
