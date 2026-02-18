@@ -512,7 +512,8 @@ class MainWindow(InspectorShell):
     def _update_views_with_connection(self, connection: Optional[ConnectionInstance]):
         """Update all views with a new connection."""
         # Update AppState (new pattern - triggers reactive views)
-        self.app_state.set_provider(connection)
+        # AppState exposes properties rather than setter methods.
+        self.app_state.provider = connection
 
         # Clear current collection when switching connections (legacy pattern)
         self.info_panel.current_collection = None
@@ -545,8 +546,9 @@ class MainWindow(InspectorShell):
             database_name = active.id if active else ""
 
             # Update AppState (new pattern - triggers reactive views)
-            self.app_state.set_collection(collection_name)
-            self.app_state.set_database(database_name)
+            # AppState exposes properties rather than setter methods.
+            self.app_state.collection = collection_name
+            self.app_state.database = database_name
 
             # Update views (legacy pattern - for views not yet refactored)
             self.info_panel.set_collection(collection_name, database_name)

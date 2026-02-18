@@ -9,8 +9,10 @@ from PySide6.QtWidgets import QLabel, QPushButton, QTableWidget
 
 from vector_inspector.core.logging import log_info
 from vector_inspector.ui.views.metadata.metadata_filters import update_filter_fields
-from vector_inspector.ui.views.metadata.metadata_pagination import update_pagination_controls
-from vector_inspector.ui.views.metadata.metadata_table import populate_table
+from vector_inspector.ui.views.metadata.metadata_table import (
+    populate_table,
+    update_pagination_controls,
+)
 
 
 def try_load_from_cache(

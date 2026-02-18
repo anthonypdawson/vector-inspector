@@ -35,6 +35,8 @@ from vector_inspector.ui.views.metadata import (
     export_data,
     show_context_menu,
 )
+from vector_inspector.ui.views.metadata.data_loading_helpers import process_loaded_data
+from vector_inspector.ui.views.metadata.cache_helpers import try_load_from_cache
 from vector_inspector.ui.views.metadata.data_operations import (
     load_collection_data,
     update_collection_item,
@@ -434,7 +436,7 @@ class MetadataView(QWidget):
                     req_offset,
                     server_filter,
                 ),
-                on_success=self._on_data_loaded,
+                on_finished=self._on_data_loaded,
                 on_error=self._on_load_error,
             )
         else:
@@ -704,7 +706,7 @@ class MetadataView(QWidget):
                         updated_data,
                         embeddings_arg,
                     ),
-                    on_success=self._on_item_update_finished,
+                    on_finished=self._on_item_update_finished,
                     on_error=self._on_item_update_error,
                 )
             else:
