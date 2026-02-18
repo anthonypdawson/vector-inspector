@@ -276,7 +276,12 @@ class ConnectionController(QObject):
             connection_id: ID of the active connection
 
         Returns:
-            True if collection was created, False otherwise
+            True if the collection creation process was initiated successfully, 
+            False if the dialog was cancelled or validation failed. Note that 
+            when True is returned, the actual collection creation happens 
+            asynchronously in a background thread, so True does not indicate 
+            that the collection has been created yet - only that the process 
+            has started without errors.
         """
         # Get active connection
         if connection_id is None:
