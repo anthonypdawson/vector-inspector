@@ -823,6 +823,7 @@ class MetadataView(QWidget):
                 self.ctx.current_collection,
                 updated_data,
                 embeddings_arg,
+                parent=self,
             )
             self.update_thread.finished.connect(self._on_item_update_finished)
             self.update_thread.error.connect(self._on_item_update_error)
@@ -1059,6 +1060,7 @@ class MetadataView(QWidget):
             self.ctx.current_collection,
             file_path,
             format_type,
+            parent=self,
         )
         self.import_thread.finished.connect(lambda data, count: self._on_import_finished(data, count, file_path))
         self.import_thread.error.connect(self._on_import_error)

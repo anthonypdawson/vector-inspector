@@ -352,7 +352,7 @@ class ConnectionManagerPanel(QWidget):
             self._refresh_thread.wait()
 
         # Create and start refresh thread
-        self._refresh_thread = RefreshCollectionsThread(instance)
+        self._refresh_thread = RefreshCollectionsThread(instance, parent=self)
         self._refresh_thread.finished.connect(
             lambda collections: self._on_refresh_finished(connection_id, collections, loading)
         )
@@ -504,6 +504,7 @@ class ConnectionManagerPanel(QWidget):
             instance,
             collection_name,
             instance.name,
+            parent=self,
         )
         self._delete_thread.finished.connect(
             lambda collections: self._on_delete_finished(

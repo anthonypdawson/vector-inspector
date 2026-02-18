@@ -19,8 +19,9 @@ class BackupThread(QThread):
         backup_dir: str,
         include_embeddings: bool,
         profile_name: str,
+        parent: Optional[Any] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
         self.backup_service = backup_service
         self.connection = connection
         self.collection_name = collection_name
@@ -62,8 +63,9 @@ class RestoreThread(QThread):
         overwrite: bool,
         recompute_embeddings: Optional[bool],
         profile_name: str,
+        parent: Optional[Any] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
         self.backup_service = backup_service
         self.connection = connection
         self.backup_file = backup_file

@@ -61,8 +61,9 @@ class ItemUpdateThread(QThread):
         collection: str,
         updated_data: dict[str, Any],
         embeddings_arg: Optional[list] = None,
+        parent: Optional[Any] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
         self.connection = connection
         self.collection = collection
         self.updated_data = updated_data
@@ -113,6 +114,7 @@ class DataImportThread(QThread):
         collection_name: str,
         file_path: str,
         format_type: str,
+        parent: Optional[Any] = None,
     ) -> None:
         """
         Initialize data import thread.
@@ -122,8 +124,9 @@ class DataImportThread(QThread):
             collection_name: Name of the collection to import into
             file_path: Path to the file to import
             format_type: Import format ('json', 'csv', 'parquet')
+            parent: Parent QObject
         """
-        super().__init__()
+        super().__init__(parent)
         self.connection = connection
         self.collection_name = collection_name
         self.file_path = file_path

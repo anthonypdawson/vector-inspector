@@ -86,8 +86,8 @@ class VisualizationDataLoadThread(QThread):
     finished = Signal(dict)  # data
     error = Signal(str)
 
-    def __init__(self, connection, collection, sample_size):
-        super().__init__()
+    def __init__(self, connection, collection, sample_size, parent=None):
+        super().__init__(parent)
         self.connection = connection
         self.collection = collection
         self.sample_size = sample_size
@@ -95,6 +95,10 @@ class VisualizationDataLoadThread(QThread):
     def run(self):
         """Load data from collection."""
         try:
+            if not self.connection:
+                self.error.emit("No database connection available")
+                return
+
             if self.sample_size is None:
                 data = self.connection.get_all_items(self.collection)
             else:
@@ -212,6 +216,7 @@ class VisualizationView(QWidget):
             self.connection,
             self.current_collection,
             sample_size,
+            parent=self,
         )
         self.data_load_thread.finished.connect(self._on_data_loaded)
         self.data_load_thread.error.connect(self._on_data_load_error)
@@ -328,6 +333,7 @@ class VisualizationView(QWidget):
                 self.connection,
                 self.current_collection,
                 sample_size,
+                parent=self,
             )
             self.data_load_thread.finished.connect(self._on_clustering_data_loaded)
             self.data_load_thread.error.connect(self._on_data_load_error)
