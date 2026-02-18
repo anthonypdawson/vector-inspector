@@ -4,7 +4,6 @@ from typing import Any, Optional
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
-    QApplication,
     QDialog,
     QGroupBox,
     QHBoxLayout,
@@ -66,7 +65,7 @@ class CollectionInfoLoadThread(QThread):
         Initialize collection info load thread.
 
         Args:
-            connection: The ConnectionInstance  
+            connection: The ConnectionInstance
             collection_name: Name of the collection
             parent: Parent QObject
         """
@@ -692,7 +691,9 @@ class InfoPanel(QWidget):
         self.model_config_thread.finished.connect(
             lambda info: self._on_model_config_loaded(info, loading, effective_connection_id)
         )
-        self.model_config_thread.error.connect(lambda err: self._on_model_config_error(err, loading))
+        self.model_config_thread.error.connect(
+            lambda err: self._on_model_config_error(err, loading)
+        )
         self.model_config_thread.start()
 
     def _on_model_config_loaded(

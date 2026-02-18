@@ -868,11 +868,15 @@ class ProfileEditorDialog(QDialog):
 
         # Create and start test thread
         self.test_thread = TestConnectionThread(conn, provider, self)
-        self.test_thread.finished.connect(lambda success, msg: self._on_test_finished(success, msg, conn, provider, progress))
+        self.test_thread.finished.connect(
+            lambda success, msg: self._on_test_finished(success, msg, conn, provider, progress)
+        )
         self.test_thread.error.connect(lambda err: self._on_test_error(err, progress))
         self.test_thread.start()
 
-    def _on_test_finished(self, success: bool, message: str, conn, provider: str, progress: QProgressDialog) -> None:
+    def _on_test_finished(
+        self, success: bool, message: str, conn, provider: str, progress: QProgressDialog
+    ) -> None:
         """Handle test connection completion."""
         progress.close()
 

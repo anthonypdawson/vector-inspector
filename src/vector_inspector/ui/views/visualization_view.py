@@ -11,7 +11,6 @@ from typing import Any, Optional
 import numpy as np
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QApplication,
     QCheckBox,
     QHBoxLayout,
     QLabel,

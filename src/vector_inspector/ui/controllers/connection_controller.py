@@ -369,7 +369,9 @@ class ConnectionController(QObject):
 
         return True
 
-    def _on_model_metadata_error(self, error_message: str, progress_dialog: QProgressDialog) -> None:
+    def _on_model_metadata_error(
+        self, error_message: str, progress_dialog: QProgressDialog
+    ) -> None:
         """Handle model metadata loading error."""
         progress_dialog.close()
         QMessageBox.critical(

@@ -81,15 +81,23 @@ class ItemUpdateThread(QThread):
                 success = self.connection.update_items(
                     self.collection,
                     ids=[self.updated_data["id"]],
-                    documents=[self.updated_data["document"]] if self.updated_data["document"] else None,
-                    metadatas=[self.updated_data["metadata"]] if self.updated_data["metadata"] else None,
+                    documents=[self.updated_data["document"]]
+                    if self.updated_data["document"]
+                    else None,
+                    metadatas=[self.updated_data["metadata"]]
+                    if self.updated_data["metadata"]
+                    else None,
                 )
             else:
                 success = self.connection.update_items(
                     self.collection,
                     ids=[self.updated_data["id"]],
-                    documents=[self.updated_data["document"]] if self.updated_data["document"] else None,
-                    metadatas=[self.updated_data["metadata"]] if self.updated_data["metadata"] else None,
+                    documents=[self.updated_data["document"]]
+                    if self.updated_data["document"]
+                    else None,
+                    metadatas=[self.updated_data["metadata"]]
+                    if self.updated_data["metadata"]
+                    else None,
                     embeddings=self.embeddings_arg,
                 )
 

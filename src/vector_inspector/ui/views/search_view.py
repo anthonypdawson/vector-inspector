@@ -423,7 +423,9 @@ class SearchView(QWidget):
                         "result_count": result_count,
                         "latency_ms": duration_ms,
                         "correlation_id": self._search_correlation_id,
-                        "has_filters": bool(self._search_server_filter or self._search_client_filters),
+                        "has_filters": bool(
+                            self._search_server_filter or self._search_client_filters
+                        ),
                         "success": True,
                     },
                 }
@@ -509,7 +511,9 @@ class SearchView(QWidget):
                         "result_count": 0,
                         "latency_ms": duration_ms,
                         "correlation_id": self._search_correlation_id,
-                        "has_filters": bool(self._search_server_filter or self._search_client_filters),
+                        "has_filters": bool(
+                            self._search_server_filter or self._search_client_filters
+                        ),
                         "success": False,
                     },
                 }
