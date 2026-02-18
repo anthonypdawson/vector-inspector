@@ -18,8 +18,9 @@ class SearchThread(QThread):
         query_text: str,
         n_results: int,
         server_filter: Optional[dict] = None,
+        parent: Optional[Any] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
         self.connection = connection
         self.collection = collection
         self.query_text = query_text

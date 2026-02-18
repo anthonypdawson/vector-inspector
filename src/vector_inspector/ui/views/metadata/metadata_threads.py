@@ -61,8 +61,9 @@ class ItemUpdateThread(QThread):
         collection: str,
         updated_data: dict[str, Any],
         embeddings_arg: Optional[list] = None,
+        parent: Optional[Any] = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
         self.connection = connection
         self.collection = collection
         self.updated_data = updated_data
@@ -113,6 +114,7 @@ class DataImportThread(QThread):
         collection_name: str,
         file_path: str,
         format_type: str,
+        parent: Optional[Any] = None,
     ) -> None:
         """
         Initialize data import thread.
@@ -122,8 +124,9 @@ class DataImportThread(QThread):
             collection_name: Name of the collection to import into
             file_path: Path to the file to import
             format_type: Import format ('json', 'csv', 'parquet')
+            parent: Parent QObject
         """
-        super().__init__()
+        super().__init__(parent)
         self.connection = connection
         self.collection_name = collection_name
         self.file_path = file_path
@@ -150,54 +153,9 @@ class DataImportThread(QThread):
                 self.error.emit("Failed to parse import file")
                 return
 
-            # Handle Qdrant-specific requirements
-            from vector_inspector.core.connections.qdrant_connection import QdrantConnection
-
-            if isinstance(self.connection, QdrantConnection):
-                # Check if embeddings are missing and need to be generated
-                if not imported_data.get("embeddings"):
-                    self.progress.emit("Generating embeddings for Qdrant...")
-                    try:
-                        from sentence_transformers import SentenceTransformer
-
-                        model = SentenceTransformer("all-MiniLM-L6-v2")
-                        documents = imported_data.get("documents", [])
-                        imported_data["embeddings"] = model.encode(
-                            documents, show_progress_bar=False
-                        ).tolist()
-                    except Exception as e:
-                        self.error.emit(f"Qdrant requires embeddings. Failed to generate: {e}")
-                        return
-
-                # Convert IDs to Qdrant-compatible format
-                original_ids: list[Any] = imported_data.get("ids", [])
-                qdrant_ids: list[int] = []
-                metadatas: list[dict[str, Any]] = imported_data.get("metadatas", [])
-
-                for i, orig_id in enumerate(original_ids):
-                    # Try to convert to integer, otherwise use index
-                    try:
-                        if isinstance(orig_id, str) and "_" in orig_id:
-                            qdrant_id = int(orig_id.split("_")[-1])
-                        else:
-                            qdrant_id = int(orig_id)
-                    except (ValueError, AttributeError):
-                        qdrant_id = i
-
-                    qdrant_ids.append(qdrant_id)
-
-                    # Store original ID in metadata
-                    if i < len(metadatas):
-                        if metadatas[i] is None:
-                            metadatas[i] = {}
-                        metadatas[i]["original_id"] = orig_id
-                    else:
-                        metadatas.append({"original_id": orig_id})
-
-                imported_data["ids"] = qdrant_ids
-                imported_data["metadatas"] = metadatas
-
             # Add items to collection
+            # Connection-specific preprocessing (e.g., embedding generation, ID conversion)
+            # is handled by the connection's add_items method
             self.progress.emit("Adding items to collection...")
             success = self.connection.add_items(
                 self.collection_name,

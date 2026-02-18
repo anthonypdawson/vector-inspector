@@ -387,6 +387,7 @@ class SearchView(QWidget):
             query_text,
             n_results,
             server_filter,
+            parent=self,
         )
         self.search_thread.finished.connect(self._on_search_finished)
         self.search_thread.error.connect(self._on_search_error)

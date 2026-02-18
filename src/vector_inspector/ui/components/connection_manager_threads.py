@@ -11,8 +11,8 @@ class RefreshCollectionsThread(QThread):
     finished = Signal(list)  # Emits collections list
     error = Signal(str)
 
-    def __init__(self, connection_instance: Any) -> None:
-        super().__init__()
+    def __init__(self, connection_instance: Any, parent: Any = None) -> None:
+        super().__init__(parent)
         self.connection_instance = connection_instance
 
     def run(self) -> None:
@@ -35,8 +35,9 @@ class DeleteCollectionThread(QThread):
         connection_instance: Any,
         collection_name: str,
         profile_name: str,
+        parent: Any = None,
     ) -> None:
-        super().__init__()
+        super().__init__(parent)
         self.connection_instance = connection_instance
         self.collection_name = collection_name
         self.profile_name = profile_name

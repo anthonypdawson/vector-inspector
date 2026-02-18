@@ -222,6 +222,7 @@ class BackupRestoreDialog(QDialog):
             self.backup_dir,
             include_embeddings,
             self.connection.name,
+            parent=self,
         )
         self.backup_thread.finished.connect(self._on_backup_finished)
         self.backup_thread.error.connect(self._on_backup_error)
@@ -447,6 +448,7 @@ class BackupRestoreDialog(QDialog):
             overwrite,
             recompute_choice,
             self.connection.name,
+            parent=self,
         )
         self.restore_thread.finished.connect(self._on_restore_finished)
         self.restore_thread.error.connect(self._on_restore_error)
