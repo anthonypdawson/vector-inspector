@@ -390,16 +390,18 @@ class VisualizationView(QWidget):
 
         # Count clusters
         unique_labels = set(self.cluster_labels)
+        # Update clustering result label in panel
         if algo in ["HDBSCAN", "DBSCAN", "OPTICS"]:
-            # These algorithms use -1 for noise
             n_clusters = len([label for label in unique_labels if label != -1])
             n_noise = list(self.cluster_labels).count(-1)
-            self.status_label.setText(f"Found {n_clusters} clusters, {n_noise} noise points")
+            msg = f"Found {n_clusters} clusters, {n_noise} noise points"
         else:
-            # KMeans doesn't have noise
             n_clusters = len(unique_labels)
-            self.status_label.setText(f"Found {n_clusters} clusters")
+            msg = f"Found {n_clusters} clusters"
 
+        self.clustering_panel.cluster_result_label.setText(msg)
+        self.clustering_panel.cluster_result_label.setVisible(True)
+        self.status_label.setText(msg)
         self.status_label.setStyleSheet("color: green;")
         self.clustering_panel.cluster_button.setEnabled(True)
 
@@ -486,6 +488,14 @@ class VisualizationView(QWidget):
         self.current_data = None
         self.reduced_data = None
         self.cluster_labels = None
+        # Clear clustering results when switching collection/provider
+        try:
+            if hasattr(self, "clustering_panel") and hasattr(self.clustering_panel, "cluster_result_label"):
+                self.clustering_panel.cluster_result_label.setVisible(False)
+                self.clustering_panel.cluster_result_label.setText("")
+        except Exception:
+            pass
+
         self.status_label.setText(f"Collection: {collection_name}")
 
     def _on_view_in_data_browser(self, _point_index: int, point_id: str):

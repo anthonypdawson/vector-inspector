@@ -105,6 +105,14 @@ class ClusteringPanel(QGroupBox):
 
         first_row.addStretch()
 
+        # Clustering result message label (initially hidden)
+        self.cluster_result_label = QLabel("")
+        self.cluster_result_label.setStyleSheet("color: green; font-weight: bold;")
+        self.cluster_result_label.setVisible(False)
+        first_row.addWidget(self.cluster_result_label)
+
+        first_row.addStretch()
+
         # Checkbox to save cluster labels to metadata
         self.save_to_metadata_checkbox = QCheckBox("Save labels to metadata")
         self.save_to_metadata_checkbox.setChecked(False)
@@ -419,6 +427,11 @@ class ClusteringPanel(QGroupBox):
                 for label, widget in controls["advanced"]:
                     label.setVisible(is_selected)
                     widget.setVisible(is_selected)
+
+        # Clear any previous clustering result when algorithm changes
+        if hasattr(self, "cluster_result_label"):
+            self.cluster_result_label.setVisible(False)
+            self.cluster_result_label.setText("")
 
     def get_clustering_params(self) -> dict:
         """Get clustering parameters based on selected algorithm.
