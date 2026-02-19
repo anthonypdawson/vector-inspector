@@ -202,6 +202,16 @@ See `docs/EMBEDDING_TRUTHINESS.md` for detailed patterns and rationale.
 
 - Prevents slow startup times and allows graceful degradation if optional deps are missing.
 
+------------------------------------------------------------
+4.5 TYPE ANNOTATIONS
+------------------------------------------------------------
+
+- Use the built-in generic types with PEP 585 syntax (`list`, `dict`, `set`, `tuple`) for type annotations on Python 3.9+.
+  - Example: prefer `foo: list[int]` and `bar: dict[str, Any]` over `typing.List` / `typing.Dict`.
+  - Replace `from typing import List, Dict` usages with `list` / `dict` in annotations when targeting Python 3.9 or later.
+  - Rationale: built-in generics are clearer, concise, and avoid deprecation warnings from `typing`.
+  - Exception: continue to use `typing` constructs (e.g., `TypedDict`, `Protocol`, or `Literal`) when those specific types are required or when supporting older Python versions.
+
 ============================================================
 5. TESTING RULES (PYTEST + QT)
 ============================================================
