@@ -35,8 +35,11 @@ from vector_inspector.ui.views.metadata import (
     export_data,
     show_context_menu,
 )
-from vector_inspector.ui.views.metadata.data_loading_helpers import process_loaded_data
+from vector_inspector.ui.views.metadata.item_update_helpers import (
+    process_item_update_success,
+)
 from vector_inspector.ui.views.metadata.cache_helpers import try_load_from_cache
+from vector_inspector.ui.views.metadata.data_loading_helpers import process_loaded_data
 from vector_inspector.ui.views.metadata.data_operations import (
     load_collection_data,
     update_collection_item,
@@ -195,11 +198,10 @@ class MetadataView(QWidget):
         """Set the current connection."""
         self.ctx.connection = value
         # Also update app_state if using new pattern
-        if self.app_state:
-            if value != self.app_state.provider:
-                # Manually emit the signal
-                self.app_state.provider = value
-                self.app_state.provider_changed.emit(value)
+        if self.app_state and value != self.app_state.provider:
+            # Manually emit the signal
+            self.app_state.provider = value
+            self.app_state.provider_changed.emit(value)
 
     @property
     def current_collection(self) -> Optional[str]:
@@ -212,11 +214,10 @@ class MetadataView(QWidget):
         if value is not None:
             self.ctx.current_collection = value
         # Also update app_state if using new pattern
-        if self.app_state and value:
-            if value != self.app_state.collection:
-                # Manually emit the signal
-                self.app_state.collection = value
-                self.app_state.collection_changed.emit(value)
+        if self.app_state and value and value != self.app_state.collection:
+            # Manually emit the signal
+            self.app_state.collection = value
+            self.app_state.collection_changed.emit(value)
 
     def _setup_ui(self) -> None:
         """Setup widget UI."""

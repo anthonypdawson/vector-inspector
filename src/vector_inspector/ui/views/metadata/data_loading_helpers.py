@@ -9,8 +9,8 @@ from PySide6.QtWidgets import QLabel, QPushButton, QTableWidget
 
 from vector_inspector.core.cache_manager import CacheEntry
 from vector_inspector.core.logging import log_info
-from vector_inspector.ui.views.metadata.metadata_filters import update_filter_fields
 from vector_inspector.services.filter_service import apply_client_side_filters
+from vector_inspector.ui.views.metadata.metadata_filters import update_filter_fields
 from vector_inspector.ui.views.metadata.metadata_table import (
     populate_table,
     update_pagination_controls,

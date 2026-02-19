@@ -7,8 +7,7 @@ from typing import Any
 
 from PySide6.QtWidgets import QMessageBox
 
-from vector_inspector.ui.views.metadata.metadata_sync import find_updated_item_page
-from vector_inspector.ui.views.metadata.metadata_table import update_row_in_place
+from vector_inspector.ui.views.metadata import find_updated_item_page, update_row_in_place
 
 
 def process_item_update_success(
