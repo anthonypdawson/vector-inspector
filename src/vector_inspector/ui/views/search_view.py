@@ -215,7 +215,7 @@ class SearchView(QWidget):
         self.filter_group.setLayout(filter_group_layout)
         # Hide content when unchecked, show when checked
         self.filter_group.toggled.connect(self.filter_builder.setVisible)
-        self.filter_builder.setVisible(False)  # Start hidden
+        self.filter_builder.setVisible(False)  # Start not visible
         query_layout.addWidget(self.filter_group)
 
         # Add stretch to push content to top
@@ -241,6 +241,7 @@ class SearchView(QWidget):
 
         self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.results_table.setAlternatingRowColors(True)
+        self.results_table.horizontalHeader().setSectionsMovable(True)  # Allow column reordering
         # Enable context menu
         self.results_table.setContextMenuPolicy(Qt.CustomContextMenu)
         # Enable double-click to view details
@@ -849,8 +850,44 @@ class SearchView(QWidget):
             metadata_keys = list(metadatas[0].keys())
             columns.extend(metadata_keys)
 
+        # Save current column order (visual indices) before changing column count
+        header = self.results_table.horizontalHeader()
+        old_column_order: dict[str, int] = {}
+        if self.results_table.columnCount() > 0:
+            for logical_index in range(self.results_table.columnCount()):
+                header_item = self.results_table.horizontalHeaderItem(logical_index)
+                if header_item:
+                    column_name = header_item.text()
+                    visual_index = header.visualIndex(logical_index)
+                    old_column_order[column_name] = visual_index
+
         self.results_table.setColumnCount(len(columns))
         self.results_table.setHorizontalHeaderLabels(columns)
+
+        # Restore column order if columns match
+        if old_column_order:
+            # Build mapping of column name to new logical index
+            new_logical_indices: dict[str, int] = {}
+            for logical_index in range(self.results_table.columnCount()):
+                header_item = self.results_table.horizontalHeaderItem(logical_index)
+                if header_item:
+                    new_logical_indices[header_item.text()] = logical_index
+
+            # Sort columns by their old visual index to restore order
+            columns_with_order = []
+            for col_name, old_visual in old_column_order.items():
+                if col_name in new_logical_indices:
+                    columns_with_order.append((col_name, old_visual, new_logical_indices[col_name]))
+
+            # Sort by old visual index
+            columns_with_order.sort(key=lambda x: x[1])
+
+            # Move columns to restore order
+            for target_visual_index, (col_name, old_visual, logical_index) in enumerate(columns_with_order):
+                current_visual = header.visualIndex(logical_index)
+                if current_visual != target_visual_index:
+                    header.moveSection(current_visual, target_visual_index)
+
         self.results_table.setRowCount(len(ids))
 
         # Populate rows

@@ -416,10 +416,7 @@ class MainWindow(InspectorShell):
             # Lazy load visualization view
             from vector_inspector.ui.views.visualization_view import VisualizationView
 
-            # Get active connection
-            active = self.connection_manager.get_active_connection()
-
-            self.visualization_view = VisualizationView(active)
+            self.visualization_view = VisualizationView(self.app_state, self.task_runner)
 
             # Connect signal to view point in data browser
             self.visualization_view.view_in_data_browser_requested.connect(self._on_view_in_data_browser_requested)
@@ -429,9 +426,10 @@ class MainWindow(InspectorShell):
             self.add_main_tab(self.visualization_view, "Visualization", InspectorTabs.VISUALIZATION_TAB)
             self.set_main_tab_active(InspectorTabs.VISUALIZATION_TAB)
 
-            # Set collection if one is already selected
-            if active and active.active_collection:
-                self.visualization_view.set_collection(active.active_collection)
+            # Set collection if one is already selected (for initial state)
+            # Future collection changes will be handled by app_state.collection_changed signal
+            if self.app_state.collection:
+                self.visualization_view.set_collection(self.app_state.collection)
 
     def _on_active_connection_changed(self, connection_id):
         """Handle active connection change."""

@@ -246,6 +246,7 @@ class MetadataView(QWidget):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)  # Disable inline editing
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionsMovable(True)  # Allow column reordering
         self.table.doubleClicked.connect(self._on_row_double_clicked)
         # Enable context menu
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
