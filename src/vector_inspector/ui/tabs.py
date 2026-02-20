@@ -75,8 +75,8 @@ class InspectorTabs:
         try:
             if app_state is not None and task_runner is not None:
                 return tab_def.widget_class(
-                    app_state,
-                    task_runner,
+                    app_state_or_connection=app_state,
+                    task_runner=task_runner,
                 )
         except TypeError:
             pass

@@ -173,11 +173,11 @@ class SearchView(QWidget):
             return
         self.loading_dialog.hide()
 
-    def _on_error(self, error: str) -> None:
+    def _on_error(self, title: str, message: str) -> None:
         """React to error (new pattern)."""
         if not self.app_state:
             return
-        QMessageBox.critical(self, "Error", error)
+        QMessageBox.critical(self, title, message)
 
     def _setup_ui(self):
         """Setup widget UI."""

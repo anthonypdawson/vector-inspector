@@ -177,11 +177,11 @@ class MetadataView(QWidget):
             return
         self.loading_dialog.hide()
 
-    def _on_error(self, error: str) -> None:
+    def _on_error(self, title: str, message: str) -> None:
         """React to error (new pattern)."""
         if not self.app_state:
             return
-        QMessageBox.critical(self, "Error", error)
+        QMessageBox.critical(self, title, message)
 
     @property
     def connection(self) -> Optional[ConnectionInstance]:
@@ -194,9 +194,7 @@ class MetadataView(QWidget):
         self.ctx.connection = value
         # Also update app_state if using new pattern
         if self.app_state and value != self.app_state.provider:
-            # Manually emit the signal
             self.app_state.provider = value
-            self.app_state.provider_changed.emit(value)
 
     @property
     def current_collection(self) -> Optional[str]:
@@ -210,9 +208,7 @@ class MetadataView(QWidget):
             self.ctx.current_collection = value
         # Also update app_state if using new pattern
         if self.app_state and value and value != self.app_state.collection:
-            # Manually emit the signal
             self.app_state.collection = value
-            self.app_state.collection_changed.emit(value)
 
     def _setup_ui(self) -> None:
         """Setup widget UI."""

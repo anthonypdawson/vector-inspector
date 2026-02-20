@@ -203,10 +203,6 @@ class VisualizationView(QWidget):
         if not self.app_state:
             return
 
-        # Update services
-        if self.cluster_runner:
-            self.cluster_runner.set_connection(connection)
-
         # Update connection
         self.connection = connection
 
@@ -230,11 +226,11 @@ class VisualizationView(QWidget):
             return
         self.loading_dialog.hide()
 
-    def _on_error(self, error: str) -> None:
+    def _on_error(self, title: str, message: str) -> None:
         """React to error (new pattern)."""
         if not self.app_state:
             return
-        QMessageBox.critical(self, "Error", error)
+        QMessageBox.critical(self, title, message)
 
     def _connect_plot_signals(self):
         """Connect plot panel signals."""
