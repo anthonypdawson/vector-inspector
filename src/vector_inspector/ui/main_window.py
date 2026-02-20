@@ -53,9 +53,7 @@ class MainWindow(InspectorShell):
         self.settings_service = SettingsService()
 
         # Controller for connection operations
-        self.connection_controller = ConnectionController(
-            self.connection_manager, self.profile_service, self
-        )
+        self.connection_controller = ConnectionController(self.connection_manager, self.profile_service, self)
 
         # State
         self.visualization_view = None
@@ -130,9 +128,7 @@ class MainWindow(InspectorShell):
         tab_defs = InspectorTabs.get_standard_tabs()
 
         for i, tab_def in enumerate(tab_defs):
-            widget = InspectorTabs.create_tab_widget(
-                tab_def, connection=None, app_state=self.app_state, task_runner=self.task_runner
-            )
+            widget = InspectorTabs.create_tab_widget(tab_def, app_state=self.app_state, task_runner=self.task_runner)
             self.add_main_tab(widget, tab_def.title)
 
             # Store references to views (except placeholder)
@@ -271,9 +267,7 @@ class MainWindow(InspectorShell):
         # Update indicator label (hidden by default)
         self.update_indicator = QLabel()
         self.update_indicator.setText("")
-        self.update_indicator.setStyleSheet(
-            "color: #2980b9; font-weight: bold; text-decoration: underline;"
-        )
+        self.update_indicator.setStyleSheet("color: #2980b9; font-weight: bold; text-decoration: underline;")
         self.update_indicator.setVisible(False)
         self.update_indicator.setCursor(Qt.PointingHandCursor)
         self.statusBar().addPermanentWidget(self.update_indicator)
@@ -296,9 +290,7 @@ class MainWindow(InspectorShell):
             if latest:
                 current_version = get_app_version()
                 latest_version = latest.get("tag_name")
-                if latest_version and UpdateService.compare_versions(
-                    current_version, latest_version
-                ):
+                if latest_version and UpdateService.compare_versions(current_version, latest_version):
 
                     def show_update():
                         self._latest_release = latest
@@ -396,12 +388,8 @@ class MainWindow(InspectorShell):
     def _connect_signals(self):
         """Connect signals between components."""
         # Connection manager signals
-        self.connection_manager.active_connection_changed.connect(
-            self._on_active_connection_changed
-        )
-        self.connection_manager.active_collection_changed.connect(
-            self._on_active_collection_changed
-        )
+        self.connection_manager.active_connection_changed.connect(self._on_active_connection_changed)
+        self.connection_manager.active_collection_changed.connect(self._on_active_collection_changed)
         self.connection_manager.collections_updated.connect(self._on_collections_updated)
         self.connection_manager.connection_opened.connect(self._on_connection_opened)
 
@@ -415,16 +403,12 @@ class MainWindow(InspectorShell):
         # Profile panel signals
         self.profile_panel.connect_profile.connect(self._connect_to_profile)
 
-    def _on_connection_completed(
-        self, connection_id: str, success: bool, collections: list, error: str
-    ):
+    def _on_connection_completed(self, connection_id: str, success: bool, collections: list, error: str):
         """Handle connection completed event from controller."""
         if success:
             # Switch to Active connections tab
             self.set_left_panel_active(0)
-            self.statusBar().showMessage(
-                f"Connected successfully ({len(collections)} collections)", 5000
-            )
+            self.statusBar().showMessage(f"Connected successfully ({len(collections)} collections)", 5000)
 
     def _on_tab_changed(self, index: int):
         """Handle tab change - lazy load visualization tab."""
@@ -438,15 +422,11 @@ class MainWindow(InspectorShell):
             self.visualization_view = VisualizationView(active)
 
             # Connect signal to view point in data browser
-            self.visualization_view.view_in_data_browser_requested.connect(
-                self._on_view_in_data_browser_requested
-            )
+            self.visualization_view.view_in_data_browser_requested.connect(self._on_view_in_data_browser_requested)
 
             # Replace placeholder with actual view
             self.remove_main_tab(InspectorTabs.VISUALIZATION_TAB)
-            self.add_main_tab(
-                self.visualization_view, "Visualization", InspectorTabs.VISUALIZATION_TAB
-            )
+            self.add_main_tab(self.visualization_view, "Visualization", InspectorTabs.VISUALIZATION_TAB)
             self.set_main_tab_active(InspectorTabs.VISUALIZATION_TAB)
 
             # Set collection if one is already selected
@@ -615,6 +595,11 @@ class MainWindow(InspectorShell):
     def _toggle_cache(self, checked: bool):
         """Toggle caching on/off."""
         self.settings_service.set_cache_enabled(checked)
+        # Update cache manager state (AppState coordination)
+        if checked:
+            self.app_state.cache_manager.enable()
+        else:
+            self.app_state.cache_manager.disable()
         status = "enabled" if checked else "disabled"
         self.statusBar().showMessage(f"Caching {status}", 3000)
 
@@ -640,9 +625,7 @@ class MainWindow(InspectorShell):
         # Get active connection
         active = self.connection_manager.get_active_connection()
         if not active or not active.is_connected:
-            QMessageBox.information(
-                self, "No Connection", "Please connect to a database first to create a collection."
-            )
+            QMessageBox.information(self, "No Connection", "Please connect to a database first to create a collection.")
             return
 
         # Show dialog and create collection

@@ -4,7 +4,10 @@ from typing import Any, Optional
 
 from PySide6.QtCore import QObject, Signal
 
+from vector_inspector.core.cache_manager import CacheManager
 from vector_inspector.core.connection_manager import ConnectionInstance
+from vector_inspector.core.model_registry import EmbeddingModelRegistry
+from vector_inspector.services.settings_service import SettingsService
 
 
 class AppState(QObject):
@@ -44,6 +47,18 @@ class AppState(QObject):
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
 
+        # Cache manager (owned by AppState, not global)
+        self.cache_manager = CacheManager()
+
+        # Model registry (owned by AppState, not global)
+        self.model_registry = EmbeddingModelRegistry()
+
+        # Settings service (owned by AppState, not global)
+        self.settings_service = SettingsService()
+
+        # Feature flags
+        self._advanced_features_enabled: bool = False
+
         # Provider and collection state
         self._provider: Optional[ConnectionInstance] = None
         self._collection: Optional[str] = None
@@ -65,12 +80,17 @@ class AppState(QObject):
         self._search_results: Optional[dict[str, Any]] = None
         self._search_query: Optional[str] = None
 
-        # Filter state
-        self._active_filters: dict[str, Any] = {}
+        # Filter state (split between client and server-side)
+        self._client_filters: list[dict[str, Any]] = []
+        self._server_filter: Optional[dict[str, Any]] = None
 
         # Pagination state
         self._current_page: int = 1
         self._page_size: int = 100
+
+        # UI state
+        self._scroll_position: int = 0
+        self._user_inputs: dict[str, Any] = {}
 
         # Loading state
         self._is_loading: bool = False
@@ -221,16 +241,79 @@ class AppState(QObject):
 
     # Filter properties
     @property
+    def client_filters(self) -> list[dict[str, Any]]:
+        """Get client-side filters."""
+        return self._client_filters
+
+    @client_filters.setter
+    def client_filters(self, value: list[dict[str, Any]]) -> None:
+        """Set client-side filters."""
+        if self._client_filters != value:
+            self._client_filters = value
+            self.filters_changed.emit(self._get_combined_filters())
+
+    @property
+    def server_filter(self) -> Optional[dict[str, Any]]:
+        """Get server-side filter."""
+        return self._server_filter
+
+    @server_filter.setter
+    def server_filter(self, value: Optional[dict[str, Any]]) -> None:
+        """Set server-side filter."""
+        if self._server_filter != value:
+            self._server_filter = value
+            self.filters_changed.emit(self._get_combined_filters())
+
+    def _get_combined_filters(self) -> dict[str, Any]:
+        """Get combined filter dict for backward compatibility."""
+        return {
+            "client_filters": self._client_filters,
+            "server_filter": self._server_filter,
+        }
+
+    # Legacy property for backward compatibility
+    @property
     def active_filters(self) -> dict[str, Any]:
-        """Get active filters."""
-        return self._active_filters
+        """Get active filters (legacy - returns combined filters)."""
+        return self._get_combined_filters()
 
     @active_filters.setter
     def active_filters(self, value: dict[str, Any]) -> None:
-        """Set active filters."""
-        if self._active_filters != value:
-            self._active_filters = value
-            self.filters_changed.emit(value)
+        """Set active filters (legacy - splits into client/server if possible)."""
+        if isinstance(value, dict):
+            if "client_filters" in value or "server_filter" in value:
+                # New format
+                self._client_filters = value.get("client_filters", [])
+                self._server_filter = value.get("server_filter")
+            else:
+                # Old format - treat as server filter
+                self._server_filter = value if value else None
+                self._client_filters = []
+            self.filters_changed.emit(self._get_combined_filters())
+
+    # UI state properties
+    @property
+    def scroll_position(self) -> int:
+        """Get scroll position."""
+        return self._scroll_position
+
+    @scroll_position.setter
+    def scroll_position(self, value: int) -> None:
+        """Set scroll position."""
+        self._scroll_position = value
+
+    @property
+    def user_inputs(self) -> dict[str, Any]:
+        """Get user inputs (generic state storage)."""
+        return self._user_inputs
+
+    def set_user_input(self, key: str, value: Any) -> None:
+        """Set a specific user input value."""
+        self._user_inputs[key] = value
+
+    def get_user_input(self, key: str, default: Any = None) -> Any:
+        """Get a specific user input value."""
+        return self._user_inputs.get(key, default)
 
     # Pagination properties
     @property
@@ -277,6 +360,39 @@ class AppState(QObject):
         """Emit an error."""
         self.error_occurred.emit(title, message)
 
+    # Feature flags
+    @property
+    def advanced_features_enabled(self) -> bool:
+        """Check if advanced features are enabled.
+
+        Returns True if vector-studio is active or manually enabled.
+        """
+        if self._advanced_features_enabled:
+            return True
+
+        # Try to detect if vector-studio is installed
+        try:
+            import vector_studio  # noqa: F401
+
+            return True
+        except ImportError:
+            return False
+
+    def enable_advanced_features(self) -> None:
+        """Enable advanced features (called by vector-studio on startup)."""
+        self._advanced_features_enabled = True
+
+    def get_feature_tooltip(self, feature_name: str = "Advanced options") -> str:
+        """Get tooltip text for a disabled premium feature.
+
+        Args:
+            feature_name: Name of the feature to display in the tooltip.
+
+        Returns:
+            Tooltip text explaining how to enable the feature.
+        """
+        return f"{feature_name} available in Vector Studio"
+
     # Helper methods
     def _clear_data(self) -> None:
         """Clear all data (called when provider/collection changes)."""
@@ -288,8 +404,11 @@ class AppState(QObject):
         self._cluster_algorithm = None
         self._search_results = None
         self._search_query = None
-        self._active_filters = {}
+        self._client_filters = []
+        self._server_filter = None
         self._current_page = 1
+        self._scroll_position = 0
+        self._user_inputs = {}
 
     def get_cache_key(self) -> Optional[tuple[str, str]]:
         """Get cache key for current provider/collection."""

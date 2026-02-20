@@ -32,20 +32,6 @@ def process_item_update_success(
     regen_count = 0
     try:
         regen_count = int(getattr(ctx.connection, "_last_regenerated_count", 0) or 0)
-    except Exception:
-        regen_count = 0
-
-    _show_update_success_message(view, generate_on_edit, regen_count)
-
-    # If embeddings were regenerated, server ordering may have changed.
-    # Locate the updated item on the server (respecting server-side filters),
-    # compute its page and load that page while selecting the row. This
-    # ensures the edited item becomes visible even if the backend moved it.
-    try:
-        # Quick in-place update: if the updated item is still on the
-        # currently-visible page, update the in-memory page and
-        # table cells and emit `dataChanged` so the view refreshes
-        # immediately without a full reload.
         if update_row_in_place(view.table, ctx, updated_data):
             return
 
@@ -86,15 +72,11 @@ def _show_update_success_message(
                 f"Item updated and embeddings regenerated ({regen_count}).",
             )
         else:
-            QMessageBox.information(
-                view, "Success", "Item updated. No embeddings were regenerated."
-            )
+            QMessageBox.information(view, "Success", "Item updated. No embeddings were regenerated.")
     else:
         # embedding preservation mode
         if regen_count == 0:
-            QMessageBox.information(
-                view, "Success", "Item updated and existing embedding preserved."
-            )
+            QMessageBox.information(view, "Success", "Item updated and existing embedding preserved.")
         else:
             QMessageBox.information(
                 view,

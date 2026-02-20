@@ -54,14 +54,13 @@ class InspectorTabs:
         ]
 
     @staticmethod
-    def create_tab_widget(tab_def: TabDefinition, connection=None, app_state=None, task_runner=None) -> QWidget:
+    def create_tab_widget(tab_def: TabDefinition, app_state=None, task_runner=None) -> QWidget:
         """Create a widget instance from a tab definition.
 
         Args:
             tab_def: Tab definition
-            connection: Optional connection to pass to widget (legacy support)
-            app_state: Optional AppState instance (new pattern)
-            task_runner: Optional TaskRunner instance (new pattern)
+            app_state: AppState instance (required)
+            task_runner: TaskRunner instance (required)
 
         Returns:
             Widget instance
@@ -70,16 +69,11 @@ class InspectorTabs:
             # Return placeholder for lazy-loaded tabs
             return QWidget()
 
-        # Check if widget supports new pattern (app_state + task_runner)
-        # Try new pattern first, fall back to legacy connection pattern
-        try:
-            if app_state is not None and task_runner is not None:
-                return tab_def.widget_class(
-                    app_state_or_connection=app_state,
-                    task_runner=task_runner,
-                )
-        except TypeError:
-            pass
+        # Create widget with app_state and task_runner
+        if app_state is None or task_runner is None:
+            raise ValueError("app_state and task_runner are required")
 
-        # Fall back to legacy pattern (connection only)
-        return tab_def.widget_class(connection)
+        return tab_def.widget_class(
+            app_state,
+            task_runner,
+        )

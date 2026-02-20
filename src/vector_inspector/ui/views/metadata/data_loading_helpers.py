@@ -64,15 +64,11 @@ def process_loaded_data(
 
     # If client-side filtering was used, perform pagination locally
     if ctx.client_filters:
-        _handle_client_side_pagination(
-            full_data, table, ctx, page_label, prev_button, next_button, filter_builder
-        )
+        _handle_client_side_pagination(full_data, table, ctx, page_label, prev_button, next_button, filter_builder)
         return
 
     # No client-side filters: display server-paginated data
-    _handle_server_side_pagination(
-        data, table, ctx, page_label, prev_button, next_button, filter_builder
-    )
+    _handle_server_side_pagination(data, table, ctx, page_label, prev_button, next_button, filter_builder)
 
 
 def _handle_empty_data(
@@ -203,23 +199,6 @@ def _trim_data_to_page_size(data: dict[str, Any], page_size: int) -> dict[str, A
     return trimmed_data
 
 
-def _select_item_if_needed(table: QTableWidget, ctx: Any) -> None:
-    """Select an item if ctx has a pending selection request."""
-    if not ctx._select_id_after_load:
-        return
-
-    try:
-        sel_id = ctx._select_id_after_load
-        ids = ctx.current_data.get("ids", []) if ctx.current_data else []
-        if ids and sel_id in ids:
-            row_idx = ids.index(sel_id)
-            table.selectRow(row_idx)
-            table.scrollToItem(table.item(row_idx, 0))
-        ctx._select_id_after_load = None
-    except Exception:
-        ctx._select_id_after_load = None
-
-
 def _save_to_cache(
     ctx: Any,
     data: dict[str, Any],
@@ -227,6 +206,9 @@ def _save_to_cache(
     table: QTableWidget,
 ) -> None:
     """Save data to cache if database and collection are set."""
+    if not ctx.cache_manager:
+        return
+
     if not ctx.current_database or not ctx.current_collection:
         log_info(
             "[MetadataView] ✗ NOT saving to cache - db='%s', coll='%s'",
@@ -243,12 +225,27 @@ def _save_to_cache(
     cache_entry = CacheEntry(
         data=data,
         scroll_position=table.verticalScrollBar().value(),
-        search_query=(
-            filter_builder.to_dict() if callable(getattr(filter_builder, "to_dict", None)) else ""
-        ),
+        search_query=(filter_builder.to_dict() if callable(getattr(filter_builder, "to_dict", None)) else ""),
     )
     ctx.cache_manager.set(ctx.current_database, ctx.current_collection, cache_entry)
     log_info(
         "[MetadataView] ✓ Saved to cache. Total entries: %d",
         len(ctx.cache_manager._cache),
     )
+
+
+def _select_item_if_needed(table: QTableWidget, ctx: Any) -> None:
+    """Select an item if ctx has a pending selection request."""
+    if not ctx._select_id_after_load:
+        return
+
+    try:
+        sel_id = ctx._select_id_after_load
+        ids = ctx.current_data.get("ids", []) if ctx.current_data else []
+        if ids and sel_id in ids:
+            row_idx = ids.index(sel_id)
+            table.selectRow(row_idx)
+            table.scrollToItem(table.item(row_idx, 0))
+        ctx._select_id_after_load = None
+    except Exception:
+        ctx._select_id_after_load = None

@@ -51,10 +51,10 @@ class MetadataView(QWidget):
     """View for browsing collection data and metadata."""
 
     ctx: MetadataContext
-    app_state: Optional[AppState]
-    task_runner: Optional[ThreadedTaskRunner]
-    collection_loader: Optional[CollectionLoader]
-    metadata_loader: Optional[MetadataLoader]
+    app_state: AppState
+    task_runner: ThreadedTaskRunner
+    collection_loader: CollectionLoader
+    metadata_loader: MetadataLoader
     loading_dialog: LoadingDialog
     settings_service: SettingsService
     import_thread: Optional[DataImportThread]
@@ -62,47 +62,22 @@ class MetadataView(QWidget):
 
     def __init__(
         self,
-        app_state_or_connection=None,
-        task_runner: Optional[ThreadedTaskRunner] = None,
+        app_state: AppState,
+        task_runner: ThreadedTaskRunner,
         parent: Optional[QWidget] = None,
-        **kwargs,
     ) -> None:
         super().__init__(parent)
 
-        # Handle legacy keyword argument 'connection'
-        if "connection" in kwargs:
-            app_state_or_connection = kwargs["connection"]
+        # Store AppState and task runner
+        self.app_state = app_state
+        self.task_runner = task_runner
+        self.collection_loader = CollectionLoader()
+        self.metadata_loader = MetadataLoader()
 
-        # Support both old pattern (connection) and new pattern (app_state, task_runner)
-        if isinstance(app_state_or_connection, AppState):
-            # New pattern
-            self.app_state = app_state_or_connection
-            self.task_runner = task_runner
-            self.collection_loader = CollectionLoader()
-            self.metadata_loader = MetadataLoader()
-            connection = self.app_state.provider
-        elif isinstance(app_state_or_connection, ConnectionInstance) or app_state_or_connection is None:
-            # Legacy pattern
-            self.app_state = None
-            self.task_runner = None
-            self.collection_loader = None
-            self.metadata_loader = None
-            connection = app_state_or_connection
-        else:
-            # Assume it's a connection
-            self.app_state = None
-            self.task_runner = None
-            self.collection_loader = None
-            self.metadata_loader = None
-            connection = app_state_or_connection
-
-        # Initialize context with connection and cache manager
-        from vector_inspector.core.cache_manager import get_cache_manager
-
-        cache_manager = get_cache_manager()
+        # Initialize context with connection and cache manager from AppState
         self.ctx = MetadataContext(
-            connection=connection,
-            cache_manager=cache_manager,
+            connection=self.app_state.provider,
+            cache_manager=self.app_state.cache_manager,
         )
         self.loading_dialog = LoadingDialog("Loading data...", self)
         self.settings_service = SettingsService()
@@ -112,18 +87,14 @@ class MetadataView(QWidget):
         self.filter_reload_timer.timeout.connect(self._reload_with_filters)
         self._setup_ui()
 
-        # Connect to AppState signals if using new pattern
-        if self.app_state:
-            self._connect_state_signals()
-            # Update services with current connection if available
-            if self.app_state.provider:
-                self._on_provider_changed(self.app_state.provider)
+        # Connect to AppState signals
+        self._connect_state_signals()
+        # Update services with current connection if available
+        if self.app_state.provider:
+            self._on_provider_changed(self.app_state.provider)
 
     def _connect_state_signals(self) -> None:
-        """Subscribe to AppState changes (new pattern only)."""
-        if not self.app_state:
-            return
-
+        """Subscribe to AppState changes."""
         # React to connection changes
         self.app_state.provider_changed.connect(self._on_provider_changed)
 
@@ -138,10 +109,7 @@ class MetadataView(QWidget):
         self.app_state.error_occurred.connect(self._on_error)
 
     def _on_provider_changed(self, connection: Optional[ConnectionInstance]) -> None:
-        """React to provider/connection change (new pattern)."""
-        if not self.app_state:
-            return
-
+        """React to provider/connection change."""
         # Update services
         if self.collection_loader:
             self.collection_loader.set_connection(connection)
@@ -156,31 +124,22 @@ class MetadataView(QWidget):
         self.status_label.setText("No collection selected" if not connection else "Connected - select a collection")
 
     def _on_collection_changed(self, collection: str) -> None:
-        """React to collection change (new pattern)."""
-        if not self.app_state:
-            return
-
+        """React to collection change."""
         if collection:
             # Use AppState's database name
             database_name = self.app_state.database or ""
             self.set_collection(collection, database_name)
 
     def _on_loading_started(self, message: str) -> None:
-        """React to loading started (new pattern)."""
-        if not self.app_state:
-            return
+        """React to loading started."""
         self.loading_dialog.show_loading(message)
 
     def _on_loading_finished(self) -> None:
-        """React to loading finished (new pattern)."""
-        if not self.app_state:
-            return
+        """React to loading finished."""
         self.loading_dialog.hide()
 
     def _on_error(self, title: str, message: str) -> None:
-        """React to error (new pattern)."""
-        if not self.app_state:
-            return
+        """React to error."""
         QMessageBox.critical(self, title, message)
 
     @property
@@ -334,7 +293,6 @@ class MetadataView(QWidget):
         if database_name:  # Only update if non-empty
             self.ctx.current_database = database_name
 
-        # Debug: Check cache status
         log_info(
             "[MetadataView] Setting collection: db='%s', coll='%s'",
             self.ctx.current_database,
