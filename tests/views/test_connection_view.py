@@ -1,6 +1,3 @@
-from PySide6.QtWidgets import QMessageBox
-
-
 def make_fake_connection(success=True, raise_exc=False):
     class Fake:
         def __init__(self):
@@ -53,9 +50,10 @@ def test_connection_thread_exception(monkeypatch):
     assert captured.get("ok") is False
 
 
-def test_get_connection_config_and_browse(monkeypatch, tmp_path):
+def test_get_connection_config_and_browse(monkeypatch, tmp_path, qtbot):
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
+    qtbot.addWidget(dialog)
     # Pinecone branch
     idx = dialog.provider_combo.findData("pinecone")
     dialog.provider_combo.setCurrentIndex(idx)
@@ -64,16 +62,22 @@ def test_get_connection_config_and_browse(monkeypatch, tmp_path):
     assert cfg["provider"] == "pinecone"
     assert cfg["api_key"] == "key123"
 
-    # Browse for path: monkeypatch QFileDialog to return tmp_path
-    monkeypatch.setattr(mod.QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path)))
+    # Browse for path: patch QFileDialog in the module namespace (never mutate Shiboken types directly)
+    class _FakeQFileDialog:
+        @staticmethod
+        def getExistingDirectory(*a, **k):
+            return str(tmp_path)
+
+    monkeypatch.setattr(mod, "QFileDialog", _FakeQFileDialog)
     dialog.path_input.setText(".")
     dialog._browse_for_path()
     assert dialog.path_input.text() != ""
 
 
-def test_provider_changes_enable_fields():
+def test_provider_changes_enable_fields(qtbot):
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
+    qtbot.addWidget(dialog)
     # pgvector enables host/port/database fields
     idx = dialog.provider_combo.findData("pgvector")
     dialog.provider_combo.setCurrentIndex(idx)
@@ -148,10 +152,18 @@ def test_connect_with_config_missing_api_key(monkeypatch, qtbot):
     view = mod.ConnectionView()
     qtbot.addWidget(view)
 
-    # stub QMessageBox.warning to avoid UI popup
-    monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: None))
+    # QMessageBox is imported lazily inside _connect_with_config, so patch it on
+    # the PySide6.QtWidgets module (a Python module object, not a Shiboken type).
+    import PySide6.QtWidgets as _qtw
+
+    class _FakeMB:
+        @staticmethod
+        def warning(*a, **k):
+            pass
+
+    monkeypatch.setattr(_qtw, "QMessageBox", _FakeMB)
 
     # Pinecone without api_key
     view._connect_with_config({"provider": "pinecone", "type": "cloud", "api_key": ""})
     # Loading dialog hidden and no connection created
-    assert not getattr(view, "connection", None) or isinstance(view.connection, mod.PineconeConnection) == False
+    assert not getattr(view, "connection", None) or not isinstance(view.connection, mod.PineconeConnection)

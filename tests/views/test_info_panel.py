@@ -240,6 +240,31 @@ def test_clear_embedding_model_and_update_state(monkeypatch, qtbot):
     panel.connection = type("Conn", (), {"id": "cid", "name": "p", "is_connected": True})()
     panel.current_collection = "coll"
 
+    # Stub CollectionInfoLoadThread so _clear_embedding_model's set_collection call
+    # doesn't start a real QThread on the fake connection (which has no get_collection_info).
+    class _NoOpSignal:
+        def connect(self, cb):
+            pass
+
+    class _NoOpThread:
+        def __init__(self, *a, **k):
+            self.finished = _NoOpSignal()
+            self.error = _NoOpSignal()
+
+        def isRunning(self):
+            return False
+
+        def quit(self):
+            pass
+
+        def wait(self):
+            pass
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(mod, "CollectionInfoLoadThread", _NoOpThread)
+
     # stub SettingsService methods
     class Svc:
         def remove_embedding_model(self, profile, coll):
@@ -271,7 +296,7 @@ def test_configure_embedding_model_flow(monkeypatch, qtbot):
         def hide_loading(self):
             pass
 
-    monkeypatch.setattr("vector_inspector.ui.views.info_panel.LoadingDialog", FakeLoading)
+    monkeypatch.setattr("vector_inspector.ui.components.loading_dialog.LoadingDialog", FakeLoading)
 
     # Fake ModelConfigPreparationThread to immediately call finished
     class Emittable:
@@ -316,13 +341,16 @@ def test_configure_embedding_model_flow(monkeypatch, qtbot):
         def get_selection(self):
             return ("mymodel", "stored")
 
-    monkeypatch.setattr("vector_inspector.ui.views.info_panel.ProviderTypeDialog", PTD)
-    monkeypatch.setattr("vector_inspector.ui.views.info_panel.EmbeddingConfigDialog", ECD)
+    monkeypatch.setattr("vector_inspector.ui.dialogs.ProviderTypeDialog", PTD)
+    monkeypatch.setattr("vector_inspector.ui.dialogs.EmbeddingConfigDialog", ECD)
 
     # Stub SettingsService.save_embedding_model and cache invalidation
     saved = {}
 
     class Svc2:
+        def get_embedding_model(self, profile, coll):
+            return None
+
         def save_embedding_model(self, profile, coll, model, mtype):
             saved["args"] = (profile, coll, model, mtype)
 

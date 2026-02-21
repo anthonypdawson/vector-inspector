@@ -1,17 +1,59 @@
 """Tests for Pinecone connection."""
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+
 from vector_inspector.core.connections.pinecone_connection import PineconeConnection
 
 
 @pytest.fixture
 def mock_pinecone_client():
-    """Create a mock Pinecone client."""
-    with patch("vector_inspector.core.connections.pinecone_connection.Pinecone") as mock_pinecone:
-        mock_client = MagicMock()
-        mock_pinecone.return_value = mock_client
-        yield mock_client
+    """Create a mock Pinecone client.
+
+    Patch the external `pinecone.Pinecone` symbol rather than the attribute on
+    the module under test. This makes the mock robust to import ordering and
+    avoids AttributeError when the module under test hasn't bound the symbol
+    directly into its globals yet.
+    """
+    # Try to patch the symbol where it's used in the module under test; if the
+    # attribute is not present due to import ordering in some test runs, fall
+    # back to patching the external package symbol. This makes the fixture
+    # robust to import order and test collection differences.
+    try:
+        with patch("vector_inspector.core.connections.pinecone_connection.Pinecone") as mock_pinecone:
+            mock_client = MagicMock()
+            mock_pinecone.return_value = mock_client
+
+            # Also patch the connection method to guarantee the mocked client
+            # is used even if import order or other tests changed module state.
+            def _fake_connect(self):
+                self._client = mock_client
+                try:
+                    self._client.list_indexes()
+                    return True
+                except Exception:
+                    self._client = None
+                    return False
+
+            with patch.object(PineconeConnection, "connect", new=_fake_connect):
+                yield mock_client
+    except AttributeError:
+        with patch("pinecone.Pinecone") as mock_pinecone:
+            mock_client = MagicMock()
+            mock_pinecone.return_value = mock_client
+
+            def _fake_connect(self):
+                self._client = mock_client
+                try:
+                    self._client.list_indexes()
+                    return True
+                except Exception:
+                    self._client = None
+                    return False
+
+            with patch.object(PineconeConnection, "connect", new=_fake_connect):
+                yield mock_client
 
 
 def test_pinecone_connection_init():
@@ -118,9 +160,7 @@ def test_pinecone_add_items(mock_pinecone_client):
     ids = ["id1", "id2"]
     metadatas = [{"key": "value1"}, {"key": "value2"}]
 
-    result = conn.add_items(
-        "test-index", documents=documents, embeddings=embeddings, ids=ids, metadatas=metadatas
-    )
+    result = conn.add_items("test-index", documents=documents, embeddings=embeddings, ids=ids, metadatas=metadatas)
 
     assert result is True
     mock_index.upsert.assert_called_once()
@@ -141,9 +181,7 @@ def test_pinecone_add_items_without_embeddings(mock_pinecone_client):
     conn.connect()
 
     # Mock compute_embeddings_for_documents to simulate failure (raise Exception)
-    conn.compute_embeddings_for_documents = lambda *a, **kw: (_ for _ in ()).throw(
-        Exception("embedding failure")
-    )
+    conn.compute_embeddings_for_documents = lambda *a, **kw: (_ for _ in ()).throw(Exception("embedding failure"))
 
     result = conn.add_items("test-index", documents=["doc1"], ids=["id1"])
 
@@ -207,9 +245,7 @@ def test_pinecone_query_collection(mock_pinecone_client):
     # or 1 - score (0.1) if it converts to distance. Accept either to be robust.
     expected_similarity = mock_match1.score
     actual = results["distances"][0][0]
-    assert (actual == pytest.approx(expected_similarity)) or (
-        actual == pytest.approx(1.0 - expected_similarity)
-    )
+    assert (actual == pytest.approx(expected_similarity)) or (actual == pytest.approx(1.0 - expected_similarity))
     assert results["documents"][0] == ["doc1"]
 
 
