@@ -54,18 +54,18 @@ jobs:
         env:
           PYTHONPATH: ./src
           QT_QPA_PLATFORM: offscreen
-        run: pdm run pytest -q tests --cov=vector_inspector --cov-report=html
+        run: pdm run pytest -q tests --cov=vector_inspector --cov-report=xml
 
-      - name: Upload coverage HTML report
+      - name: Upload coverage xml report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-html-py${{ matrix.python-version }}
-          path: htmlcov
-
-      - name: Deploy coverage to GitHub Pages
-        if: github.ref == 'refs/heads/master' && matrix.python-version == '3.12'
-        uses: peaceiris/actions-gh-pages@v3
+          name: coverage-${{ matrix.python-version }}
+          path: ./coverage.xml
+      
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./htmlcov
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./coverage.xml
+          flag-name: ${{ matrix.python-version }}
