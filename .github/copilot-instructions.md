@@ -290,6 +290,35 @@ results across developer machines and CI.
 - Mock `ConnectionInstance` when testing UI components.
 - CI uses `QT_QPA_PLATFORM=offscreen` for headless Qt testing.
 
+### 5.4 Unit test directory structure
+
+- Organize tests by *feature area* (views, components, providers, services, metadata), not by test type.
+- Recommended top-level layout:
+  - `tests/components/` — small widget and component tests (QWidgets, dialogs).
+  - `tests/views/` — full view integration tests that exercise multiple components.
+  - `tests/providers/` — provider implementations and DB adapter tests (Chroma, Pinecone, Qdrant, etc.).
+  - `tests/services/` — business-logic/service-level unit tests (visualization, backup, cache).
+  - `tests/metadata/` — metadata-specific helpers and features.
+  - `tests/fakes/` or `tests/fixtures/` — shared fake providers, common test data, utility fixtures.
+
+- File naming and scope:
+  - Name files by feature: `test_profile_manager_panel.py`, `test_connection_view.py`.
+  - Keep tests small and focused; prefer multiple small test files over one large file per feature.
+
+- Qt testing tips:
+  - Use `qtbot` for any test interacting with Qt widgets or signals.
+  - Stub blocking native dialogs (`QMessageBox`, `QFileDialog`, `QInputDialog`, `QProgressDialog`) in `tests/conftest.py` when possible.
+  - Replace or run QThread-based workers synchronously in tests to avoid race conditions.
+
+- Provider tests:
+  - Inject fake provider clients via fixtures or `sys.modules` to avoid heavy third-party SDK imports.
+  - Mock external SDK symbols (e.g., `pinecone.Pinecone`) rather than relying on module-level attributes to make tests robust to import order.
+
+- Running tests:
+  - Always run via `pdm run pytest` to ensure the correct environment.
+  - Use `QT_QPA_PLATFORM=offscreen` in CI for headless runs.
+
+
 ## 6. PROJECT OVERVIEW & ARCHITECTURE
 
 ### 6.1 Project Overview
