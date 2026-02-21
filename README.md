@@ -18,7 +18,15 @@ A comprehensive desktop application for visualizing, querying, and managing vect
 
 **Quick Demo:** See Vector Inspector in action!
 
-# 🟦 Quick Install (recommended)
+## Overview
+
+Vector Inspector bridges the gap between vector databases and user-friendly data exploration tools. While vector databases are powerful for semantic search and AI applications, they often lack the intuitive inspection and management tools that traditional SQL databases have. This project aims to provide that missing layer.
+
+---
+
+# 🟦 Installation
+
+## Quick Install (recommended)
 
 These installers work on **macOS, Linux, and Windows (PowerShell or Git Bash)**.
 
@@ -45,26 +53,14 @@ These scripts:
 
 This is the easiest and most reliable way to get started.
 
----
-
-# 🟩 Run the App
-
-If you installed via pip or prefer manual launch:
-
-```
-vector-inspector
-```
-
-This opens the full desktop application.
-
-### From PyPI (Recommended)
+## From PyPI
 
 ```bash
 pip install vector-inspector
 vector-inspector
 ```
 
-### From a Downloaded Wheel or Tarball (e.g., GitHub Release)
+## From a Downloaded Wheel or Tarball (e.g., GitHub Release)
 
 Download the `.whl` or `.tar.gz` file from the [GitHub Releases](https://github.com/anthonypdawson/vector-inspector/releases) page, then install with:
 
@@ -98,13 +94,17 @@ scripts/run.bat    # Windows
 ```
 ---
 
-## Overview
+# 🟩 Running Vector Inspector
 
-Vector Inspector bridges the gap between vector databases and user-friendly data exploration tools. While vector databases are powerful for semantic search and AI applications, they often lack the intuitive inspection and management tools that traditional SQL databases have. This project aims to provide that missing layer.
+```
+vector-inspector
+```
+> Note: The Quick Install script launches the app automatically. If you installed via pip or from source, use the command above.
+> This opens the full desktop application.
 
+---
 ## Table of Contents
 
-- [Overview](#overview)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Use Cases](#use-cases)
