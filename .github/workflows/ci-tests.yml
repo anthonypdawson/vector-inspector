@@ -64,7 +64,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: "--no-sandbox --disable-gpu"
           QTWEBENGINE_DISABLE_SANDBOX: 1
-        run: pdm run pytest tests --cov=vector_inspector --cov-report=lcov -vv -s --junit-xml=test-results.xml
+        run: pdm run pytest tests --cov=vector_inspector --cov-report=lcov -vv -s --junit-xml=test-results.xml -o junit_family=legacy
 
       - name: Surface failing tests
         if: matrix.python-version == '3.12'
@@ -108,10 +108,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      # - name: Upload GitHub coverage
-      #   if: hashFiles('coverage.lcov') != '' && matrix.python-version == '3.12'
-      #   uses: actions/upload-coverage@v1
-      #   with:
-      #     coverage-file: coverage.lcov
-      #     coverage-format: lcov
-
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
