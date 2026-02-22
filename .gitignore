@@ -16,4 +16,4 @@ data
 chroma_data
 test_scripts
 backups
-./data/qdrant
+qdrant/
