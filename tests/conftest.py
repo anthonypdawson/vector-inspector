@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pytest
@@ -8,14 +9,48 @@ from vector_inspector.state import AppState
 
 
 def pytest_configure(config):
-    """Pytest configuration for headless Qt testing.
+    """Global test configuration: disable telemetry and patch telemetry methods.
+
+    This ensures unit tests never send telemetry or perform network I/O.
+    Pytest configuration for headless Qt testing.
 
     This method ensures Qt uses the offscreen platform during test runs so
     tests do not create visible windows locally.
     """
-    """Configure environment before any tests run."""
-    # Respect existing setting but default to offscreen for headless testing
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    try:
+        # Delay imports so test environment can control import order
+        from vector_inspector.services.settings_service import SettingsService
+        from vector_inspector.services.telemetry_service import TelemetryService
+
+        # Ensure the persistent settings flag is off
+        try:
+            SettingsService().set("telemetry.enabled", False)
+        except Exception:
+            # Best-effort: tests should not fail if settings backend isn't available
+            logging.debug("Failed to set telemetry.enabled in SettingsService")
+
+        # Patch TelemetryService methods to no-ops to guarantee no network activity
+        def _noop_queue_event(self, event):
+            return None
+
+        def _noop_send_batch(self):
+            return None
+
+        def _noop_send_launch_ping(self, *args, **kwargs):
+            return None
+
+        def _noop_send_error_event(self, *args, **kwargs):
+            return None
+
+        TelemetryService.queue_event = _noop_queue_event
+        TelemetryService.send_batch = _noop_send_batch
+        TelemetryService.send_launch_ping = _noop_send_launch_ping
+        TelemetryService.send_error_event = _noop_send_error_event
+    except Exception as _err:
+        # Fail-safe: do not prevent pytest from running if telemetry internals change
+        logging.debug(f"Could not patch telemetry for tests: {_err}")
+        # Respect existing setting but default to offscreen for headless testing
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
 @pytest.fixture
