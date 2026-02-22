@@ -141,9 +141,7 @@ class PgVectorConnection(VectorDBConnection):
                 conn = tmp_conn
 
             with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
-                )
+                cur.execute("SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname")
                 rows = cur.fetchall()
                 return [r[0] for r in rows]
         except Exception as e:
@@ -177,9 +175,7 @@ class PgVectorConnection(VectorDBConnection):
 
                 # Get schema to identify metadata columns (exclude id, document, embedding)
                 schema = self._get_table_schema(name)
-                metadata_fields = [
-                    col for col in schema.keys() if col not in ["id", "document", "embedding"]
-                ]
+                metadata_fields = [col for col in schema.keys() if col not in ["id", "document", "embedding"]]
 
                 # Try to determine vector dimension and detect stored embedding model from a sample row
                 vector_dimension = "Unknown"
@@ -187,11 +183,7 @@ class PgVectorConnection(VectorDBConnection):
                 detected_model_type = None
 
                 try:
-                    cur.execute(
-                        sql.SQL("SELECT embedding, metadata FROM {} LIMIT 1").format(
-                            sql.Identifier(name)
-                        )
-                    )
+                    cur.execute(sql.SQL("SELECT embedding, metadata FROM {} LIMIT 1").format(sql.Identifier(name)))
                     sample = cur.fetchone()
                     if sample:
                         emb_val, meta_val = sample[0], sample[1]
@@ -431,11 +423,7 @@ class PgVectorConnection(VectorDBConnection):
                     result_metas.append(parsed_meta)
                 else:
                     # Reconstruct metadata from columns
-                    metadata = {
-                        k: v
-                        for k, v in row_dict.items()
-                        if k not in ["id", "document", "embedding"]
-                    }
+                    metadata = {k: v for k, v in row_dict.items() if k not in ["id", "document", "embedding"]}
                     result_metas.append(metadata)
 
                 # Handle embedding
@@ -527,9 +515,7 @@ class PgVectorConnection(VectorDBConnection):
                 from vector_inspector.core.embedding_utils import encode_text
 
                 # Use inherited method to resolve and load the embedding model
-                loaded_model, model_name, model_type = self.load_embedding_model_for_collection(
-                    collection_name
-                )
+                loaded_model, model_name, model_type = self.load_embedding_model_for_collection(collection_name)
 
                 # Compute embeddings for the provided query_texts (use helper for CLIP)
                 if model_type != "clip":
@@ -725,11 +711,7 @@ class PgVectorConnection(VectorDBConnection):
                     result_metas.append(parsed_meta)
                 else:
                     # Reconstruct metadata from columns
-                    metadata = {
-                        k: v
-                        for k, v in row_dict.items()
-                        if k not in ["id", "document", "embedding"]
-                    }
+                    metadata = {k: v for k, v in row_dict.items() if k not in ["id", "document", "embedding"]}
                     result_metas.append(metadata)
 
                 # Handle embedding
@@ -784,9 +766,7 @@ class PgVectorConnection(VectorDBConnection):
                     compute_idxs = [i for i, d in enumerate(documents) if d]
                     if compute_idxs:
                         docs_to_compute = [documents[i] for i in compute_idxs]
-                        computed = self.compute_embeddings_for_documents(
-                            collection_name, docs_to_compute
-                        )
+                        computed = self.compute_embeddings_for_documents(collection_name, docs_to_compute)
                         embeddings_local = [None] * len(ids)
                         for idx, emb in zip(compute_idxs, computed):
                             embeddings_local[idx] = emb
@@ -873,22 +853,51 @@ class PgVectorConnection(VectorDBConnection):
         Returns:
             True if successful, False otherwise
         """
-        if not self._client or not ids:
+        if not self._client:
             return False
         try:
+            schema = self._get_table_schema(collection_name)
+            has_metadata_col = "metadata" in schema
+
             with self._client.cursor() as cur:
-                cur.execute(
-                    sql.SQL("DELETE FROM {} WHERE id = ANY(%s)").format(
-                        sql.Identifier(collection_name)
-                    ),
-                    (ids,),
-                )
+                # If caller provided explicit ids, remove those (ids take precedence)
+                if ids:
+                    cur.execute(
+                        sql.SQL("DELETE FROM {} WHERE id = ANY(%s)").format(sql.Identifier(collection_name)),
+                        (ids,),
+                    )
+                elif where:
+                    conditions: list = []
+                    params: list = []
+                    for key, value in where.items():
+                        if has_metadata_col and key != "metadata":
+                            conditions.append(sql.SQL("metadata->>%s = %s"))
+                            params.extend([key, str(value)])
+                        elif key in schema:
+                            conditions.append(sql.SQL("{} = %s").format(sql.Identifier(key)))
+                            params.append(value)
+
+                    if not conditions:
+                        # Nothing matched the where clause shape we understand
+                        return False
+
+                    query = sql.SQL("DELETE FROM {} WHERE ").format(sql.Identifier(collection_name)) + sql.SQL(
+                        " AND "
+                    ).join(conditions)
+                    cur.execute(query, params if params else None)
+                else:
+                    # No ids and no where -> nothing to delete
+                    return False
+
                 self._client.commit()
             return True
         except Exception as e:
             log_error("Failed to delete items: %s", e)
             if self._client:
-                self._client.rollback()
+                try:
+                    self._client.rollback()
+                except Exception:
+                    pass
             return False
 
     def get_connection_info(self) -> dict[str, Any]:
@@ -972,9 +981,7 @@ class PgVectorConnection(VectorDBConnection):
                 log_info("[pgvector] _parse_vector: parsed list of len %d", len(parsed))
                 return parsed
             except Exception as e:
-                log_info(
-                    "[pgvector] _parse_vector: failed to parse '%s' with error: %s", vector_str, e
-                )
+                log_info("[pgvector] _parse_vector: failed to parse '%s' with error: %s", vector_str, e)
                 return []
         log_info("[pgvector] _parse_vector: unhandled type %s, returning []", type(vector_str))
         return []
