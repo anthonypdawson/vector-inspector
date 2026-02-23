@@ -1,5 +1,7 @@
 import numpy as np
 
+from vector_inspector.core.sample_data import SampleDataType
+
 
 class _FakeConnectionBase:
     def __init__(self, create_success=True, add_success=True, profile_name=None):
@@ -121,3 +123,40 @@ def test_populate_with_sample_data_add_items_fail(monkeypatch):
     success, msg = svc.populate_with_sample_data(conn, "colA", 2, SampleDataType.TEXT, "model")
     assert success is False
     assert "Failed to insert data into collection" in msg
+
+
+def test_populate_with_sample_data_random_vs_deterministic(monkeypatch):
+    from vector_inspector.services.collection_service import CollectionService
+
+    svc = CollectionService()
+    conn = FakeConnection(add_success=True)
+
+    # Fake generate_sample_data that returns identifiable prefixes
+    def fake_generate(count, data_type, randomize=True):
+        prefix = "R" if randomize else "D"
+        return [{"text": f"{prefix}_text_{i}", "metadata": {"index": i}} for i in range(count)]
+
+    monkeypatch.setattr("vector_inspector.services.collection_service.generate_sample_data", fake_generate)
+
+    recorded = []
+
+    class RecordingProvider(FakeProvider):
+        def encode(self, texts, normalize=True, show_progress=False):
+            recorded.append(list(texts))
+            return super().encode(texts, normalize=normalize, show_progress=show_progress)
+
+    # Patch ProviderFactory.create to return our recording provider
+    import vector_inspector.services.collection_service as cs_mod
+
+    monkeypatch.setattr(cs_mod.ProviderFactory, "create", staticmethod(lambda n, t: RecordingProvider(dimension=4)))
+
+    # Run with randomize=True
+    success_r, _ = svc.populate_with_sample_data(conn, "colR", 3, SampleDataType.TEXT, "m", randomize=True)
+    assert success_r is True
+    assert recorded and recorded[0][0].startswith("R_")
+
+    # Clear and run with randomize=False
+    recorded.clear()
+    success_d, _ = svc.populate_with_sample_data(conn, "colD", 2, SampleDataType.TEXT, "m", randomize=False)
+    assert success_d is True
+    assert recorded and recorded[0][0].startswith("D_")
