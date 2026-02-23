@@ -65,9 +65,11 @@ class ProfileManagerPanel(QWidget):
 
     Signals:
         connect_profile: Emitted when user wants to connect to a profile (profile_id)
+        profile_selected: Emitted when a profile is selected in the list (profile_id)
     """
 
     connect_profile = Signal(str)  # profile_id
+    profile_selected = Signal(str)  # profile_id
 
     profile_service: ProfileService
     profile_list: QListWidget
@@ -153,6 +155,14 @@ class ProfileManagerPanel(QWidget):
         self.connect_btn.setEnabled(has_selection)
         self.edit_btn.setEnabled(has_selection)
         self.delete_btn.setEnabled(has_selection)
+        # Emit profile_selected for single-click selection so other views can preview
+        if has_selection:
+            try:
+                profile_id = current.data(Qt.ItemDataRole.UserRole)
+                if profile_id:
+                    self.profile_selected.emit(profile_id)
+            except Exception:
+                pass
 
     def _refresh_profiles(self):
         """Refresh the profile list."""
@@ -443,9 +453,7 @@ class ProfileEditorDialog(QDialog):
 
         # Weaviate cloud selector (only for Weaviate provider)
         self.weaviate_cloud_checkbox = QCheckBox("Weaviate Cloud (WCD)")
-        self.weaviate_cloud_checkbox.setToolTip(
-            "When checked, use a cloud cluster URL (no port) and API key."
-        )
+        self.weaviate_cloud_checkbox.setToolTip("When checked, use a cloud cluster URL (no port) and API key.")
         self.weaviate_cloud_checkbox.setChecked(False)
         self.weaviate_cloud_checkbox.toggled.connect(self._on_weaviate_cloud_toggled)
         details_layout.addRow("Cloud:", self.weaviate_cloud_checkbox)
@@ -672,9 +680,7 @@ class ProfileEditorDialog(QDialog):
 
     def _browse_for_path(self):
         """Browse for persistent storage path."""
-        path = QFileDialog.getExistingDirectory(
-            self, "Select Database Directory", self.path_input.text()
-        )
+        path = QFileDialog.getExistingDirectory(self, "Select Database Directory", self.path_input.text())
         if path:
             self.path_input.setText(path)
 
@@ -831,24 +837,16 @@ class ProfileEditorDialog(QDialog):
                         # For cloud, use the cluster URL (host_input holds URL)
                         conn = WeaviateConnection(
                             url=config.get("url") or self.host_input.text(),
-                            api_key=self.api_key_input.text()
-                            if self.api_key_input.text()
-                            else None,
-                            use_grpc=self.grpc_checkbox.isChecked()
-                            if hasattr(self, "grpc_checkbox")
-                            else True,
+                            api_key=self.api_key_input.text() if self.api_key_input.text() else None,
+                            use_grpc=self.grpc_checkbox.isChecked() if hasattr(self, "grpc_checkbox") else True,
                         )
                     else:
                         conn = WeaviateConnection(
                             host=config.get("host") if config_type == "http" else None,
                             port=config.get("port") if config_type == "http" else None,
                             url=config.get("url"),
-                            api_key=self.api_key_input.text()
-                            if self.api_key_input.text()
-                            else None,
-                            use_grpc=self.grpc_checkbox.isChecked()
-                            if hasattr(self, "grpc_checkbox")
-                            else True,
+                            api_key=self.api_key_input.text() if self.api_key_input.text() else None,
+                            use_grpc=self.grpc_checkbox.isChecked() if hasattr(self, "grpc_checkbox") else True,
                         )
             else:
                 conn = QdrantConnection(**self._get_connection_kwargs(config))
@@ -874,9 +872,7 @@ class ProfileEditorDialog(QDialog):
         self.test_thread.error.connect(lambda err: self._on_test_error(err, progress))
         self.test_thread.start()
 
-    def _on_test_finished(
-        self, success: bool, message: str, conn, provider: str, progress: QProgressDialog
-    ) -> None:
+    def _on_test_finished(self, success: bool, message: str, conn, provider: str, progress: QProgressDialog) -> None:
         """Handle test connection completion."""
         progress.close()
 
@@ -1034,11 +1030,7 @@ class ProfileEditorDialog(QDialog):
 
         if dbs:
             # Preserve current text if set
-            current = (
-                self.database_input.currentText()
-                if hasattr(self.database_input, "currentText")
-                else ""
-            )
+            current = self.database_input.currentText() if hasattr(self.database_input, "currentText") else ""
             self.database_input.clear()
             self.database_input.addItems(dbs)
             if current:

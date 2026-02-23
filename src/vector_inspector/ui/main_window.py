@@ -124,6 +124,12 @@ class MainWindow(InspectorShell):
         self.profile_panel = ProfileManagerPanel(self.profile_service)
         self.add_left_panel(self.profile_panel, "Profiles")
 
+        # Refresh info panel when switching left tabs (e.g., back to Active)
+        try:
+            self.left_tabs.currentChanged.connect(self._on_left_panel_changed)
+        except Exception:
+            pass
+
         # Main content tabs using TabRegistry
         tab_defs = InspectorTabs.get_standard_tabs()
 
@@ -402,6 +408,11 @@ class MainWindow(InspectorShell):
 
         # Profile panel signals
         self.profile_panel.connect_profile.connect(self._connect_to_profile)
+        # Emit profile selection so InfoPanel can preview profile details
+        try:
+            self.profile_panel.profile_selected.connect(self._on_profile_selected_from_profiles)
+        except Exception:
+            pass
 
     def _on_connection_completed(self, connection_id: str, success: bool, collections: list, error: str):
         """Handle connection completed event from controller."""
@@ -675,6 +686,35 @@ class MainWindow(InspectorShell):
         # Select the item in the metadata view
         if self.metadata_view:
             self.metadata_view.select_item_by_id(item_id)
+
+    def _on_profile_selected_from_profiles(self, profile_id: str):
+        """Handle single-click selection of a saved profile to preview its info."""
+        try:
+            profile_data = self.profile_service.get_profile_with_credentials(profile_id)
+            # If profile_data is present, show preview in InfoPanel without connecting
+            if profile_data and self.info_panel:
+                self.info_panel.display_profile_info(profile_data)
+            else:
+                if self.info_panel:
+                    self.info_panel.clear_profile_display()
+        except Exception:
+            # On error, clear preview to avoid stale info
+            if self.info_panel:
+                self.info_panel.clear_profile_display()
+
+    def _on_left_panel_changed(self, index: int):
+        """Handle when the left tab (Active/Profiles) changes.
+
+        When switching to the Active tab, refresh the InfoPanel to show the
+        active connection rather than any saved-profile preview.
+        """
+        # Index 0 is the Active connections tab by convention
+        try:
+            if index == 0 and self.info_panel:
+                # Force refresh which will show active connection info
+                self.info_panel.refresh_database_info()
+        except Exception:
+            pass
 
     def closeEvent(self, event):
         """Handle application close."""

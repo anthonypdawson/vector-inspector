@@ -343,7 +343,10 @@ class InfoPanel(QWidget):
 
     def refresh_database_info(self):
         """Refresh database connection information."""
-        if not self.connection or not self.connection.is_connected:
+        # If there's no connection or it's not connected, keep preview/previous
+        # values where possible instead of overwriting with 'Unknown'. If no
+        # connection exists, show disconnected defaults.
+        if not self.connection:
             self._update_label(self.provider_label, "Not connected")
             self._update_label(self.connection_type_label, "N/A")
             self._update_label(self.endpoint_label, "N/A")
@@ -359,11 +362,32 @@ class InfoPanel(QWidget):
             self.provider_details_label.setText("N/A")
             return
 
-        # Get provider name
-        # Extract the underlying database connection from ConnectionInstance wrapper.
+        # If we have a ConnectionInstance but it is not yet fully connected,
+        # avoid clobbering a recent profile preview: show 'Disconnected' status
+        # but keep other labels until a connected state provides authoritative values.
+        if not self.connection.is_connected:
+            self._update_label(self.status_label, "Disconnected")
+            # Collections count unknown while disconnected
+            self._update_label(self.collections_count_label, "0")
+            return
+
+        # Get provider name from the underlying database connection (fallback to
+        # connection.config if the backend doesn't expose expected attributes).
         backend = getattr(self.connection, "database", self.connection)
-        provider_name = backend.__class__.__name__.replace("Connection", "") if backend else "Unknown"
-        self._update_label(self.provider_label, provider_name)
+        provider_name = None
+        try:
+            provider_name = backend.__class__.__name__.replace("Connection", "") if backend else None
+        except Exception:
+            provider_name = None
+
+        if not provider_name and hasattr(self.connection, "config"):
+            provider_name = (
+                self.connection.config.get("provider") or self.connection.provider
+                if hasattr(self.connection, "provider")
+                else None
+            )
+
+        self._update_label(self.provider_label, provider_name or "Unknown")
 
         # Get connection details
         if isinstance(backend, ChromaDBConnection):
@@ -433,9 +457,37 @@ class InfoPanel(QWidget):
             else:
                 self._update_label(self.api_key_label, "Not required")
         else:
-            self._update_label(self.connection_type_label, "Unknown")
-            self._update_label(self.endpoint_label, "N/A")
-            self._update_label(self.api_key_label, "Unknown")
+            # Fallback: use the original connection config (from ConnectionInstance)
+            cfg = getattr(self.connection, "config", {}) or {}
+            ctype = cfg.get("type")
+            if ctype == "persistent" and cfg.get("path"):
+                self._update_label(self.connection_type_label, "Persistent (Local)")
+                self._update_label(self.endpoint_label, cfg.get("path"))
+            elif ctype == "http":
+                host = cfg.get("host")
+                port = cfg.get("port")
+                endpoint = f"{host}:{port}" if host and port else host or cfg.get("url") or "N/A"
+                self._update_label(self.connection_type_label, "HTTP (Remote)")
+                self._update_label(self.endpoint_label, endpoint)
+            elif ctype == "cloud":
+                self._update_label(self.connection_type_label, "Cloud")
+                self._update_label(self.endpoint_label, cfg.get("url", "Cloud Service"))
+            else:
+                self._update_label(self.connection_type_label, "Unknown")
+                self._update_label(self.endpoint_label, "N/A")
+
+            # API key from config/credentials if present
+            creds_api = None
+            if isinstance(cfg.get("credentials"), dict):
+                creds_api = cfg["credentials"].get("api_key")
+            # Some ConnectionInstance store credentials separately
+            if not creds_api and hasattr(self.connection, "config"):
+                creds_api = cfg.get("api_key") or cfg.get("credentials", {}).get("api_key")
+
+            if creds_api:
+                self._update_label(self.api_key_label, "Present (hidden)")
+            else:
+                self._update_label(self.api_key_label, "Not configured")
 
         # Status
         self._update_label(self.status_label, "Connected" if self.connection.is_connected else "Disconnected")
@@ -446,6 +498,76 @@ class InfoPanel(QWidget):
             self._update_label(self.collections_count_label, str(len(collections)))
         except Exception:
             self._update_label(self.collections_count_label, "Error")
+
+    def display_profile_info(self, profile_data: dict) -> None:
+        """Populate the Database Information section from a saved profile.
+
+        This is a preview only and does not change connection state. The
+        status is shown as 'Disconnected'.
+        """
+        if not profile_data:
+            self.clear_profile_display()
+            return
+
+        provider = profile_data.get("provider", "Unknown")
+        config = profile_data.get("config", {}) or {}
+        creds = profile_data.get("credentials", {}) or {}
+
+        # Provider
+        self._update_label(self.provider_label, str(provider))
+
+        # Connection type and endpoint
+        ctype = config.get("type")
+        if ctype == "persistent":
+            self._update_label(self.connection_type_label, "Persistent (Local)")
+            self._update_label(self.endpoint_label, config.get("path", "N/A"))
+        elif ctype == "http":
+            # Prefer url if present (weaviate cloud uses url)
+            if config.get("url"):
+                endpoint = config.get("url")
+            else:
+                host = config.get("host", "localhost")
+                port = config.get("port")
+                endpoint = f"{host}:{port}" if port else host
+            self._update_label(self.connection_type_label, "HTTP (Remote)")
+            self._update_label(self.endpoint_label, endpoint)
+        elif ctype == "cloud":
+            self._update_label(self.connection_type_label, "Cloud")
+            # Example: Pinecone stores API key; endpoint may be implicit
+            self._update_label(self.endpoint_label, config.get("url", "Cloud Service"))
+        elif ctype == "ephemeral":
+            self._update_label(self.connection_type_label, "Ephemeral (In-Memory)")
+            self._update_label(self.endpoint_label, "N/A")
+        else:
+            # Fallback: inspect provider-specific fields
+            if provider in ("chromadb", "lancedb") and config.get("path"):
+                self._update_label(self.connection_type_label, "Persistent (Local)")
+                self._update_label(self.endpoint_label, config.get("path"))
+            else:
+                self._update_label(self.connection_type_label, str(ctype or "Unknown"))
+                self._update_label(self.endpoint_label, "N/A")
+
+        # API key presence
+        if creds.get("api_key"):
+            self._update_label(self.api_key_label, "Present (hidden)")
+        else:
+            # Some providers don't require API keys
+            self._update_label(self.api_key_label, "Not configured")
+
+        # Status should remain disconnected when previewing
+        self._update_label(self.status_label, "Disconnected")
+
+        # Collections count unknown for disconnected profile
+        self._update_label(self.collections_count_label, "0")
+
+    def clear_profile_display(self) -> None:
+        """Clear profile preview fields, restoring default disconnected state."""
+        self._update_label(self.provider_label, "Not connected")
+        self._update_label(self.connection_type_label, "N/A")
+        self._update_label(self.endpoint_label, "N/A")
+        self._update_label(self.api_key_label, "N/A")
+        self._update_label(self.status_label, "Disconnected")
+        self._update_label(self.collections_count_label, "0")
 
     def refresh_collection_info(self):
         """Refresh collection-specific information."""

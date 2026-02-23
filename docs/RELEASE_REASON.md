@@ -22,4 +22,7 @@
 - UX: `CreateCollectionDialog` now displays the active connection when opened and includes a `Randomize data` checkbox in the Sample Data options so users can choose deterministic or random sample content. See `src/vector_inspector/ui/components/create_collection_dialog.py`.
 - Deterministic samples: Sample generators accept a `randomize: bool` flag (`generate_sample_data(..., randomize=False)`) to produce deterministic, index-based content useful for tests and reproducible demos. See `src/vector_inspector/core/sample_data/text_generator.py`.
 
+### Connection Manager
+- Shows details about each saved profile when selected (e.g., host, port, database name) to provide more context before connecting
+
 ---
