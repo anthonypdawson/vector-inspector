@@ -416,7 +416,9 @@ class MainWindow(InspectorShell):
             # Lazy load visualization view
             from vector_inspector.ui.views.visualization_view import VisualizationView
 
-            self.visualization_view = VisualizationView(self.app_state, self.task_runner)
+            self.visualization_view = VisualizationView(
+                self.app_state, self.task_runner, connection_manager=self.connection_manager
+            )
 
             # Connect signal to view point in data browser
             self.visualization_view.view_in_data_browser_requested.connect(self._on_view_in_data_browser_requested)
