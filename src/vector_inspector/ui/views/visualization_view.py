@@ -254,6 +254,20 @@ class VisualizationView(QWidget):
 
         self.tab_widget.addTab(self.histogram_panel, "Distributions")
 
+        # Make tabs more noticeable: add emoji and slightly heavier styling
+        try:
+            self.tab_widget.setTabText(0, "🔬 Visualization")
+            self.tab_widget.setTabText(1, "📊 Distributions")
+            # Local stylesheet on the QTabBar to increase weight/padding and
+            # give a subtle selected-background so the tabs stand out.
+            self.tab_widget.tabBar().setStyleSheet(
+                "QTabBar::tab { font-weight: 600; padding: 8px 14px; font-size: 10pt;}"
+                "QTabBar::tab:selected { background-color: transparent; border-bottom: 2px solid rgba(0,0,0,0.12); }"
+            )
+        except Exception:
+            # Best-effort; avoid crashing if styling not supported in some envs
+            pass
+
         layout.addWidget(self.tab_widget, stretch=10)
 
         self.status_label = QLabel("No collection selected")

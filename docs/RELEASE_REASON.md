@@ -11,6 +11,6 @@
 	are toggled (improves visual stability when selecting Pinecone or LanceDB).
 - Misc: small UX polish and test updates for the profile panel and connection
 	flow.
-
+- Misc: Emphasize the 'Distributions' tab in the UI with a new icon and updated label to make it more discoverable and highlight its importance for understanding vector data characteristics.
 ---
 
