@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QSpinBox,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -28,7 +29,7 @@ from vector_inspector.services import ClusterRunner, ThreadedTaskRunner
 from vector_inspector.services.visualization_service import VisualizationService
 from vector_inspector.state import AppState
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
-from vector_inspector.ui.views.visualization import ClusteringPanel, DRPanel, PlotPanel
+from vector_inspector.ui.views.visualization import ClusteringPanel, DRPanel, HistogramPanel, PlotPanel
 
 
 class VisualizationThread(QThread):
@@ -129,6 +130,7 @@ class VisualizationView(QWidget):
         self,
         app_state: AppState,
         task_runner: ThreadedTaskRunner,
+        connection_manager=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -149,6 +151,7 @@ class VisualizationView(QWidget):
         self.cluster_labels = None
         self._last_temp_html = None
         self.loading_dialog = LoadingDialog("Loading visualization...", self)
+        self._connection_manager = connection_manager
         self._setup_ui()
         self._connect_plot_signals()
 
@@ -177,6 +180,7 @@ class VisualizationView(QWidget):
         """React to provider/connection change."""
         # Update connection
         self.connection = connection
+        self.histogram_panel.set_connection(connection)
 
     def _on_collection_changed(self, collection: str) -> None:
         """React to collection change."""
@@ -232,13 +236,25 @@ class VisualizationView(QWidget):
 
         # Modular panels
         self.clustering_panel = ClusteringPanel(self, app_state=self.app_state)
-        layout.addWidget(self.clustering_panel)
-
         self.dr_panel = DRPanel(self)
-        layout.addWidget(self.dr_panel)
-
         self.plot_panel = PlotPanel(self)
-        layout.addWidget(self.plot_panel, stretch=10)
+        self.histogram_panel = HistogramPanel(self)
+        self.histogram_panel.set_connection_manager(self._connection_manager)
+
+        # Tab widget: Tab 1 = Visualization, Tab 2 = Distributions
+        self.tab_widget = QTabWidget()
+
+        viz_tab = QWidget()
+        viz_layout = QVBoxLayout(viz_tab)
+        viz_layout.setContentsMargins(0, 0, 0, 0)
+        viz_layout.addWidget(self.clustering_panel)
+        viz_layout.addWidget(self.dr_panel)
+        viz_layout.addWidget(self.plot_panel, stretch=10)
+        self.tab_widget.addTab(viz_tab, "Visualization")
+
+        self.tab_widget.addTab(self.histogram_panel, "Distributions")
+
+        layout.addWidget(self.tab_widget, stretch=10)
 
         self.status_label = QLabel("No collection selected")
         self.status_label.setStyleSheet("color: gray;")
@@ -265,6 +281,7 @@ class VisualizationView(QWidget):
             sample_size = None
         else:
             sample_size = self.sample_spin.value()
+        self._last_sample_size = sample_size
 
         # Cancel any existing data load thread
         if self.data_load_thread and self.data_load_thread.isRunning():
@@ -304,6 +321,11 @@ class VisualizationView(QWidget):
             return
 
         self.current_data = data
+        self.histogram_panel.set_data(
+            data,
+            collection_name=self.current_collection,
+            sample_size=getattr(self, "_last_sample_size", None),
+        )
         self.status_label.setText("Reducing dimensions...")
         self.dr_panel.generate_button.setEnabled(False)
 
@@ -422,6 +444,11 @@ class VisualizationView(QWidget):
             return
 
         self.current_data = data
+        self.histogram_panel.set_data(
+            data,
+            collection_name=self.current_collection,
+            sample_size=getattr(self, "_last_sample_size", None),
+        )
         self._start_clustering()
 
     def _start_clustering(self) -> None:

@@ -328,8 +328,8 @@ def show_context_menu(
     except Exception as e:
         log_info("Extension hook error: %s", e)
 
-    # Show menu
-    menu.exec(table.viewport().mapToGlobal(position))
+    # Show menu (use non-blocking popup so tests and event loop aren't blocked)
+    menu.popup(table.viewport().mapToGlobal(position))
 
 
 def _show_item_details(table: QTableWidget, ctx: MetadataContext, row: int) -> None:
