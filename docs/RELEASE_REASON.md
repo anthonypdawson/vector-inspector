@@ -1,28 +1,60 @@
 ## Release Notes (0.5.0)
 
-### Fixes
-- LanceDB provider fixes and improvements
-	- Fix: `delete_items` now feature-detects the native LanceDB table delete API and uses it when available (`tbl.delete(predicate)`). If the native call raises, the implementation falls back to a safe rewrite.
-	- Fix: Atomic rewrite fallback no longer double-inserts rows. The implementation now creates the table once with Arrow data (`create_table(data=arr)`) and avoids a subsequent `add()` call that caused duplicate inserts.
-	- Test: Added unit tests covering the native delete path, fallback-on-error path, and a regression test to ensure the rewrite path does not double-add. See `tests/providers/test_lancedb_connection.py`.
-	- Docs: Documented supported versions for `lancedb`/`pyarrow` in `README.md` and added a CI comment in `.github/workflows/ci-tests.yml` to flag where to look if version bumps break delete behavior.
-	- Logging: Improved error logging around native delete failures to make fallback behavior easier to diagnose.
+## Highlights
+This release brings smoother LanceDB behavior, a brand‑new way to explore your vectors, and several UX improvements that make everyday workflows easier.
 
-### Vector Visualization / Distributions
+---
 
-- Feature: Added a new "Distributions" tab to the Visualization view that renders histogram/distribution plots for vector norms and per-dimension values.
-  - New: `HistogramPanel` at `src/vector_inspector/ui/views/visualization/histogram_panel.py` — UI controls (metric select, dimension index, bin count, density toggle, Generate, Clear) and Plotly-powered rendering into a `QWebEngineView`.
-  - Feature: Compare overlay — enables side-by-side histogram comparison between collections across **all live connections**. The compare dropdown is populated via a background dim-scan thread that iterates every active `ConnectionInstance` (retrieved from `ConnectionManager`) and lists only collections sharing the same embedding dimensionality. Each entry is prefixed `"ConnectionName / collection"` for clarity. The scan runs fresh on every checkbox toggle so newly added connections are always reflected.
-  - UI: `VisualizationView` now uses a `QTabWidget` with two tabs: **Visualization** (existing DR + plot + clustering panels) and **Distributions** (new histogram panel).
-  - Integration: `VisualizationView` now calls `histogram_panel.set_data(data, collection_name, sample_size)` when collection data is loaded so the distributions tab auto-populates, `histogram_panel.set_connection(connection)` when the provider changes, and `histogram_panel.set_connection_manager(connection_manager)` at construction so the panel can scan all providers.
-  - Architecture: `MainWindow` passes `connection_manager=self.connection_manager` to `VisualizationView`; `VisualizationView` stores it and forwards it to `HistogramPanel` after creation.
+## Improved LanceDB Reliability
+Working with LanceDB collections is now more predictable and resilient.
 
-### Create Collection / Sample Data
+- Deletes behave correctly across all supported LanceDB versions  
+- Safe fallback logic prevents accidental duplicate rows  
+- Clearer error messages when a delete fails  
+- Documentation now lists supported LanceDB/pyarrow versions
 
-- UX: `CreateCollectionDialog` now displays the active connection when opened and includes a `Randomize data` checkbox in the Sample Data options so users can choose deterministic or random sample content. See `src/vector_inspector/ui/components/create_collection_dialog.py`.
-- Deterministic samples: Sample generators accept a `randomize: bool` flag (`generate_sample_data(..., randomize=False)`) to produce deterministic, index-based content useful for tests and reproducible demos. See `src/vector_inspector/core/sample_data/text_generator.py`.
+**What this means for you:**  
+Deletes “just work,” and you get clearer feedback when something goes wrong.
 
-### Connection Manager
-- Shows details about each saved profile when selected (e.g., host, port, database name) to provide more context before connecting
+---
+
+## New: Vector Distributions View
+A new **Distributions** tab gives you deeper insight into your embeddings.
+
+- Histogram views for vector norms and individual dimensions  
+- Adjustable bins, density mode, and on‑demand plot generation  
+- Compare distributions across collections — even across multiple active connections  
+- Comparison list updates automatically as new connections are added
+
+**What this means for you:**  
+You can quickly understand the shape of your embeddings, spot anomalies, and compare datasets visually without exporting anything.
+
+---
+
+## Create Collection: Better Sample Data Controls
+Creating a collection is now more transparent and flexible.
+
+- The dialog shows which connection you're creating the collection on  
+- New option to choose deterministic or randomized sample data  
+- Deterministic samples help with reproducible demos and tests
+
+**What this means for you:**  
+You stay oriented, and you get more control over how sample data behaves.
+
+---
+
+## Connection Manager Enhancements
+Selecting a saved connection now shows helpful details like host, port, and database name.
+
+**What this means for you:**  
+It’s easier to confirm you’re connecting to the right environment when juggling multiple setups.
+
+---
+
+## Test Coverage Improvements
+Overall test coverage has increased to **59%**, strengthening reliability and giving contributors clearer signals when something breaks.
+
+**What this means for you:**  
+Vector Inspector is becoming more stable with every release, and future changes are safer and easier to review.
 
 ---
