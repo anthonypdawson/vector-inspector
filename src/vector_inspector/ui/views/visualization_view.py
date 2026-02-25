@@ -21,12 +21,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from vector_inspector.ui.styles import (
-    TAB_FONT_SIZE,
-    TAB_FONT_WEIGHT,
-    TAB_PADDING,
-)
-
 from vector_inspector.core.connection_manager import ConnectionInstance
 
 # Feature flags now accessed via app_state.advanced_features_enabled
@@ -35,6 +29,11 @@ from vector_inspector.services import ClusterRunner, ThreadedTaskRunner
 from vector_inspector.services.visualization_service import VisualizationService
 from vector_inspector.state import AppState
 from vector_inspector.ui.components.loading_dialog import LoadingDialog
+from vector_inspector.ui.styles import (
+    TAB_FONT_SIZE,
+    TAB_FONT_WEIGHT,
+    TAB_PADDING,
+)
 from vector_inspector.ui.views.visualization import ClusteringPanel, DRPanel, HistogramPanel, PlotPanel
 
 

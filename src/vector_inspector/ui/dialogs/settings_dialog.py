@@ -1,5 +1,7 @@
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QCheckBox,
+    QColorDialog,
     QDialog,
     QGroupBox,
     QHBoxLayout,
@@ -9,8 +11,6 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QColorDialog
 
 from vector_inspector.extensions import settings_panel_hook
 from vector_inspector.services.settings_service import SettingsService
@@ -136,18 +136,12 @@ class SettingsDialog(QDialog):
 
         # Immediate apply on change for some controls
         self.default_results.valueChanged.connect(lambda v: self.settings.set_default_n_results(v))
-        self.auto_embed_checkbox.stateChanged.connect(
-            lambda s: self.settings.set_auto_generate_embeddings(bool(s))
-        )
+        self.auto_embed_checkbox.stateChanged.connect(lambda s: self.settings.set_auto_generate_embeddings(bool(s)))
         self.restore_geometry_checkbox.stateChanged.connect(
             lambda s: self.settings.set_window_restore_geometry(bool(s))
         )
-        self.hide_splash_checkbox.stateChanged.connect(
-            lambda s: self.settings.set("hide_loading_screen", bool(s))
-        )
-        self.cache_enabled_checkbox.stateChanged.connect(
-            lambda s: self.settings.set_embedding_cache_enabled(bool(s))
-        )
+        self.hide_splash_checkbox.stateChanged.connect(lambda s: self.settings.set("hide_loading_screen", bool(s)))
+        self.cache_enabled_checkbox.stateChanged.connect(lambda s: self.settings.set_embedding_cache_enabled(bool(s)))
 
         # Appearance controls
         self.highlight_btn.clicked.connect(lambda: self._pick_color("ui.highlight_color", self.highlight_btn))
@@ -240,7 +234,7 @@ class SettingsDialog(QDialog):
 
             if dlg.exec() == QDialog.DialogCode.Accepted:
                 c = dlg.currentColor()
-                rgba = f"rgba({c.red()},{c.green()},{c.blue()},{c.alpha()/255:.2f})"
+                rgba = f"rgba({c.red()},{c.green()},{c.blue()},{c.alpha() / 255:.2f})"
                 if key == "ui.highlight_color":
                     self.settings.set_highlight_color(rgba)
                 else:
@@ -250,6 +244,7 @@ class SettingsDialog(QDialog):
                 # Immediately update global stylesheet
                 try:
                     from PySide6.QtWidgets import QApplication
+
                     from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
 
                     highlight = self.settings.get_highlight_color()
@@ -276,6 +271,7 @@ class SettingsDialog(QDialog):
             # Apply immediately
             try:
                 from PySide6.QtWidgets import QApplication
+
                 from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
 
                 highlight = self.settings.get_highlight_color()
@@ -340,13 +336,9 @@ class SettingsDialog(QDialog):
                 from vector_inspector.core.model_cache import clear_cache
 
                 if clear_cache():
-                    QMessageBox.information(
-                        self, "Cache Cleared", "Successfully cleared embedding model cache."
-                    )
+                    QMessageBox.information(self, "Cache Cleared", "Successfully cleared embedding model cache.")
                     self._update_cache_info()
                 else:
-                    QMessageBox.warning(
-                        self, "Clear Failed", "Failed to clear cache. See logs for details."
-                    )
+                    QMessageBox.warning(self, "Clear Failed", "Failed to clear cache. See logs for details.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error clearing cache: {e}")
