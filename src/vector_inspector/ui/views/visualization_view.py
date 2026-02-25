@@ -267,20 +267,22 @@ class VisualizationView(QWidget):
             # give a subtle selected-background so the tabs stand out.
             # Use highlight color from user settings (if present) to stay consistent
             try:
-                highlight = self.app_state.settings_service.get_highlight_color()
-                highlight_bg = self.app_state.settings_service.get_highlight_color_bg()
+                # Only apply the tab highlight styling when the user explicitly
+                # enabled accent styling. Avoids unexpectedly changing the
+                # default widget appearance for new users.
+                if self.app_state.settings_service.get_use_accent_enabled():
+                    highlight = self.app_state.settings_service.get_highlight_color()
+                    highlight_bg = self.app_state.settings_service.get_highlight_color_bg()
+
+                    tab_style = (
+                        f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+                        f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
+                    )
+                    self.tab_widget.tabBar().setStyleSheet(tab_style)
+                # else: leave native tab styling
             except Exception:
-                # Fallback to module constants if settings unavailable
-                from vector_inspector.ui.styles import HIGHLIGHT_COLOR, HIGHLIGHT_COLOR_BG
-
-                highlight = HIGHLIGHT_COLOR
-                highlight_bg = HIGHLIGHT_COLOR_BG
-
-            tab_style = (
-                f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
-                f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
-            )
-            self.tab_widget.tabBar().setStyleSheet(tab_style)
+                # Best-effort; avoid crashing if styling not supported in some envs
+                pass
         except Exception:
             # Best-effort; avoid crashing if styling not supported in some envs
             pass

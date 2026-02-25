@@ -18,9 +18,11 @@ class LoadingDialog(QProgressDialog):
         # Apply consistent status color from shared styles
         try:
             settings = SettingsService()
-            color = settings.get_highlight_color()
-            # Target the label inside QProgressDialog
-            self.setStyleSheet(f"QProgressDialog QLabel {{ color: {color}; }}")
+            # Apply highlight color only if accent styling is enabled.
+            if settings.get_use_accent_enabled():
+                color = settings.get_highlight_color()
+                # Target the label inside QProgressDialog
+                self.setStyleSheet(f"QProgressDialog QLabel {{ color: {color}; }}")
         except Exception:
             pass
         self.reset()  # Hide dialog by default until show_loading() is called

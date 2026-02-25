@@ -92,16 +92,20 @@ def main():
 
         # import PySide6.QtGui
         settings = SettingsService()
-        highlight = settings.get_highlight_color()
-        highlight_bg = settings.get_highlight_color_bg()
-        # palette: PySide6.QtGui.QPalette = app.palette()
-        # palette.setColor(QPalette.accent, QColor(highlight))
-        # palette.setColor(QPalette.highlight, QColor(highlight))
-        # palette.setColor(QPalette.button, QColor(highlight))
-        # palette.setColor(QPalette.link, QColor(highlight))
-        # app.setPalette(palette)
-        global_qss = build_global_qss(highlight, highlight_bg)
-        app.setStyleSheet(global_qss)
+        # Only apply the global accent stylesheet when the user has explicitly
+        # enabled accent styling in settings. This keeps the default platform
+        # look unchanged for first-time users.
+        if settings.get_use_accent_enabled():
+            highlight = settings.get_highlight_color()
+            highlight_bg = settings.get_highlight_color_bg()
+            # palette: PySide6.QtGui.QPalette = app.palette()
+            # palette.setColor(QPalette.accent, QColor(highlight))
+            # palette.setColor(QPalette.highlight, QColor(highlight))
+            # palette.setColor(QPalette.button, QColor(highlight))
+            # palette.setColor(QPalette.link, QColor(highlight))
+            # app.setPalette(palette)
+            global_qss = build_global_qss(highlight, highlight_bg)
+            app.setStyleSheet(global_qss)
     except Exception as _err:
         log_error(f"[Startup] Failed to apply global stylesheet: {_err}")
         pass

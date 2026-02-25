@@ -429,3 +429,17 @@ class SettingsService:
             self.set("ui.highlight_color_bg", str(color))
         except Exception as e:
             log_error("Failed to set highlight background color: %s", e)
+
+    def get_use_accent_enabled(self) -> bool:
+        """Return whether accent/highlight styling is enabled (default: False)."""
+        try:
+            return bool(self.settings.get("ui.use_accent", False))
+        except Exception:
+            return False
+
+    def set_use_accent_enabled(self, enabled: bool):
+        """Enable or disable global accent/highlight styling."""
+        try:
+            self.set("ui.use_accent", bool(enabled))
+        except Exception as e:
+            log_error("Failed to set use_accent flag: %s", e)

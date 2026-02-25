@@ -97,6 +97,10 @@ class SettingsDialog(QDialog):
 
         appearance_layout.addLayout(top_row)
 
+        # Toggle to enable/disable accent/highlight colors
+        self.use_accent_checkbox = QCheckBox("Enable accent/highlight colors")
+        appearance_layout.addWidget(self.use_accent_checkbox)
+
         # Reset highlight defaults button (underneath the color selectors)
         reset_row = QHBoxLayout()
         self.reset_highlight_btn = QPushButton("Reset highlight to default")
@@ -146,6 +150,7 @@ class SettingsDialog(QDialog):
         # Appearance controls
         self.highlight_btn.clicked.connect(lambda: self._pick_color("ui.highlight_color", self.highlight_btn))
         self.highlight_bg_btn.clicked.connect(lambda: self._pick_color("ui.highlight_color_bg", self.highlight_bg_btn))
+        self.use_accent_checkbox.stateChanged.connect(self._on_use_accent_changed)
 
         # Container for programmatic sections
         self._extra_sections = []
@@ -181,6 +186,10 @@ class SettingsDialog(QDialog):
             hcbg = self.settings.get_highlight_color_bg()
             self._set_button_color(self.highlight_btn, hc)
             self._set_button_color(self.highlight_bg_btn, hcbg)
+            try:
+                self.use_accent_checkbox.setChecked(self.settings.get_use_accent_enabled())
+            except Exception:
+                self.use_accent_checkbox.setChecked(False)
         except Exception:
             pass
 
@@ -203,6 +212,32 @@ class SettingsDialog(QDialog):
     def _set_button_color(self, btn: QPushButton, color: str):
         try:
             btn.setStyleSheet(f"background-color: {color}; border: 1px solid #444;")
+        except Exception:
+            pass
+
+    def _on_use_accent_changed(self, state: int):
+        try:
+            enabled = bool(state)
+            self.settings.set_use_accent_enabled(enabled)
+            # Immediately apply or clear the global stylesheet depending on the flag
+            from PySide6.QtWidgets import QApplication
+
+            app = QApplication.instance()
+            if app is None:
+                return
+            if enabled:
+                from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
+
+                highlight = self.settings.get_highlight_color()
+                highlight_bg = self.settings.get_highlight_color_bg()
+                global_qss = (
+                    f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+                    f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
+                    f"QProgressDialog QLabel {{ color: {highlight}; }}"
+                )
+                app.setStyleSheet(global_qss)
+            else:
+                app.setStyleSheet("")
         except Exception:
             pass
 
@@ -247,16 +282,21 @@ class SettingsDialog(QDialog):
 
                     from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
 
-                    highlight = self.settings.get_highlight_color()
-                    highlight_bg = self.settings.get_highlight_color_bg()
-                    global_qss = (
-                        f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
-                        f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
-                        f"QProgressDialog QLabel {{ color: {highlight}; }}"
-                    )
+                    # Only apply accent stylesheet when the feature is enabled.
                     app = QApplication.instance()
                     if app is not None:
-                        app.setStyleSheet(global_qss)
+                        if self.settings.get_use_accent_enabled():
+                            highlight = self.settings.get_highlight_color()
+                            highlight_bg = self.settings.get_highlight_color_bg()
+                            global_qss = (
+                                f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+                                f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
+                                f"QProgressDialog QLabel {{ color: {highlight}; }}"
+                            )
+                            app.setStyleSheet(global_qss)
+                        else:
+                            # Clear any previously applied accent stylesheet
+                            app.setStyleSheet("")
                 except Exception:
                     pass
         except Exception as e:
@@ -274,16 +314,19 @@ class SettingsDialog(QDialog):
 
                 from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
 
-                highlight = self.settings.get_highlight_color()
-                highlight_bg = self.settings.get_highlight_color_bg()
-                global_qss = (
-                    f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
-                    f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
-                    f"QProgressDialog QLabel {{ color: {highlight}; }}"
-                )
                 app = QApplication.instance()
                 if app is not None:
-                    app.setStyleSheet(global_qss)
+                    if self.settings.get_use_accent_enabled():
+                        highlight = self.settings.get_highlight_color()
+                        highlight_bg = self.settings.get_highlight_color_bg()
+                        global_qss = (
+                            f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+                            f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
+                            f"QProgressDialog QLabel {{ color: {highlight}; }}"
+                        )
+                        app.setStyleSheet(global_qss)
+                    else:
+                        app.setStyleSheet("")
             except Exception:
                 pass
         except Exception as e:
