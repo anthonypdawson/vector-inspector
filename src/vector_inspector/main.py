@@ -7,6 +7,8 @@ can record launch attempts even when the GUI dependencies fail to load.
 import os
 import sys
 
+from vector_inspector.core.logging import log_error
+
 # Run early telemetry before importing any Qt/PySide modules. Keep this
 # minimal and tolerant of failure so missing GUI requirements don't prevent
 # the app from reporting an attempted launch.
@@ -86,19 +88,22 @@ def main():
     # Apply global stylesheet using configured highlight color (if any)
     try:
         from vector_inspector.services.settings_service import SettingsService
+        from vector_inspector.ui.styles import build_global_qss
 
+        # import PySide6.QtGui
         settings = SettingsService()
         highlight = settings.get_highlight_color()
         highlight_bg = settings.get_highlight_color_bg()
-        from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
-
-        global_qss = (
-            f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
-            f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
-            f"QProgressDialog QLabel {{ color: {highlight}; }}"
-        )
+        # palette: PySide6.QtGui.QPalette = app.palette()
+        # palette.setColor(QPalette.accent, QColor(highlight))
+        # palette.setColor(QPalette.highlight, QColor(highlight))
+        # palette.setColor(QPalette.button, QColor(highlight))
+        # palette.setColor(QPalette.link, QColor(highlight))
+        # app.setPalette(palette)
+        global_qss = build_global_qss(highlight, highlight_bg)
         app.setStyleSheet(global_qss)
-    except Exception:
+    except Exception as _err:
+        log_error(f"[Startup] Failed to apply global stylesheet: {_err}")
         pass
 
     # Set up Qt-specific exception handler for slots/signals
