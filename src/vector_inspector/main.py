@@ -83,6 +83,24 @@ def main():
     app.setApplicationDisplayName("Vector Inspector")  # For some dialogs and OS integrations
     app.setOrganizationName("Vector Inspector")
 
+    # Apply global stylesheet using configured highlight color (if any)
+    try:
+        from vector_inspector.services.settings_service import SettingsService
+
+        settings = SettingsService()
+        highlight = settings.get_highlight_color()
+        highlight_bg = settings.get_highlight_color_bg()
+        from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
+
+        global_qss = (
+            f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+            f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
+            f"QProgressDialog QLabel {{ color: {highlight}; }}"
+        )
+        app.setStyleSheet(global_qss)
+    except Exception:
+        pass
+
     # Set up Qt-specific exception handler for slots/signals
     try:
         from vector_inspector.utils.exception_handler import setup_qt_exception_handler

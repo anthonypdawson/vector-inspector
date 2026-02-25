@@ -21,6 +21,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from vector_inspector.ui.styles import (
+    TAB_FONT_SIZE,
+    TAB_FONT_WEIGHT,
+    TAB_PADDING,
+)
+
 from vector_inspector.core.connection_manager import ConnectionInstance
 
 # Feature flags now accessed via app_state.advanced_features_enabled
@@ -260,10 +266,22 @@ class VisualizationView(QWidget):
             self.tab_widget.setTabText(1, "📊 Distributions")
             # Local stylesheet on the QTabBar to increase weight/padding and
             # give a subtle selected-background so the tabs stand out.
-            self.tab_widget.tabBar().setStyleSheet(
-                "QTabBar::tab { font-weight: 600; padding: 8px 14px; font-size: 10pt;}"
-                "QTabBar::tab:selected { background-color: transparent; border-bottom: 2px solid rgba(0,0,0,0.12); }"
+            # Use highlight color from user settings (if present) to stay consistent
+            try:
+                highlight = self.app_state.settings_service.get_highlight_color()
+                highlight_bg = self.app_state.settings_service.get_highlight_color_bg()
+            except Exception:
+                # Fallback to module constants if settings unavailable
+                from vector_inspector.ui.styles import HIGHLIGHT_COLOR, HIGHLIGHT_COLOR_BG
+
+                highlight = HIGHLIGHT_COLOR
+                highlight_bg = HIGHLIGHT_COLOR_BG
+
+            tab_style = (
+                f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+                f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
             )
+            self.tab_widget.tabBar().setStyleSheet(tab_style)
         except Exception:
             # Best-effort; avoid crashing if styling not supported in some envs
             pass

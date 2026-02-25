@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
 )
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import QColorDialog
 
 from vector_inspector.extensions import settings_panel_hook
 from vector_inspector.services.settings_service import SettingsService
@@ -77,6 +79,35 @@ class SettingsDialog(QDialog):
         cache_group.setLayout(cache_layout)
         layout.addWidget(cache_group)
 
+        # Appearance section (highlight colors)
+        appearance_group = QGroupBox("Appearance")
+        appearance_layout = QVBoxLayout()
+
+        top_row = QHBoxLayout()
+        top_row.addWidget(QLabel("Highlight color:"))
+        self.highlight_btn = QPushButton()
+        self.highlight_btn.setFixedSize(40, 22)
+        top_row.addWidget(self.highlight_btn)
+
+        top_row.addWidget(QLabel("Highlight background:"))
+        self.highlight_bg_btn = QPushButton()
+        self.highlight_bg_btn.setFixedSize(40, 22)
+        top_row.addWidget(self.highlight_bg_btn)
+        top_row.addStretch()
+
+        appearance_layout.addLayout(top_row)
+
+        # Reset highlight defaults button (underneath the color selectors)
+        reset_row = QHBoxLayout()
+        self.reset_highlight_btn = QPushButton("Reset highlight to default")
+        reset_row.addWidget(self.reset_highlight_btn)
+        reset_row.addStretch()
+        self.reset_highlight_btn.clicked.connect(self._reset_highlight_defaults)
+
+        appearance_layout.addLayout(reset_row)
+        appearance_group.setLayout(appearance_layout)
+        layout.addWidget(appearance_group)
+
         # Buttons
         btn_layout = QHBoxLayout()
         self.apply_btn = QPushButton("Apply")
@@ -118,6 +149,10 @@ class SettingsDialog(QDialog):
             lambda s: self.settings.set_embedding_cache_enabled(bool(s))
         )
 
+        # Appearance controls
+        self.highlight_btn.clicked.connect(lambda: self._pick_color("ui.highlight_color", self.highlight_btn))
+        self.highlight_bg_btn.clicked.connect(lambda: self._pick_color("ui.highlight_color_bg", self.highlight_bg_btn))
+
         # Container for programmatic sections
         self._extra_sections = []
 
@@ -146,6 +181,14 @@ class SettingsDialog(QDialog):
         self.hide_splash_checkbox.setChecked(self.settings.get("hide_loading_screen", False))
         self.cache_enabled_checkbox.setChecked(self.settings.get_embedding_cache_enabled())
         self._update_cache_info()
+        # Load appearance colors
+        try:
+            hc = self.settings.get_highlight_color()
+            hcbg = self.settings.get_highlight_color_bg()
+            self._set_button_color(self.highlight_btn, hc)
+            self._set_button_color(self.highlight_bg_btn, hcbg)
+        except Exception:
+            pass
 
     def _apply(self):
         # Values are already applied on change; ensure persistence and close
@@ -162,6 +205,101 @@ class SettingsDialog(QDialog):
         self.restore_geometry_checkbox.setChecked(True)
         self.hide_splash_checkbox.setChecked(False)
         self._apply()
+
+    def _set_button_color(self, btn: QPushButton, color: str):
+        try:
+            btn.setStyleSheet(f"background-color: {color}; border: 1px solid #444;")
+        except Exception:
+            pass
+
+    def _pick_color(self, key: str, btn: QPushButton):
+        try:
+            # current color
+            if key == "ui.highlight_color":
+                current = self.settings.get_highlight_color()
+            else:
+                current = self.settings.get_highlight_color_bg()
+            dlg = QColorDialog(self)
+            dlg.setOption(QColorDialog.ShowAlphaChannel, True)
+            # try parse existing rgba() into QColor; fallback to default
+            try:
+                # QColor accepts CSS-style rgba via setNamedColor for hex, for rgba we'll construct
+                # Parse numbers
+                parts = current.replace("rgba(", "").replace(")", "").split(",")
+                if len(parts) >= 3:
+                    r = int(parts[0])
+                    g = int(parts[1])
+                    b = int(parts[2])
+                    a = 255
+                    if len(parts) == 4:
+                        a = int(float(parts[3]) * 255)
+                    color = QColor(r, g, b, a)
+                    dlg.setCurrentColor(color)
+            except Exception:
+                pass
+
+            if dlg.exec() == QDialog.DialogCode.Accepted:
+                c = dlg.currentColor()
+                rgba = f"rgba({c.red()},{c.green()},{c.blue()},{c.alpha()/255:.2f})"
+                if key == "ui.highlight_color":
+                    self.settings.set_highlight_color(rgba)
+                else:
+                    self.settings.set_highlight_color_bg(rgba)
+                # update button swatch
+                self._set_button_color(btn, rgba)
+                # Immediately update global stylesheet
+                try:
+                    from PySide6.QtWidgets import QApplication
+                    from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
+
+                    highlight = self.settings.get_highlight_color()
+                    highlight_bg = self.settings.get_highlight_color_bg()
+                    global_qss = (
+                        f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+                        f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
+                        f"QProgressDialog QLabel {{ color: {highlight}; }}"
+                    )
+                    app = QApplication.instance()
+                    if app is not None:
+                        app.setStyleSheet(global_qss)
+                except Exception:
+                    pass
+        except Exception as e:
+            QMessageBox.warning(self, "Color Picker", f"Failed to pick color: {e}")
+
+    def _apply_preset(self, primary: str, bg: str):
+        try:
+            self.settings.set_highlight_color(primary)
+            self.settings.set_highlight_color_bg(bg)
+            self._set_button_color(self.highlight_btn, primary)
+            self._set_button_color(self.highlight_bg_btn, bg)
+            # Apply immediately
+            try:
+                from PySide6.QtWidgets import QApplication
+                from vector_inspector.ui.styles import TAB_FONT_SIZE, TAB_FONT_WEIGHT, TAB_PADDING
+
+                highlight = self.settings.get_highlight_color()
+                highlight_bg = self.settings.get_highlight_color_bg()
+                global_qss = (
+                    f"QTabBar::tab {{ font-weight: {TAB_FONT_WEIGHT}; padding: {TAB_PADDING}; font-size: {TAB_FONT_SIZE};}}"
+                    f"QTabBar::tab:selected {{ background-color: {highlight_bg}; border-bottom: 2px solid {highlight}; }}"
+                    f"QProgressDialog QLabel {{ color: {highlight}; }}"
+                )
+                app = QApplication.instance()
+                if app is not None:
+                    app.setStyleSheet(global_qss)
+            except Exception:
+                pass
+        except Exception as e:
+            QMessageBox.warning(self, "Apply Preset", f"Failed to apply preset: {e}")
+
+    def _reset_highlight_defaults(self):
+        try:
+            from vector_inspector.ui.styles import HIGHLIGHT_COLOR, HIGHLIGHT_COLOR_BG
+
+            self._apply_preset(HIGHLIGHT_COLOR, HIGHLIGHT_COLOR_BG)
+        except Exception as e:
+            QMessageBox.warning(self, "Reset Highlight", f"Failed to reset highlight: {e}")
 
     def _update_cache_info(self):
         """Update the cache information display."""
