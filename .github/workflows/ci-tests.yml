@@ -15,6 +15,7 @@ on:
   push:
     paths:
       - 'pyproject.toml'
+      - '.github/workflows/ci-tests.yml'
       - 'tests/**'
 
 jobs:
