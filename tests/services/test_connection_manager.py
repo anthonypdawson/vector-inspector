@@ -374,3 +374,65 @@ def test_connection_instance_delete_collection(fake_provider_with_name):
 
     # Verify it's gone
     assert collection_name not in provider.list_collections()
+
+
+# ---------------------------------------------------------------------------
+# Previously uncovered: get_active_collection and get_all_connections
+# ---------------------------------------------------------------------------
+
+
+def test_get_active_collection_returns_none_when_no_active_connection():
+    manager = ConnectionManager()
+    assert manager.get_active_collection() is None
+
+
+def test_get_active_collection_returns_none_when_no_collection_set(fake_provider):
+    manager = ConnectionManager()
+    manager.create_connection("c", "fake", fake_provider, {})
+    # No collection set yet
+    assert manager.get_active_collection() is None
+
+
+def test_get_active_collection_returns_set_collection(fake_provider_with_name):
+    provider, col = fake_provider_with_name
+    manager = ConnectionManager()
+    conn_id = manager.create_connection("c", "fake", provider, {})
+    manager.set_active_collection(conn_id, col)
+    assert manager.get_active_collection() == col
+
+
+def test_get_active_collection_updates_after_change(fake_provider_with_name):
+    provider, col = fake_provider_with_name
+    manager = ConnectionManager()
+    conn_id = manager.create_connection("c", "fake", provider, {})
+    manager.set_active_collection(conn_id, col)
+    assert manager.get_active_collection() == col
+
+    manager.set_active_collection(conn_id, None)
+    assert manager.get_active_collection() is None
+
+
+def test_get_all_connections_empty():
+    manager = ConnectionManager()
+    assert manager.get_all_connections() == []
+
+
+def test_get_all_connections_returns_all(fake_provider, empty_fake_provider):
+    manager = ConnectionManager()
+    id1 = manager.create_connection("c1", "fake", fake_provider, {})
+    id2 = manager.create_connection("c2", "fake", empty_fake_provider, {})
+
+    all_conns = manager.get_all_connections()
+    assert len(all_conns) == 2
+    ids = {c.id for c in all_conns}
+    assert id1 in ids
+    assert id2 in ids
+
+
+def test_get_all_connections_is_a_copy(fake_provider):
+    """Mutating the returned list should not affect the manager's internal state."""
+    manager = ConnectionManager()
+    manager.create_connection("c1", "fake", fake_provider, {})
+    all_conns = manager.get_all_connections()
+    all_conns.clear()
+    assert manager.get_connection_count() == 1

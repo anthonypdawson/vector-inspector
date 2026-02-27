@@ -12,7 +12,9 @@ class FakeBackupService:
 
     def delete_backup(self, path):
         # pretend deletion succeeds when path matches one of stored backups
-        return any(b["file_path"] == path for b in self._backups)
+        original_len = len(self._backups)
+        self._backups = [b for b in self._backups if b["file_path"] != path]
+        return len(self._backups) < original_len
 
 
 class FakeSettingsService:
@@ -143,3 +145,183 @@ def test_on_backup_selected_enables_buttons(monkeypatch, qtbot):
     dlg._on_backup_selected()
     assert dlg.restore_button.isEnabled() is True
     assert dlg.delete_backup_button.isEnabled() is True
+
+
+# ---------------------------------------------------------------------------
+# _on_backup_finished / _on_backup_error
+# ---------------------------------------------------------------------------
+
+
+def test_on_backup_finished_hides_loading_and_shows_info(monkeypatch, qtbot):
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={}, collection_name="colA")
+
+    shown = {}
+    monkeypatch.setattr(brd.QMessageBox, "information", lambda p, t, m: shown.update({"title": t, "msg": m}))
+    monkeypatch.setattr(brd.QMessageBox, "warning", lambda *a, **k: None)
+
+    dlg._on_backup_finished("/tmp/colA.zip")
+
+    assert "title" in shown
+    assert "Backup Successful" in shown["title"]
+    assert "colA.zip" in shown["msg"]
+
+
+def test_on_backup_error_hides_loading_and_shows_warning(monkeypatch, qtbot):
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={})
+
+    warned = {}
+    monkeypatch.setattr(brd.QMessageBox, "warning", lambda p, t, m: warned.update({"title": t, "msg": m}))
+    monkeypatch.setattr(brd.QMessageBox, "information", lambda *a, **k: None)
+
+    dlg._on_backup_error("disk full")
+
+    assert "Backup Failed" in warned["title"]
+    assert "disk full" in warned["msg"]
+
+
+# ---------------------------------------------------------------------------
+# _on_restore_finished / _on_restore_error
+# ---------------------------------------------------------------------------
+
+
+def test_on_restore_finished_shows_success_message(monkeypatch, qtbot):
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={})
+
+    shown = {}
+    monkeypatch.setattr(brd.QMessageBox, "information", lambda p, t, m: shown.update({"title": t, "msg": m}))
+    monkeypatch.setattr(brd.QMessageBox, "warning", lambda *a, **k: None)
+
+    dlg._on_restore_finished("new_col")
+
+    assert "Restore Successful" in shown["title"]
+    assert "new_col" in shown["msg"]
+
+
+def test_on_restore_error_shows_warning(monkeypatch, qtbot):
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={})
+
+    warned = {}
+    monkeypatch.setattr(brd.QMessageBox, "warning", lambda p, t, m: warned.update({"title": t, "msg": m}))
+    monkeypatch.setattr(brd.QMessageBox, "information", lambda *a, **k: None)
+
+    dlg._on_restore_error("timeout")
+
+    assert "Restore Failed" in warned["title"]
+    assert "timeout" in warned["msg"]
+
+
+# ---------------------------------------------------------------------------
+# _delete_backup
+# ---------------------------------------------------------------------------
+
+
+def _make_sample_backup(backup_dir=None):
+    import os
+    return {
+        "collection_name": "colA",
+        "timestamp": "2026-01-01T00:00:00",
+        "item_count": 5,
+        "file_name": "colA.zip",
+        "file_path": os.path.join(os.getcwd(), "colA.zip"),
+        "file_size": 1024,
+    }
+
+
+def test_delete_backup_no_selection_does_nothing(monkeypatch, qtbot):
+    """_delete_backup is a no-op when nothing is selected."""
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    called = {}
+    monkeypatch.setattr(brd.QMessageBox, "question", lambda *a, **k: called.update({"q": True}) or brd.QMessageBox.StandardButton.No)
+
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={})
+    dlg.backups_list.clearSelection()
+    dlg._delete_backup()
+
+    # question dialog should NOT have been shown
+    assert "q" not in called
+
+
+def test_delete_backup_confirm_yes_calls_service(monkeypatch, qtbot):
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    sample = _make_sample_backup()
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[sample], settings_initial={})
+
+    monkeypatch.setattr(
+        brd.QMessageBox,
+        "question",
+        lambda *a, **k: brd.QMessageBox.StandardButton.Yes,
+    )
+    monkeypatch.setattr(brd.QMessageBox, "information", lambda *a, **k: None)
+    monkeypatch.setattr(brd.QMessageBox, "warning", lambda *a, **k: None)
+
+    dlg.backups_list.setCurrentRow(0)
+    dlg._delete_backup()
+
+    # FakeBackupService.delete_backup returns True only when path matches
+    # After deletion the list should be refreshed (now showing "No backups found")
+    assert dlg.backups_list.count() == 1
+    assert "No backups found" in dlg.backups_list.item(0).text()
+
+
+def test_delete_backup_confirm_no_does_not_delete(monkeypatch, qtbot):
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    sample = _make_sample_backup()
+    monkeypatch.setattr(
+        brd.QMessageBox,
+        "question",
+        lambda *a, **k: brd.QMessageBox.StandardButton.No,
+    )
+
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[sample], settings_initial={})
+    dlg.backups_list.setCurrentRow(0)
+    original_count = dlg.backups_list.count()
+    dlg._delete_backup()
+
+    # List should remain unchanged
+    assert dlg.backups_list.count() == original_count
+
+
+def test_create_backup_with_collection_starts_thread(monkeypatch, qtbot):
+    """When a collection is set, _create_backup should start a BackupThread."""
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    started = {}
+
+    class FakeThread:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def isRunning(self):
+            return False
+
+        def start(self):
+            started["called"] = True
+
+        def finished(self):
+            pass
+
+        def error(self):
+            pass
+
+        finished = type("S", (), {"connect": lambda self, fn: None})()
+        error = type("S", (), {"connect": lambda self, fn: None})()
+
+    monkeypatch.setattr(brd, "BackupThread", FakeThread)
+
+    dlg, service, settings = make_dialog(
+        monkeypatch, qtbot, backups=[], settings_initial={}, collection_name="my_col"
+    )
+    dlg._create_backup()
+
+    assert started.get("called") is True

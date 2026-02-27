@@ -669,3 +669,106 @@ def test_save_profile_create_and_update_and_config_kwargs(qtbot, fake_service, m
     kwargs = dlg3._get_connection_kwargs(http_cfg)
     assert kwargs.get("api_key") == "akey"
     assert kwargs.get("password") == "pwd"
+
+
+def test_fetch_databases_real_implementation(qtbot, fake_service, monkeypatch):
+    """Exercises the real _fetch_databases method (not a stub) to cover its FNDA:0 path."""
+    panel_mod = __import__(
+        "vector_inspector.ui.components.profile_manager_panel",
+        fromlist=["ProfileEditorDialog"],
+    )
+
+    started = {}
+
+    class FakeDatabaseFetchThread:
+        def __init__(self, host, port, user, password, parent=None):
+            started["host"] = host
+            started["port"] = port
+            started["user"] = user
+            started["password"] = password
+            self._cb = None
+
+            class _Sig:
+                def connect(inner_self, cb):
+                    self._cb = cb
+
+            self.finished = _Sig()
+
+        def start(self):
+            started["started"] = True
+
+        def isRunning(self):
+            return False
+
+    monkeypatch.setattr(panel_mod, "DatabaseFetchThread", FakeDatabaseFetchThread)
+
+    dlg = panel_mod.ProfileEditorDialog(fake_service)
+    qtbot.addWidget(dlg)
+
+    # Switch to pgvector so the DB section is visible
+    for i in range(dlg.provider_combo.count()):
+        if dlg.provider_combo.itemData(i) == "pgvector":
+            dlg.provider_combo.setCurrentIndex(i)
+            break
+
+    dlg.host_input.setText("localhost")
+    dlg.port_input.setText("5432")
+    dlg.user_input.setText("admin")
+    dlg.password_input.setText("secret")
+
+    # Call the REAL _fetch_databases (not a stub)
+    dlg._fetch_databases()
+
+    assert started.get("started") is True
+    assert started.get("host") == "localhost"
+    assert started.get("port") == 5432
+    assert started.get("user") == "admin"
+    assert started.get("password") == "secret"
+    # The button should be disabled and status label updated while fetching
+    assert not dlg.db_refresh_btn.isEnabled()
+    assert dlg.db_status_label.text() == "Fetching\u2026"
+
+
+def test_on_databases_fetched_populates_and_handles_error(qtbot, fake_service, monkeypatch):
+    """Exercises _on_databases_fetched for both success and error branches."""
+    panel_mod = __import__(
+        "vector_inspector.ui.components.profile_manager_panel",
+        fromlist=["ProfileEditorDialog"],
+    )
+
+    class _MB:
+        warned = []
+
+        @classmethod
+        def warning(cls, *a, **k):
+            cls.warned.append(a)
+
+    monkeypatch.setattr(panel_mod, "QMessageBox", _MB)
+
+    dlg = panel_mod.ProfileEditorDialog(fake_service)
+    qtbot.addWidget(dlg)
+
+    # Switch to pgvector so database_input widget is visible
+    for i in range(dlg.provider_combo.count()):
+        if dlg.provider_combo.itemData(i) == "pgvector":
+            dlg.provider_combo.setCurrentIndex(i)
+            break
+
+    # Manually disable refresh btn to simulate in-progress state
+    dlg.db_refresh_btn.setEnabled(False)
+
+    # Success: list of databases returned
+    dlg._on_databases_fetched(["mydb", "otherdb"], "")
+    assert dlg.db_refresh_btn.isEnabled()
+    assert "2" in dlg.db_status_label.text() or "Loaded" in dlg.db_status_label.text()
+
+    # Error: empty list + error message
+    dlg.db_refresh_btn.setEnabled(False)
+    dlg._on_databases_fetched([], "connection refused")
+    assert dlg.db_refresh_btn.isEnabled()
+    assert "Failed" in dlg.db_status_label.text()
+    assert len(_MB.warned) > 0
+
+    # Empty list with no error should clear label silently
+    dlg._on_databases_fetched([], "")
+    assert dlg.db_status_label.text() == ""
