@@ -257,7 +257,7 @@ def test_import_and_add_to_provider(tmp_path, empty_fake_provider):
 
 
 def test_export_to_json_with_numpy_embeddings(tmp_path):
-    """export_to_json converts numpy array embeddings to lists (line 46)."""
+    """export_to_json converts numpy array embeddings to lists."""
     import numpy as np
 
     svc = ImportExportService()
@@ -278,7 +278,7 @@ def test_export_to_json_with_numpy_embeddings(tmp_path):
 
 
 def test_export_to_csv_with_numpy_embeddings(tmp_path):
-    """export_to_csv converts numpy array embeddings when included (lines 98-110)."""
+    """export_to_csv converts numpy array embeddings when included."""
     import numpy as np
 
     svc = ImportExportService()
@@ -301,7 +301,7 @@ def test_export_to_csv_with_numpy_embeddings(tmp_path):
 
 
 def test_export_to_parquet_with_numpy_embeddings(tmp_path):
-    """export_to_parquet converts numpy array embeddings (lines 147-159)."""
+    """export_to_parquet converts numpy array embeddings."""
     import numpy as np
 
     svc = ImportExportService()

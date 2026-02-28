@@ -47,7 +47,7 @@ def test_calculate_similarity_metrics():
 
 
 def test_search_no_connection_returns_none():
-    """search() returns None when no connection is set (lines 51-52)."""
+    """search() returns None when no connection is set."""
     sr = SearchRunner()  # connection=None
     result = sr.search("col", "query")
     assert result is None
@@ -74,14 +74,14 @@ def test_search_query_exception_returns_none():
 
 
 def test_search_by_id_no_connection_returns_none():
-    """search_by_id returns None when no connection (lines 89-90)."""
+    """search_by_id returns None when no connection."""
     sr = SearchRunner()  # connection=None
     result = sr.search_by_id("col", "item-id")
     assert result is None
 
 
 def test_search_by_id_connection_without_get_by_ids_returns_none():
-    """search_by_id returns None when connection lacks get_by_ids (lines 105-110)."""
+    """search_by_id returns None when connection lacks get_by_ids."""
 
     class NoGetByIdsConn:
         pass

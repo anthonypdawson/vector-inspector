@@ -176,7 +176,7 @@ def test_signals_emitted_in_sequence(monkeypatch):
 
 
 def test_create_collection_exception_returns_false(monkeypatch):
-    """create_collection returns False when connection.create_collection raises (lines 59-61)."""
+    """create_collection returns False when connection.create_collection raises."""
     svc = CollectionService()
 
     class ThrowingConn:
@@ -189,7 +189,7 @@ def test_create_collection_exception_returns_false(monkeypatch):
 
 
 def test_populate_with_profile_name_saves_settings(monkeypatch):
-    """populate_with_sample_data saves embedding model when profile_name is set (lines 155-165)."""
+    """populate_with_sample_data saves embedding model when profile_name is set."""
     svc = CollectionService()
 
     monkeypatch.setattr(

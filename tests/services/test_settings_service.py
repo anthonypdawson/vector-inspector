@@ -149,7 +149,7 @@ def _fresh(temp_home) -> "SettingsService":
 
 
 # ---------------------------------------------------------------------------
-# _save_settings exception path (lines 69-70)
+# _save_settings exception path
 # ---------------------------------------------------------------------------
 
 
@@ -164,7 +164,7 @@ def test_save_settings_exception_silenced(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# Breadcrumb / search settings (lines 90, 96-98, 104)
+# Breadcrumb / search settings
 # ---------------------------------------------------------------------------
 
 
@@ -183,7 +183,7 @@ def test_set_breadcrumb_elide_mode_valid(temp_home):
 
 
 def test_set_breadcrumb_elide_mode_invalid_defaults_to_left(temp_home):
-    """Invalid mode value is silently corrected to 'left' (lines 96-98)."""
+    """Invalid mode value is silently corrected to 'left'."""
     svc = _fresh(temp_home)
     svc.set_breadcrumb_elide_mode("invalid")
     assert svc.get("breadcrumb.elide_mode") == "left"
@@ -196,7 +196,7 @@ def test_set_default_n_results(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# Embeddings auto-generate (lines 107, 110)
+# Embeddings auto-generate
 # ---------------------------------------------------------------------------
 
 
@@ -212,7 +212,7 @@ def test_set_get_auto_generate_embeddings(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# Window geometry (lines 116, 123, 127-128, 137-139)
+# Window geometry
 # ---------------------------------------------------------------------------
 
 
@@ -229,7 +229,7 @@ def test_set_window_geometry_with_bytes(temp_home):
 
 
 def test_set_window_geometry_with_string_b64(temp_home):
-    """String input is stored as-is (line 123 — already base64)."""
+    """String input is stored as-is (already base64)."""
     import base64
 
     svc = _fresh(temp_home)
@@ -239,14 +239,14 @@ def test_set_window_geometry_with_string_b64(temp_home):
 
 
 def test_set_window_geometry_exception_silenced(temp_home):
-    """set_window_geometry with un-encodable input is silenced (lines 127-128)."""
+    """set_window_geometry with un-encodable input is silenced."""
     svc = _fresh(temp_home)
     # Pass None to trigger a TypeError inside the try block — should not raise
     svc.set_window_geometry(None)  # type: ignore[arg-type]
 
 
 def test_get_window_geometry_invalid_b64_returns_none(temp_home):
-    """get_window_geometry returns None when stored b64 is invalid (lines 137-139)."""
+    """get_window_geometry returns None when stored b64 is invalid."""
     svc = _fresh(temp_home)
     svc.settings["window.geometry"] = "!!! not valid base64 !!!"
     result = svc.get_window_geometry()
@@ -254,7 +254,7 @@ def test_get_window_geometry_invalid_b64_returns_none(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# Cache / telemetry (lines 151, 157, 161)
+# Cache / telemetry
 # ---------------------------------------------------------------------------
 
 
@@ -284,7 +284,7 @@ def test_set_get_telemetry_enabled(temp_home):
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# save_embedding_model / get / remove (lines 197-206, 237-242)
+# save_embedding_model / get / remove
 # ---------------------------------------------------------------------------
 
 
@@ -317,7 +317,7 @@ def test_remove_embedding_model_no_key_exists(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# remove_profile_settings (lines 250-264)
+# remove_profile_settings
 # ---------------------------------------------------------------------------
 
 
@@ -339,7 +339,7 @@ def test_remove_profile_settings_no_key(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# add_custom_embedding_model / get / remove (lines 291-346)
+# add_custom_embedding_model / get / remove
 # ---------------------------------------------------------------------------
 
 
@@ -385,7 +385,7 @@ def test_remove_custom_embedding_model_no_key(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# Embedding cache settings (lines 354, 362, 370, 378-383)
+# Embedding cache settings
 # ---------------------------------------------------------------------------
 
 
@@ -412,7 +412,7 @@ def test_set_get_embedding_cache_dir(temp_home):
 
 
 def test_set_embedding_cache_dir_none_removes_key(temp_home):
-    """set_embedding_cache_dir(None) removes the key (lines 380-383)."""
+    """set_embedding_cache_dir(None) removes the key."""
     svc = _fresh(temp_home)
     svc.set_embedding_cache_dir("/some/path")
     svc.set_embedding_cache_dir(None)
@@ -420,12 +420,12 @@ def test_set_embedding_cache_dir_none_removes_key(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# get_highlight_color_bg without a stored value (lines 419-422)
+# get_highlight_color_bg without a stored value
 # ---------------------------------------------------------------------------
 
 
 def test_get_highlight_color_bg_default_fallback(temp_home):
-    """get_highlight_color_bg returns fallback when no value stored (lines 419-422)."""
+    """get_highlight_color_bg returns fallback when no value stored."""
     svc = _fresh(temp_home)
     # No value set → falls through to HIGHLIGHT_COLOR_BG import or hard-coded default
     result = svc.get_highlight_color_bg()
@@ -434,7 +434,7 @@ def test_get_highlight_color_bg_default_fallback(temp_home):
 
 
 # ---------------------------------------------------------------------------
-# get_use_accent_enabled / set_use_accent_enabled (lines 437-438, 442-445)
+# get_use_accent_enabled / set_use_accent_enabled
 # ---------------------------------------------------------------------------
 
 

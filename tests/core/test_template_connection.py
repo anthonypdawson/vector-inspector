@@ -76,7 +76,7 @@ def test_template_defaults():
 
 
 def test_disconnect_resets_client():
-    """disconnect() sets _client to None (line 50)."""
+    """disconnect() sets _client to None."""
     conn = _make_concrete()
     conn._client = MagicMock()  # simulate a connected state
     assert conn.is_connected is True

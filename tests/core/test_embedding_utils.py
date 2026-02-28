@@ -36,7 +36,7 @@ def _patch_registry(models_by_dim):
 
 
 def test_get_model_for_dimension_single_model():
-    """When only one model matches the dimension, it is returned directly (line 57)."""
+    """When only one model matches the dimension, it is returned directly."""
     from vector_inspector.core.embedding_utils import get_model_for_dimension
 
     m = FakeModelInfo("all-MiniLM-L6-v2", "sentence-transformer")
@@ -46,7 +46,7 @@ def test_get_model_for_dimension_single_model():
 
 
 def test_get_model_for_dimension_multiple_prefer_multimodal():
-    """Multiple models + prefer_multimodal=True should pick the clip model (line 60)."""
+    """Multiple models + prefer_multimodal=True should pick the clip model."""
     from vector_inspector.core.embedding_utils import get_model_for_dimension
 
     text_model = FakeModelInfo("all-MiniLM-L6-v2", "sentence-transformer", modality="text")
@@ -57,7 +57,7 @@ def test_get_model_for_dimension_multiple_prefer_multimodal():
 
 
 def test_get_model_for_dimension_multiple_prefer_multimodal_no_clip():
-    """Multiple models + prefer_multimodal=True but no clip → fallback to first (line 67)."""
+    """Multiple models + prefer_multimodal=True but no clip → fallback to first."""
     from vector_inspector.core.embedding_utils import get_model_for_dimension
 
     m1 = FakeModelInfo("model-a", "sentence-transformer", modality="text")
@@ -68,7 +68,7 @@ def test_get_model_for_dimension_multiple_prefer_multimodal_no_clip():
 
 
 def test_get_model_for_dimension_multiple_prefer_multimodal_false():
-    """prefer_multimodal=False should skip CLIP check and return first model (line 67)."""
+    """prefer_multimodal=False should skip CLIP check and return first model."""
     from vector_inspector.core.embedding_utils import get_model_for_dimension
 
     m1 = FakeModelInfo("model-a", "sentence-transformer")
@@ -103,7 +103,7 @@ def test_get_model_for_dimension_no_models_anywhere():
 
 
 def test_get_available_models_for_dimension_with_custom_models():
-    """Custom models from settings are appended to registry results (lines 98-100)."""
+    """Custom models from settings are appended to registry results."""
     from vector_inspector.core.embedding_utils import get_available_models_for_dimension
 
     m = FakeModelInfo("all-MiniLM-L6-v2", "sentence-transformer")

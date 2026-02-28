@@ -308,12 +308,12 @@ def test_restore_failure_when_add_items_fails(tmp_path):
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Additional backup_collection edge cases (for coverage)
+# Additional backup_collection edge cases
 # ---------------------------------------------------------------------------
 
 
 def test_backup_uses_collection_info_embedding_model(tmp_path):
-    """collection_info has embedding_model key → lines 68-69 covered."""
+    """collection_info has embedding_model key → uses embedding_model from collection_info."""
     conn = MagicMock()
     conn.get_collection_info.return_value = {
         "embedding_model": "clip-model",
@@ -338,7 +338,7 @@ def test_backup_uses_collection_info_embedding_model(tmp_path):
 
 
 def test_backup_get_embedding_model_exception_silenced(tmp_path, fake_provider):
-    """connection.get_embedding_model raises → exception caught, lines 74-75 covered."""
+    """connection.get_embedding_model raises → exception is caught and silenced."""
     conn = fake_provider
     conn.get_embedding_model = MagicMock(side_effect=RuntimeError("sdk error"))
     svc = BackupRestoreService()
@@ -347,7 +347,7 @@ def test_backup_get_embedding_model_exception_silenced(tmp_path, fake_provider):
 
 
 def test_backup_settings_service_exception_silenced(tmp_path, fake_provider):
-    """SettingsService raises inside the settings fallback → lines 90-91 covered."""
+    """SettingsService raises inside the settings fallback → exception is caught and silenced."""
     conn = fake_provider
     conn.get_embedding_model = MagicMock(return_value=None)
     mock_settings = MagicMock()
@@ -362,7 +362,7 @@ def test_backup_settings_service_exception_silenced(tmp_path, fake_provider):
 
 
 def test_backup_embed_metadata_outer_exception(tmp_path, fake_provider):
-    """collection_info.get raises → outer embed-metadata except covers lines 97-99."""
+    """collection_info.get raises → outer embed-metadata exception is caught."""
     conn = fake_provider
 
     # Use a dict subclass that raises on .get("embedding_model") so it's still JSON-serializable
@@ -384,7 +384,7 @@ def test_backup_embed_metadata_outer_exception(tmp_path, fake_provider):
 
 
 def test_backup_write_zip_raises_returns_none(tmp_path, fake_provider):
-    """write_backup_zip raises → outer except covers lines 108-110."""
+    """write_backup_zip raises → outer exception path returns None."""
     conn = fake_provider
     svc = BackupRestoreService()
     with patch(
@@ -396,12 +396,12 @@ def test_backup_write_zip_raises_returns_none(tmp_path, fake_provider):
 
 
 # ---------------------------------------------------------------------------
-# Additional restore_collection edge cases (for coverage)
+# Additional restore_collection edge cases
 # ---------------------------------------------------------------------------
 
 
 def test_restore_no_inferred_size_returns_false(tmp_path):
-    """No vector_dimension in col_info + no embeddings → inferred_size=None → lines 175-179."""
+    """No vector_dimension in col_info + no embeddings → inferred_size=None → returns False."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -419,7 +419,7 @@ def test_restore_no_inferred_size_returns_false(tmp_path):
 
 
 def test_restore_create_collection_returns_false_aborts(tmp_path):
-    """create_collection returns False → lines 188-191 covered."""
+    """create_collection returns False → restore aborts."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -443,7 +443,7 @@ def test_restore_create_collection_returns_false_aborts(tmp_path):
 
 
 def test_restore_create_collection_raises_aborts(tmp_path):
-    """create_collection raises → lines 192-194 covered."""
+    """create_collection raises → restore aborts."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -462,7 +462,7 @@ def test_restore_create_collection_raises_aborts(tmp_path):
 
 
 def test_restore_prepare_restore_returns_false_aborts(tmp_path):
-    """prepare_restore returns False → lines 200-201 covered."""
+    """prepare_restore returns False → restore aborts."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -482,7 +482,7 @@ def test_restore_prepare_restore_returns_false_aborts(tmp_path):
 
 
 def test_restore_recompute_no_model_name(tmp_path):
-    """recompute_embeddings=True but no embedding_model in metadata → lines 217-229."""
+    """recompute_embeddings=True but no embedding_model in metadata → skips recompute."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -503,7 +503,7 @@ def test_restore_recompute_no_model_name(tmp_path):
 
 
 def test_restore_recompute_no_docs(tmp_path):
-    """recompute_embeddings=True with empty documents list → lines 230-232 covered."""
+    """recompute_embeddings=True with empty documents list → skips recompute."""
     metadata = {
         "collection_name": "r_col2",
         "backup_timestamp": "now",
@@ -524,7 +524,7 @@ def test_restore_recompute_no_docs(tmp_path):
 
 
 def test_restore_recompute_with_mocked_model(tmp_path):
-    """recompute_embeddings=True with mocked load_embedding_model → lines 233-249 covered."""
+    """recompute_embeddings=True with mocked load_embedding_model → embeddings recomputed."""
     metadata = {
         "collection_name": "r_col3",
         "backup_timestamp": "now",
@@ -561,7 +561,7 @@ def test_restore_recompute_with_mocked_model(tmp_path):
 
 
 def test_restore_recompute_load_model_raises(tmp_path):
-    """load_embedding_model raises → lines 250-252 covered."""
+    """load_embedding_model raises → exception is caught and restore continues without embeddings."""
     metadata = {
         "collection_name": "r_col4",
         "backup_timestamp": "now",
@@ -586,7 +586,7 @@ def test_restore_recompute_load_model_raises(tmp_path):
 
 
 def test_restore_dimension_mismatch_omits_embeddings(tmp_path):
-    """Stored embeddings have wrong dimension → dimension mismatch → lines 270-275 covered."""
+    """Stored embeddings have wrong dimension → dimension mismatch → embeddings omitted."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -614,7 +614,7 @@ def test_restore_dimension_mismatch_omits_embeddings(tmp_path):
 
 
 def test_restore_save_model_to_settings_raises_is_swallowed(tmp_path):
-    """SettingsService.save_embedding_model raises → lines 320-321 covered."""
+    """SettingsService.save_embedding_model raises → exception is silenced, restore still succeeds."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -642,7 +642,7 @@ def test_restore_save_model_to_settings_raises_is_swallowed(tmp_path):
 
 
 def test_restore_cache_invalidation_raises_is_swallowed(tmp_path):
-    """Cache invalidation raises → lines 335-336 covered."""
+    """Cache invalidation raises → exception is silenced, restore still succeeds."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -669,7 +669,7 @@ def test_restore_cache_invalidation_raises_is_swallowed(tmp_path):
 
 
 def test_restore_add_items_fails_cleanup_deletes_collection(tmp_path):
-    """add_items returns False and collection exists → cleanup deletes it → lines 344-348."""
+    """add_items returns False and collection exists → cleanup deletes it."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -691,7 +691,7 @@ def test_restore_add_items_fails_cleanup_deletes_collection(tmp_path):
 
 
 def test_restore_add_items_fails_cleanup_exception_silenced(tmp_path):
-    """add_items returns False and cleanup list_collections raises → lines 349-350 covered."""
+    """add_items returns False and cleanup list_collections raises → exception silenced."""
     metadata = {
         "collection_name": "r_col",
         "backup_timestamp": "now",
@@ -711,7 +711,7 @@ def test_restore_add_items_fails_cleanup_exception_silenced(tmp_path):
 
 
 def test_restore_outer_exception_cleanup_succeeds(tmp_path):
-    """Exception raised inside outer try after collection named → lines 353-364, 367 covered."""
+    """Exception raised inside outer try after collection named → cleanup on exception path."""
     metadata = {
         "collection_name": "cleanup_col",
         "backup_timestamp": "now",
@@ -735,7 +735,7 @@ def test_restore_outer_exception_cleanup_succeeds(tmp_path):
 
 
 def test_restore_outer_exception_cleanup_also_fails(tmp_path):
-    """Exception in restore AND cleanup list_collections raises → lines 365-366 covered."""
+    """Exception in restore AND cleanup list_collections raises → both exceptions silenced."""
     metadata = {
         "collection_name": "cleanup_col",
         "backup_timestamp": "now",
@@ -761,7 +761,7 @@ def test_list_backups_returns_empty_for_missing_dir(tmp_path):
 
 
 def test_list_backups_skips_corrupted_zip(tmp_path):
-    """A file matching the glob pattern but invalid zip → lines 398-399 covered."""
+    """A file matching the glob pattern but invalid zip → skipped via continue."""
     # Create a file that matches the *_backup_*.zip glob but isn't a valid zip
     bad_file = tmp_path / "test_backup_20240101_000000.zip"
     bad_file.write_text("not a zip file")

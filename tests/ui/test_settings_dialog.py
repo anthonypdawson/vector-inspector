@@ -274,7 +274,7 @@ def test_update_cache_info_enabled_no_models_yet(monkeypatch, qtbot):
 
 
 def test_settings_panel_hook_exception_swallowed(qtbot):
-    """If settings_panel_hook.trigger raises, the dialog still initializes (lines 130-131)."""
+    """If settings_panel_hook.trigger raises, the dialog still initializes."""
     fake_settings = FakeSettings()
 
     with patch("vector_inspector.ui.dialogs.settings_dialog.settings_panel_hook") as mock_hook:

@@ -30,7 +30,7 @@ def _make_valid_cache_entry(cache_dir: Path, model_name: str) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# get_cache_dir  (lines 53-55: custom dir from settings)
+# get_cache_dir
 # ---------------------------------------------------------------------------
 
 
@@ -64,7 +64,7 @@ def test_get_cache_dir_falls_back_to_default_when_no_custom(tmp_path, monkeypatc
 
 
 # ---------------------------------------------------------------------------
-# save_model_to_cache  (lines 133-135, 138-140, 153, 162-163, 178, 188-189)
+# save_model_to_cache
 # ---------------------------------------------------------------------------
 
 
@@ -153,7 +153,7 @@ def test_save_model_to_cache_no_save_method(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# load_cached_path  (lines 119, 127 via _update_access_time)
+# load_cached_path
 # ---------------------------------------------------------------------------
 
 
@@ -200,7 +200,7 @@ def test_load_cached_path_returns_none_when_cache_disabled(tmp_path, monkeypatch
 
 
 # ---------------------------------------------------------------------------
-# clear_cache  (lines 224-226, 259)
+# clear_cache
 # ---------------------------------------------------------------------------
 
 
@@ -247,7 +247,7 @@ def test_clear_cache_all(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# get_cache_info  (lines 290-291, 300, 308-310, 322, 351-353)
+# get_cache_info
 # ---------------------------------------------------------------------------
 
 
