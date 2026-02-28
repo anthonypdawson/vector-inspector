@@ -390,7 +390,7 @@ def test_vector_dimension_display(qtbot):
     assert "7-dim" in section_title
 
 
-# ---- Exception and early-return path tests (lines 302-303, 313-314, 372-373, 395, 405-406, 411, 428-429) ----
+# ---- Exception and early-return path tests ----
 
 
 class BadEmbedding:
@@ -407,7 +407,7 @@ class BadEmbedding:
 
 
 def test_update_item_invalid_timestamp(qtbot):
-    """Covers lines 302-303: invalid timestamp triggers fallback text."""
+    """invalid timestamp triggers fallback text."""
     pane = InlineDetailsPane(view_mode="data_browser")
     qtbot.addWidget(pane)
 
@@ -437,7 +437,7 @@ def test_update_item_bad_embedding_len(qtbot):
 
 
 def test_update_item_bad_embedding_display(qtbot):
-    """Covers lines 372-373: exception when displaying vector."""
+    """exception when displaying vector."""
     pane = InlineDetailsPane(view_mode="data_browser")
     qtbot.addWidget(pane)
 
@@ -452,7 +452,7 @@ def test_update_item_bad_embedding_display(qtbot):
 
 
 def test_copy_vector_no_current_item(qtbot):
-    """Covers line 395: early return in _copy_vector when no current item."""
+    """early return in _copy_vector when no current item."""
     pane = InlineDetailsPane(view_mode="data_browser")
     qtbot.addWidget(pane)
     pane._copy_vector()  # Should not raise
@@ -467,7 +467,7 @@ def test_copy_vector_exception(qtbot):
 
 
 def test_copy_vector_json_no_current_item(qtbot):
-    """Covers line 411: early return in _copy_vector_json when no current item."""
+    """early return in _copy_vector_json when no current item."""
     pane = InlineDetailsPane(view_mode="data_browser")
     qtbot.addWidget(pane)
     pane._copy_vector_json()  # Should not raise

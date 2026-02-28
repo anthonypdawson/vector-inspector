@@ -13,7 +13,7 @@ def app_state(qapp):
 
 
 # ---------------------------------------------------------------------------
-# collection property (lines 139-141)
+# collection property
 # ---------------------------------------------------------------------------
 
 
@@ -48,7 +48,7 @@ def test_collection_setter_with_none_emits_empty_string(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# database property (lines 147, 152)
+# database property
 # ---------------------------------------------------------------------------
 
 
@@ -73,7 +73,7 @@ def test_database_setter_no_signal_when_same(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# set_data / set_metadata (lines 177-178, 184)
+# set_data / set_metadata
 # ---------------------------------------------------------------------------
 
 
@@ -102,7 +102,7 @@ def test_set_metadata_emits_signal(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# selected_ids (lines 189-191)
+# selected_ids
 # ---------------------------------------------------------------------------
 
 
@@ -126,7 +126,7 @@ def test_selected_ids_setter_no_signal_when_same(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# set_clusters / clear_clusters (lines 197, 202, 206-208)
+# set_clusters / clear_clusters
 # ---------------------------------------------------------------------------
 
 
@@ -170,7 +170,7 @@ def test_clear_clusters_no_signal_when_already_clear(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# set_search_results / clear_search_results (lines 212-215, 221, 226)
+# set_search_results / clear_search_results
 # ---------------------------------------------------------------------------
 
 
@@ -217,7 +217,7 @@ def test_clear_search_results_no_signal_when_already_clear(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# client_filters / server_filter setters (lines 230-233, 237-240)
+# client_filters / server_filter setters
 # ---------------------------------------------------------------------------
 
 
@@ -242,7 +242,7 @@ def test_server_filter_setter_emits_signal(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# active_filters setter (lines 246, 251-253, 258)
+# active_filters setter
 # ---------------------------------------------------------------------------
 
 
@@ -284,7 +284,7 @@ def test_active_filters_setter_empty_dict(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# scroll_position setter (lines 263-265)
+# scroll_position setter
 # ---------------------------------------------------------------------------
 
 
@@ -294,7 +294,7 @@ def test_scroll_position_setter(app_state):
 
 
 # ---------------------------------------------------------------------------
-# user_inputs / set_user_input / get_user_input (lines 269, 278, 283-292)
+# user_inputs / set_user_input / get_user_input
 # ---------------------------------------------------------------------------
 
 
@@ -314,7 +314,7 @@ def test_get_user_input_set_value(app_state):
 
 
 # ---------------------------------------------------------------------------
-# set_page / page properties (lines 298, 303, 308, 312)
+# set_page / page properties
 # ---------------------------------------------------------------------------
 
 
@@ -349,7 +349,7 @@ def test_set_page_no_signal_when_unchanged(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# start_loading / finish_loading / emit_error (lines 316, 322, 327)
+# start_loading / finish_loading / emit_error
 # ---------------------------------------------------------------------------
 
 
@@ -378,7 +378,7 @@ def test_emit_error_sends_signal(app_state, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# enable_advanced_features (lines 331-333)
+# enable_advanced_features
 # ---------------------------------------------------------------------------
 
 
@@ -403,7 +403,7 @@ def test_advanced_features_enabled_checks_vector_studio(app_state, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# get_feature_tooltip (lines 336-339)
+# get_feature_tooltip
 # ---------------------------------------------------------------------------
 
 
@@ -418,7 +418,7 @@ def test_get_feature_tooltip_custom_name(app_state):
 
 
 # ---------------------------------------------------------------------------
-# get_cache_key (lines 371, 377, 383)
+# get_cache_key
 # ---------------------------------------------------------------------------
 
 
@@ -436,7 +436,7 @@ def test_get_cache_key_returns_none_when_missing(app_state):
 
 
 # ---------------------------------------------------------------------------
-# provider setter clears dependent state (lines 415-417)
+# provider setter clears dependent state
 # ---------------------------------------------------------------------------
 
 

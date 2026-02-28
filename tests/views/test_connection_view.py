@@ -170,7 +170,7 @@ def test_connect_with_config_missing_api_key(monkeypatch, qtbot):
 
 
 def test_connection_thread_connect_returns_false():
-    """Line 50: connect() returns False (no exception) emits finished(False, [])."""
+    """connect() returns False (no exception) emits finished(False, [])."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     fake = make_fake_connection(success=False)
     t = mod.ConnectionThread(fake)
@@ -187,7 +187,7 @@ def test_connection_thread_connect_returns_false():
 
 
 def test_on_provider_changed_port_updates(qtbot):
-    """Lines 213-215: switching provider updates port defaults."""
+    """switching provider updates port defaults."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -206,7 +206,7 @@ def test_on_provider_changed_port_updates(qtbot):
 
 
 def test_on_provider_changed_pinecone_branch(qtbot):
-    """Lines 272-280: switching to Pinecone disables path/host/port, enables api_key."""
+    """switching to Pinecone disables path/host/port, enables api_key."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -221,7 +221,7 @@ def test_on_provider_changed_pinecone_branch(qtbot):
 
 
 def test_on_provider_changed_qdrant_else_branch(qtbot):
-    """Lines 282-287: else branch for qdrant provider enables radio buttons."""
+    """else branch for qdrant provider enables radio buttons."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -235,7 +235,7 @@ def test_on_provider_changed_qdrant_else_branch(qtbot):
 
 
 def test_on_type_changed_pinecone(qtbot):
-    """Lines 300-307: _on_type_changed for pinecone enables api_key, disables rest."""
+    """_on_type_changed for pinecone enables api_key, disables rest."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -249,7 +249,7 @@ def test_on_type_changed_pinecone(qtbot):
 
 
 def test_on_type_changed_pgvector(qtbot):
-    """Lines 308-315: _on_type_changed for pgvector enables host/port/db."""
+    """_on_type_changed for pgvector enables host/port/db."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -263,7 +263,7 @@ def test_on_type_changed_pgvector(qtbot):
 
 
 def test_on_type_changed_http_and_ephemeral(qtbot):
-    """Lines 316-325: _on_type_changed for http and ephemeral."""
+    """_on_type_changed for http and ephemeral."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -281,7 +281,7 @@ def test_on_type_changed_http_and_ephemeral(qtbot):
 
 
 def test_get_connection_config_pgvector(qtbot):
-    """Line 351: get_connection_config PgVector branch."""
+    """get_connection_config PgVector branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -296,7 +296,7 @@ def test_get_connection_config_pgvector(qtbot):
 
 
 def test_get_connection_config_http_and_ephemeral(qtbot):
-    """Lines 355-367: get_connection_config http and ephemeral branches."""
+    """get_connection_config http and ephemeral branches."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     dialog = mod.ConnectionDialog()
     qtbot.addWidget(dialog)
@@ -318,7 +318,7 @@ def test_get_connection_config_http_and_ephemeral(qtbot):
 
 
 def test_load_last_connection_cloud(monkeypatch, qtbot):
-    """Lines 409-418: _load_last_connection cloud (Pinecone) branch."""
+    """_load_last_connection cloud (Pinecone) branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
 
     class FakeSettings:
@@ -336,7 +336,7 @@ def test_load_last_connection_cloud(monkeypatch, qtbot):
 
 
 def test_load_last_connection_pgvector(monkeypatch, qtbot):
-    """Lines 419-425: _load_last_connection pgvector branch."""
+    """_load_last_connection pgvector branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
 
     class FakeSettings:
@@ -364,7 +364,7 @@ def test_load_last_connection_pgvector(monkeypatch, qtbot):
 
 
 def test_load_last_connection_http(monkeypatch, qtbot):
-    """Lines 426-432: _load_last_connection http branch."""
+    """_load_last_connection http branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
 
     class FakeSettings:
@@ -390,7 +390,7 @@ def test_load_last_connection_http(monkeypatch, qtbot):
 
 
 def test_load_last_connection_ephemeral(monkeypatch, qtbot):
-    """Lines 433-438: _load_last_connection ephemeral branch + auto_connect."""
+    """_load_last_connection ephemeral branch + auto_connect."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
 
     class FakeSettings:
@@ -460,7 +460,7 @@ def _make_fake_connection_view_dependencies(monkeypatch, mod):
 
 
 def test_connect_with_config_qdrant_persistent(monkeypatch, qtbot):
-    """Lines 517-521: _connect_with_config qdrant persistent branch."""
+    """_connect_with_config qdrant persistent branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
@@ -472,7 +472,7 @@ def test_connect_with_config_qdrant_persistent(monkeypatch, qtbot):
 
 
 def test_connect_with_config_qdrant_http(monkeypatch, qtbot):
-    """Lines 522-527: _connect_with_config qdrant http branch."""
+    """_connect_with_config qdrant http branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
@@ -484,7 +484,7 @@ def test_connect_with_config_qdrant_http(monkeypatch, qtbot):
 
 
 def test_connect_with_config_qdrant_ephemeral(monkeypatch, qtbot):
-    """Line 530: _connect_with_config qdrant ephemeral branch."""
+    """_connect_with_config qdrant ephemeral branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
@@ -496,7 +496,7 @@ def test_connect_with_config_qdrant_ephemeral(monkeypatch, qtbot):
 
 
 def test_connect_with_config_pgvector(monkeypatch, qtbot):
-    """Lines 531-538: _connect_with_config pgvector branch."""
+    """_connect_with_config pgvector branch."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
@@ -517,7 +517,7 @@ def test_connect_with_config_pgvector(monkeypatch, qtbot):
 
 
 def test_on_connection_finished_failure(monkeypatch, qtbot):
-    """Lines 595-599: _on_connection_finished failure path."""
+    """_on_connection_finished failure path."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
@@ -535,7 +535,7 @@ def test_on_connection_finished_failure(monkeypatch, qtbot):
 
 
 def test_disconnect(monkeypatch, qtbot):
-    """Lines 603-610: _disconnect updates UI and emits signal."""
+    """_disconnect updates UI and emits signal."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
@@ -556,7 +556,7 @@ def test_disconnect(monkeypatch, qtbot):
 
 
 def test_try_auto_connect(monkeypatch, qtbot):
-    """Line 617: _try_auto_connect connects when auto_connect is True."""
+    """_try_auto_connect connects when auto_connect is True."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
@@ -576,7 +576,7 @@ def test_try_auto_connect(monkeypatch, qtbot):
 
 
 def test_show_connection_dialog_accepted(monkeypatch, qtbot):
-    """Lines 493-497: show_connection_dialog when dialog is accepted."""
+    """show_connection_dialog when dialog is accepted."""
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 

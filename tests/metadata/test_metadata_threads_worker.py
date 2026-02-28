@@ -423,7 +423,7 @@ def test_data_import_thread_run_direct_no_connection():
 
 
 def test_item_update_thread_run_direct_no_connection():
-    """ItemUpdateThread.run() with no connection emits error (lines 76-77)."""
+    """ItemUpdateThread.run() with no connection emits error."""
     item = {"id": "id_x", "document": "doc", "metadata": {}}
     thread = ItemUpdateThread(None, "col", item)
 
@@ -436,7 +436,7 @@ def test_item_update_thread_run_direct_no_connection():
 
 
 def test_item_update_thread_run_direct_exception():
-    """ItemUpdateThread.run() propagates exception as error (lines 109-110)."""
+    """ItemUpdateThread.run() propagates exception as error."""
 
     class ErrorConn:
         def update_items(self, *a, **k):
@@ -454,7 +454,7 @@ def test_item_update_thread_run_direct_exception():
 
 
 def test_data_import_thread_run_direct_parquet(monkeypatch, tmp_path):
-    """DataImportThread covers parquet branch (lines 157-158)."""
+    """DataImportThread covers parquet branch."""
     import sys
     import types
 
@@ -478,7 +478,7 @@ def test_data_import_thread_run_direct_parquet(monkeypatch, tmp_path):
 
 
 def test_data_import_thread_run_direct_add_items_fails(monkeypatch, tmp_path):
-    """DataImportThread covers add_items failure path (lines 180-181)."""
+    """DataImportThread covers add_items failure path."""
     import sys
     import types
 
@@ -503,7 +503,7 @@ def test_data_import_thread_run_direct_add_items_fails(monkeypatch, tmp_path):
 
 
 def test_data_import_thread_run_direct_exception(monkeypatch, tmp_path):
-    """DataImportThread.run() covers except block (lines 182-183)."""
+    """DataImportThread.run() covers except block."""
     import sys
     import types
 

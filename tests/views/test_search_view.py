@@ -52,12 +52,12 @@ def sv(qtbot, fake_provider, task_runner):
 
 
 # ---------------------------------------------------------------------------
-# Signal-connected handler methods (lines 124-139)
+# Signal-connected handler methods
 # ---------------------------------------------------------------------------
 
 
 def test_on_provider_changed_clears_results(sv, qtbot, fake_provider):
-    """Lines 124-127: _on_provider_changed clears results and updates status."""
+    """_on_provider_changed clears results and updates status."""
     # Pre-populate table so clearing is observable
     sv.results_table.setRowCount(3)
     sv.app_state.provider_changed.emit(None)
@@ -66,20 +66,20 @@ def test_on_provider_changed_clears_results(sv, qtbot, fake_provider):
 
 
 def test_on_provider_changed_with_connection(sv, qtbot, fake_provider):
-    """Lines 124-127: _on_provider_changed sets connection when provided."""
+    """_on_provider_changed sets connection when provided."""
     sv.app_state.provider_changed.emit(fake_provider)
     assert sv.connection is fake_provider
 
 
 def test_on_collection_changed_calls_set_collection(sv, qtbot):
-    """Line 131: _on_collection_changed → set_collection()."""
+    """_on_collection_changed → set_collection()."""
     sv.app_state.database = "test_db"
     sv.app_state.collection_changed.emit("col1")
     assert sv.current_collection == "col1"
 
 
 def test_on_loading_started_shows_dialog(sv, qtbot, monkeypatch):
-    """Line 135: _on_loading_started shows the loading dialog."""
+    """_on_loading_started shows the loading dialog."""
     showed = []
     monkeypatch.setattr(sv.loading_dialog, "show_loading", lambda msg: showed.append(msg))
     sv.app_state.loading_started.emit("Loading...")
@@ -87,7 +87,7 @@ def test_on_loading_started_shows_dialog(sv, qtbot, monkeypatch):
 
 
 def test_on_loading_finished_hides_dialog(sv, qtbot, monkeypatch):
-    """Line 139: _on_loading_finished hides the loading dialog."""
+    """_on_loading_finished hides the loading dialog."""
     hidden = []
     monkeypatch.setattr(sv.loading_dialog, "hide", lambda: hidden.append(True))
     sv.app_state.loading_finished.emit()
@@ -95,7 +95,7 @@ def test_on_loading_finished_hides_dialog(sv, qtbot, monkeypatch):
 
 
 def test_on_error_shows_critical_dialog(sv, qtbot, monkeypatch):
-    """Line 143: _on_error shows QMessageBox.critical."""
+    """_on_error shows QMessageBox.critical."""
     import vector_inspector.ui.views.search_view as sv_mod
 
     shown = []
@@ -107,12 +107,12 @@ def test_on_error_shows_critical_dialog(sv, qtbot, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Breadcrumb elide modes (lines 277, 299-301)
+# Breadcrumb elide modes
 # ---------------------------------------------------------------------------
 
 
 def test_set_breadcrumb_elide_left(sv, qtbot):
-    """Line 277: ElideLeft mode is used when _elide_mode == 'left'."""
+    """ElideLeft mode is used when _elide_mode == 'left'."""
     sv._elide_mode = "left"
     sv._full_breadcrumb = "long > path > to > collection > name"
     sv._update_breadcrumb_display()
@@ -121,7 +121,7 @@ def test_set_breadcrumb_elide_left(sv, qtbot):
 
 
 def test_set_elide_mode_middle(sv, qtbot):
-    """Lines 299-301: set_elide_mode with 'middle' refreshes display."""
+    """set_elide_mode with 'middle' refreshes display."""
     sv.set_breadcrumb("DB > MyCollection > SubItem")
     sv.set_elide_mode("middle")
     assert sv._elide_mode == "middle"
@@ -134,12 +134,12 @@ def test_set_elide_mode_invalid_defaults_to_left(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# Cache hit path in set_collection (lines 368-375)
+# Cache hit path in set_collection
 # ---------------------------------------------------------------------------
 
 
 def test_set_collection_cache_hit_restores_results(sv, qtbot):
-    """Lines 368-375: cache hit → restores search results and returns early."""
+    """cache hit → restores search results and returns early."""
     results = {
         "ids": [["id1", "id2"]],
         "documents": [["doc1", "doc2"]],
@@ -155,12 +155,12 @@ def test_set_collection_cache_hit_restores_results(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# Cache miss path & metadata loading (lines 315-322)
+# Cache miss path & metadata loading
 # ---------------------------------------------------------------------------
 
 
 def test_set_collection_cache_miss_loads_metadata(sv, qtbot):
-    """Lines 315-322: cache miss clears form and loads metadata fields."""
+    """cache miss clears form and loads metadata fields."""
     sv.set_collection("col1", "test_db")
     # After set_collection, filter builder should have fields from metadata
     # (fake provider returns {"key": "v1"} items)
@@ -169,26 +169,26 @@ def test_set_collection_cache_miss_loads_metadata(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _perform_search paths (lines 328-363)
+# _perform_search paths
 # ---------------------------------------------------------------------------
 
 
 def test_perform_search_empty_query(sv, qtbot):
-    """Lines 328-331: empty query → status updated, no search started."""
+    """empty query → status updated, no search started."""
     sv.query_input.clear()
     sv._perform_search()
     assert sv.results_status.text() == "Please enter search text"
 
 
 def test_perform_search_no_collection(sv, qtbot):
-    """Line 328: no collection → 'No collection selected'."""
+    """no collection → 'No collection selected'."""
     sv.current_collection = ""
     sv._perform_search()
     assert "No collection selected" in sv.results_status.text()
 
 
 def test_perform_search_cancels_running_thread(sv, qtbot):
-    """Line 352: running thread is quit/wait'd before new search."""
+    """running thread is quit/wait'd before new search."""
 
     class FakeThread:
         def __init__(self):
@@ -237,12 +237,12 @@ def test_perform_search_cancels_running_thread(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _on_search_finished (lines 400, 407-419)
+# _on_search_finished
 # ---------------------------------------------------------------------------
 
 
 def test_on_search_finished_empty_results(sv, qtbot):
-    """Line 400: empty results → 'No results found' status."""
+    """empty results → 'No results found' status."""
     sv._search_start_time = __import__("time").time()
     sv._search_correlation_id = "test-id"
     sv._search_server_filter = None
@@ -252,7 +252,7 @@ def test_on_search_finished_empty_results(sv, qtbot):
 
 
 def test_on_search_finished_with_results(sv, qtbot):
-    """Lines 407-419: valid results → display and cache update."""
+    """valid results → display and cache update."""
     import time
 
     sv._search_start_time = time.time()
@@ -273,7 +273,7 @@ def test_on_search_finished_with_results(sv, qtbot):
 
 
 def test_on_search_finished_with_client_filters(sv, qtbot):
-    """Lines 407-413: client-side filters applied after results."""
+    """client-side filters applied after results."""
     import time
 
     sv._search_start_time = time.time()
@@ -296,12 +296,12 @@ def test_on_search_finished_with_client_filters(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _on_search_error (lines 423-435)
+# _on_search_error
 # ---------------------------------------------------------------------------
 
 
 def test_on_search_error_updates_status(sv, qtbot):
-    """Lines 423-435: search error updates status and clears table."""
+    """search error updates status and clears table."""
     import time
 
     sv._search_start_time = time.time()
@@ -316,12 +316,12 @@ def test_on_search_error_updates_status(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _on_row_double_clicked (lines 447-448)
+# _on_row_double_clicked
 # ---------------------------------------------------------------------------
 
 
 def test_on_row_double_clicked_out_of_bounds(sv, qtbot):
-    """Lines 447-448: row >= len(ids) → no dialog shown (no crash)."""
+    """row >= len(ids) → no dialog shown (no crash)."""
     sv.search_results = {
         "ids": [["id1"]],
         "documents": [["doc1"]],
@@ -337,12 +337,12 @@ def test_on_row_double_clicked_out_of_bounds(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _on_selection_changed (lines 499-521)
+# _on_selection_changed
 # ---------------------------------------------------------------------------
 
 
 def test_on_selection_changed_no_results(sv, qtbot):
-    """Lines 499-500: no search_results → pane updated with None."""
+    """no search_results → pane updated with None."""
     sv.search_results = None
     updated = []
     sv.details_pane.update_item = lambda d: updated.append(d)
@@ -351,7 +351,7 @@ def test_on_selection_changed_no_results(sv, qtbot):
 
 
 def test_on_selection_changed_with_row(sv, qtbot):
-    """Lines 513-521: selection changes → details pane updated."""
+    """selection changes → details pane updated."""
     sv.search_results = {
         "ids": [["id1", "id2"]],
         "documents": [["doc1", "doc2"]],
@@ -379,12 +379,12 @@ def test_on_selection_changed_with_row(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _copy_vectors_to_json (lines 579-637)
+# _copy_vectors_to_json
 # ---------------------------------------------------------------------------
 
 
 def test_copy_vectors_no_results(sv, qtbot, monkeypatch):
-    """Lines 579-580: no search_results → warning dialog."""
+    """no search_results → warning dialog."""
     import vector_inspector.ui.views.search_view as sv_mod
 
     warnings = []
@@ -406,7 +406,7 @@ def test_copy_vectors_no_results(sv, qtbot, monkeypatch):
 
 
 def test_copy_vectors_no_ids(sv, qtbot, monkeypatch):
-    """Lines 579-588: empty ids → warning dialog."""
+    """empty ids → warning dialog."""
     import vector_inspector.ui.views.search_view as sv_mod
 
     warnings = []
@@ -428,7 +428,7 @@ def test_copy_vectors_no_ids(sv, qtbot, monkeypatch):
 
 
 def test_copy_vectors_fetches_embedding(sv, qtbot, monkeypatch):
-    """Lines 590-637: fetches embedding from connection and copies to clipboard."""
+    """fetches embedding from connection and copies to clipboard."""
     import vector_inspector.ui.views.search_view as sv_mod
 
     sv.search_results = {
@@ -478,12 +478,12 @@ def test_copy_vectors_fetches_embedding(sv, qtbot, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# _show_context_menu (lines 659-680)
+# _show_context_menu
 # ---------------------------------------------------------------------------
 
 
 def test_show_context_menu_no_item(sv, qtbot):
-    """Lines 659-660: no item at position → no menu shown (no crash)."""
+    """no item at position → no menu shown (no crash)."""
     from PySide6.QtCore import QPoint
 
     sv.results_table.setRowCount(0)
@@ -492,7 +492,7 @@ def test_show_context_menu_no_item(sv, qtbot):
 
 
 def test_show_context_menu_on_valid_row(sv, qtbot, monkeypatch):
-    """Lines 665-680: valid row → context menu populated and exec'd."""
+    """valid row → context menu populated and exec'd."""
     import time
 
     import vector_inspector.ui.views.search_view as sv_mod
@@ -555,12 +555,12 @@ def test_show_context_menu_on_valid_row(sv, qtbot, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# _display_results column restore (lines 768-815)
+# _display_results column restore
 # ---------------------------------------------------------------------------
 
 
 def test_display_results_column_restore_on_second_call(sv, qtbot):
-    """Lines 768-815: second _display_results call with existing columns triggers restore logic."""
+    """second _display_results call with existing columns triggers restore logic."""
     results = {
         "ids": [["id1", "id2"]],
         "documents": [["doc1", "doc2"]],
@@ -578,7 +578,7 @@ def test_display_results_column_restore_on_second_call(sv, qtbot):
 
 
 def test_display_results_empty_ids(sv, qtbot):
-    """Line 824: empty ids → clear table and 'No results found'."""
+    """empty ids → clear table and 'No results found'."""
     results = {"ids": [[]], "documents": [[]], "metadatas": [[]], "distances": [[]]}
     sv._display_results(results)
     assert sv.results_table.rowCount() == 0
@@ -586,7 +586,7 @@ def test_display_results_empty_ids(sv, qtbot):
 
 
 def test_display_results_null_distance(sv, qtbot):
-    """Line 832: None distance is displayed as 'N/A'."""
+    """None distance is displayed as 'N/A'."""
     results = {
         "ids": [["id1"]],
         "documents": [["doc1"]],
@@ -599,7 +599,7 @@ def test_display_results_null_distance(sv, qtbot):
 
 
 def test_display_results_truncates_long_doc(sv, qtbot):
-    """Lines 840-844: doc > 150 chars is truncated."""
+    """doc > 150 chars is truncated."""
     long_doc = "x" * 200
     results = {
         "ids": [["id1"]],
@@ -613,12 +613,12 @@ def test_display_results_truncates_long_doc(sv, qtbot):
 
 
 # ---------------------------------------------------------------------------
-# closeEvent (lines 857-862)
+# closeEvent
 # ---------------------------------------------------------------------------
 
 
 def test_close_event_saves_pane_state(sv, qtbot, monkeypatch):
-    """Lines 857-862: closeEvent calls details_pane.save_state()."""
+    """closeEvent calls details_pane.save_state()."""
     saved = []
     monkeypatch.setattr(sv.details_pane, "save_state", lambda: saved.append(True))
     from PySide6.QtGui import QCloseEvent

@@ -342,7 +342,7 @@ def test_get_telemetry_service_creates_singleton(monkeypatch):
 
 
 def test_global_exception_hook_inner_log_error_failure_silenced(monkeypatch):
-    """Lines 71-72: log_error raises inside telemetry-failure handler → silenced, original hook still called."""
+    """log_error raises inside telemetry-failure handler → silenced, original hook still called."""
     import vector_inspector.utils.exception_handler as eh
 
     called = {}
@@ -376,7 +376,7 @@ def test_global_exception_hook_inner_log_error_failure_silenced(monkeypatch):
 
 
 def test_qt_message_handler_inner_log_error_failure_silenced(monkeypatch):
-    """Lines 115-116: log_error raises inside Qt handler telemetry-failure path → silenced."""
+    """log_error raises inside Qt handler telemetry-failure path → silenced."""
     import PySide6.QtCore as qtcore
     from PySide6.QtCore import QMessageLogContext, QtMsgType
 
@@ -406,7 +406,7 @@ def test_qt_message_handler_inner_log_error_failure_silenced(monkeypatch):
 
 
 def test_setup_qt_handler_install_failure_logs_error(monkeypatch):
-    """Lines 130-131: qInstallMessageHandler raises → outer except logs error."""
+    """qInstallMessageHandler raises → outer except logs error."""
     import PySide6.QtCore as qtcore
 
     import vector_inspector.utils.exception_handler as eh
@@ -436,7 +436,7 @@ def test_setup_qt_handler_install_failure_logs_error(monkeypatch):
 
 
 def test_exception_decorator_inner_log_error_failure_silenced(monkeypatch):
-    """Lines 185-186: log_error raises inside decorator telemetry-failure handler → original exception still raised."""
+    """log_error raises inside decorator telemetry-failure handler → original exception still raised."""
     import vector_inspector.utils.exception_handler as eh
 
     monkeypatch.setattr(eh, "_get_telemetry_service", lambda: (_ for _ in ()).throw(RuntimeError("telemetry dead")))

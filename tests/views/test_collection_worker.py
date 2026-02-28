@@ -225,7 +225,7 @@ class SampleFailingCollectionService(QObject):
 
 
 def test_worker_run_direct_sample_fails(monkeypatch):
-    """Covers lines 135-146: sample creation fails after collection created."""
+    """sample creation fails after collection created."""
     monkeypatch.setattr(cw_module, "CollectionService", SampleFailingCollectionService)
     monkeypatch.setattr(cw_module, "TelemetryService", lambda: None)
 

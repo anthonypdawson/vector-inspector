@@ -156,7 +156,7 @@ def test_process_loaded_data_client_filter_all_removed_sets_zero_rows(qtbot, mon
 
 
 # ---------------------------------------------------------------------------
-# _handle_server_side_pagination — has_next_page trim branch (line 155)
+# _handle_server_side_pagination — has_next_page trim branch
 # ---------------------------------------------------------------------------
 
 
@@ -176,7 +176,7 @@ def test_process_loaded_data_trims_extra_items_to_page_size(qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _trim_data_to_page_size — exception-handling branches (lines 178–199)
+# _trim_data_to_page_size — exception-handling branches
 # ---------------------------------------------------------------------------
 
 
@@ -243,7 +243,7 @@ def test_trim_data_slice_and_list_both_raise_returns_empty():
 
 
 # ---------------------------------------------------------------------------
-# _save_to_cache — early return when db/collection is None (lines 210–218)
+# _save_to_cache — early return when db/collection is None
 # ---------------------------------------------------------------------------
 
 
@@ -287,7 +287,7 @@ def test_save_to_cache_no_cache_manager(qtbot):
 
 
 # ---------------------------------------------------------------------------
-# _select_item_if_needed — item found in ids (lines 242–251)
+# _select_item_if_needed — item found in ids
 # ---------------------------------------------------------------------------
 
 

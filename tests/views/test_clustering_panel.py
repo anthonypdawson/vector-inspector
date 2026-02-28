@@ -27,7 +27,7 @@ def panel_advanced(qtbot, app_state_with_fake_provider):
 
 
 # ---------------------------------------------------------------------------
-# _toggle_advanced (lines 407-414)
+# _toggle_advanced
 # ---------------------------------------------------------------------------
 
 
@@ -52,7 +52,7 @@ def test_toggle_advanced_shows_then_hides(qtbot, panel):
 
 
 # ---------------------------------------------------------------------------
-# _on_algorithm_changed with advanced widget visible (lines 428-430)
+# _on_algorithm_changed with advanced widget visible
 # ---------------------------------------------------------------------------
 
 
@@ -85,7 +85,7 @@ def test_on_algorithm_changed_clears_result_label(panel):
 
 
 # ---------------------------------------------------------------------------
-# get_clustering_params — KMeans and DBSCAN and OPTICS basic branches (lines 443-484)
+# get_clustering_params — KMeans and DBSCAN and OPTICS basic branches
 # ---------------------------------------------------------------------------
 
 

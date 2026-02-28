@@ -532,7 +532,7 @@ def test_cleanup_temp_html_tolerates_missing_files(viz_view):
 
 
 # ---------------------------------------------------------------------------
-# _on_error (line 205)
+# _on_error
 # ---------------------------------------------------------------------------
 
 
@@ -548,7 +548,7 @@ def test_on_error_shows_critical_dialog(qtbot, viz_view, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# on_use_all_changed inner function (line 238)
+# on_use_all_changed inner function
 # ---------------------------------------------------------------------------
 
 
@@ -562,7 +562,7 @@ def test_use_all_checkbox_disables_sample_spin(qtbot, viz_view):
 
 
 # ---------------------------------------------------------------------------
-# _generate_visualization – use_all path (line 314) and cancel-running-thread (321-322)
+# _generate_visualization – use_all path and cancel-running-thread
 # ---------------------------------------------------------------------------
 
 
@@ -641,7 +641,7 @@ def test_generate_visualization_cancels_running_thread(qtbot, viz_view, monkeypa
 
 
 # ---------------------------------------------------------------------------
-# _on_data_loaded – t-SNE method conversion (line 368)
+# _on_data_loaded – t-SNE method conversion
 # ---------------------------------------------------------------------------
 
 
@@ -681,7 +681,7 @@ def test_on_data_loaded_tsne_method_handled(qtbot, viz_view, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# _save_temp_html (lines 415-424)
+# _save_temp_html
 # ---------------------------------------------------------------------------
 
 
@@ -732,7 +732,7 @@ def test_open_in_browser_does_nothing_without_html(viz_view, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# _run_clustering (lines 428-459)
+# _run_clustering
 # ---------------------------------------------------------------------------
 
 
@@ -797,7 +797,7 @@ def test_run_clustering_without_data_creates_load_thread(qtbot, viz_view, monkey
 
 
 # ---------------------------------------------------------------------------
-# _on_clustering_data_loaded (lines 463-485)
+# _on_clustering_data_loaded
 # ---------------------------------------------------------------------------
 
 
@@ -837,7 +837,7 @@ def test_on_clustering_data_loaded_no_embeddings_shows_warning(qtbot, viz_view, 
 
 
 # ---------------------------------------------------------------------------
-# _on_clustering_finished + save-to-metadata checkbox (line 527)
+# _on_clustering_finished + save-to-metadata checkbox
 # ---------------------------------------------------------------------------
 
 
@@ -855,7 +855,7 @@ def test_on_clustering_finished_saves_labels_when_checkbox_checked(qtbot, viz_vi
 
 
 # ---------------------------------------------------------------------------
-# _save_cluster_labels_to_metadata (lines 562, 588-590)
+# _save_cluster_labels_to_metadata
 # ---------------------------------------------------------------------------
 
 
@@ -912,7 +912,7 @@ def test_save_cluster_labels_exception_shows_warning(qtbot, viz_view, monkeypatc
 
 
 # ---------------------------------------------------------------------------
-# set_collection exception path (lines 611-612)
+# set_collection exception path
 # ---------------------------------------------------------------------------
 
 
