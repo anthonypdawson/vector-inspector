@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from PySide6.QtWidgets import QMessageBox
 
 from vector_inspector.ui.dialogs.settings_dialog import SettingsDialog
@@ -55,6 +57,12 @@ class FakeSettings:
 
     def set_highlight_color_bg(self, color):
         self._store["ui.highlight_color_bg"] = color
+
+    def get_use_accent_enabled(self):
+        return self._store.get("use_accent_enabled", False)
+
+    def set_use_accent_enabled(self, val):
+        self._store["use_accent_enabled"] = val
 
     def _save_settings(self):
         # pretend to persist
@@ -126,3 +134,163 @@ def test_clear_cache_flow(monkeypatch, qtbot):
 
     # Call clear cache and ensure no exception raised
     dlg._clear_cache()
+
+
+def test_clear_cache_returns_false(monkeypatch, qtbot):
+    """_clear_cache shows warning when clear_cache() returns False."""
+    fake_settings = FakeSettings()
+    warning_calls = []
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+    monkeypatch.setattr(QMessageBox, "information", lambda *a, **k: None)
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: warning_calls.append(a))
+    monkeypatch.setattr(QMessageBox, "critical", lambda *a, **k: None)
+    monkeypatch.setattr("vector_inspector.core.model_cache.clear_cache", lambda: False, raising=False)
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+    dlg._clear_cache()
+    assert len(warning_calls) > 0
+
+
+def test_clear_cache_answer_no(monkeypatch, qtbot):
+    """_clear_cache does nothing when user answers No to confirmation."""
+    fake_settings = FakeSettings()
+    cleared = []
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.No)
+    monkeypatch.setattr(
+        "vector_inspector.core.model_cache.clear_cache",
+        lambda: cleared.append(1) or True,
+        raising=False,
+    )
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+    dlg._clear_cache()
+    assert len(cleared) == 0
+
+
+def test_ok_button_calls_apply_and_accepts(monkeypatch, qtbot):
+    """_ok persists settings."""
+    fake_settings = FakeSettings()
+    saved = []
+    fake_settings._save_settings = lambda: saved.append(1)
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+    dlg._ok()
+    assert len(saved) == 1
+
+
+def test_on_use_accent_changed_enabled(monkeypatch, qtbot):
+    """_on_use_accent_changed(1) sets use_accent to True and applies stylesheet."""
+    fake_settings = FakeSettings()
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+
+    dlg._on_use_accent_changed(1)  # non-zero = enabled
+    assert fake_settings.get_use_accent_enabled() is True
+
+
+def test_on_use_accent_changed_disabled(monkeypatch, qtbot):
+    """_on_use_accent_changed(0) sets use_accent to False and clears stylesheet."""
+    fake_settings = FakeSettings()
+    fake_settings._store["use_accent_enabled"] = True
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+
+    dlg._on_use_accent_changed(0)
+    assert fake_settings.get_use_accent_enabled() is False
+
+
+def test_apply_preset(monkeypatch, qtbot):
+    """_apply_preset stores both colors in settings."""
+    fake_settings = FakeSettings()
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: None)
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+
+    dlg._apply_preset("rgba(255,0,0,1)", "rgba(255,0,0,0.1)")
+    assert fake_settings.get_highlight_color() == "rgba(255,0,0,1)"
+    assert fake_settings.get_highlight_color_bg() == "rgba(255,0,0,0.1)"
+
+
+def test_reset_highlight_defaults(monkeypatch, qtbot):
+    """_reset_highlight_defaults restores VI default colors."""
+    fake_settings = FakeSettings()
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: None)
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+
+    fake_settings.set_highlight_color("rgba(0,0,0,1)")
+    dlg._reset_highlight_defaults()
+    # Must have changed to something other than the fake override
+    assert fake_settings.get_highlight_color() != "rgba(0,0,0,1)"
+
+
+def test_update_cache_info_cache_exists_with_models(monkeypatch, qtbot):
+    """_update_cache_info shows model count when cache has entries."""
+    fake_settings = FakeSettings()
+    monkeypatch.setattr(
+        "vector_inspector.core.model_cache.get_cache_info",
+        lambda: {
+            "enabled": True,
+            "exists": True,
+            "location": "/tmp/cache",
+            "model_count": 3,
+            "total_size_mb": 1.5,
+        },
+        raising=False,
+    )
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+    dlg._update_cache_info()
+    assert "3" in dlg.cache_info_label.text()
+
+
+def test_update_cache_info_enabled_no_models_yet(monkeypatch, qtbot):
+    """_update_cache_info shows 'no cached models' path when exists=False."""
+    fake_settings = FakeSettings()
+    monkeypatch.setattr(
+        "vector_inspector.core.model_cache.get_cache_info",
+        lambda: {
+            "enabled": True,
+            "exists": False,
+            "location": "/tmp/cache",
+            "model_count": 0,
+            "total_size_mb": 0,
+        },
+        raising=False,
+    )
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+    dlg._update_cache_info()
+    label = dlg.cache_info_label.text()
+    assert "/tmp/cache" in label or "no cached" in label.lower()
+
+
+def test_settings_panel_hook_exception_swallowed(qtbot):
+    """If settings_panel_hook.trigger raises, the dialog still initializes (lines 130-131)."""
+    fake_settings = FakeSettings()
+
+    with patch("vector_inspector.ui.dialogs.settings_dialog.settings_panel_hook") as mock_hook:
+        mock_hook.trigger.side_effect = RuntimeError("hook crashed")
+        dlg = SettingsDialog(settings_service=fake_settings)
+        qtbot.addWidget(dlg)
+
+    assert dlg.default_results is not None
+
+
+def test_load_values_accent_checkbox_checked_when_enabled(qtbot):
+    """_load_values covers the inner try success path when get_use_accent_enabled() works."""
+    fake_settings = FakeSettings()
+    fake_settings._store["use_accent_enabled"] = True
+
+    dlg = SettingsDialog(settings_service=fake_settings)
+    qtbot.addWidget(dlg)
+
+    assert dlg.use_accent_checkbox.isChecked() is True

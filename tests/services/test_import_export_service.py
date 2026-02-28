@@ -254,3 +254,63 @@ def test_import_and_add_to_provider(tmp_path, empty_fake_provider):
     assert len(items["ids"]) == 2
     assert items["documents"] == ["imported1", "imported2"]
     assert items["metadatas"][0]["source"] == "import"
+
+
+def test_export_to_json_with_numpy_embeddings(tmp_path):
+    """export_to_json converts numpy array embeddings to lists (line 46)."""
+    import numpy as np
+
+    svc = ImportExportService()
+    data = {
+        "ids": ["id1"],
+        "documents": ["doc1"],
+        "metadatas": [{"key": "val"}],
+        "embeddings": [np.array([0.1, 0.2, 0.3])],  # numpy array
+    }
+    output_path = tmp_path / "numpy_test.json"
+    result = svc.export_to_json(data, str(output_path))
+    assert result is True
+
+    with open(output_path) as f:
+        exported = json.load(f)
+
+    assert exported[0]["embedding"] == [0.1, 0.2, 0.3]
+
+
+def test_export_to_csv_with_numpy_embeddings(tmp_path):
+    """export_to_csv converts numpy array embeddings when included (lines 98-110)."""
+    import numpy as np
+
+    svc = ImportExportService()
+    data = {
+        "ids": ["id1", "id2"],
+        "documents": ["doc1", "doc2"],
+        "metadatas": [{}, {}],
+        "embeddings": [np.array([1.0, 2.0]), np.array([3.0, 4.0])],
+    }
+    csv_path = tmp_path / "numpy_csv.csv"
+    result = svc.export_to_csv(data, str(csv_path), include_embeddings=True)
+    assert result is True
+
+    import pandas as pd
+
+    df = pd.read_csv(csv_path)
+    assert "embedding" in df.columns
+    emb = json.loads(df["embedding"].iloc[0])
+    assert isinstance(emb, list)
+
+
+def test_export_to_parquet_with_numpy_embeddings(tmp_path):
+    """export_to_parquet converts numpy array embeddings (lines 147-159)."""
+    import numpy as np
+
+    svc = ImportExportService()
+    data = {
+        "ids": ["id1"],
+        "documents": ["doc1"],
+        "metadatas": [{"k": "v"}],
+        "embeddings": [np.array([0.5, 0.6])],
+    }
+    parquet_path = tmp_path / "numpy_parquet.parquet"
+    result = svc.export_to_parquet(data, str(parquet_path))
+    assert result is True

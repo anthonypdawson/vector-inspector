@@ -44,3 +44,67 @@ def test_calculate_similarity_metrics():
     assert sr.calculate_similarity(0.5, "dotproduct") == pytest.approx(0.5)
     assert sr.calculate_similarity(1.0, "euclidean") == pytest.approx(1.0 / (1 + 1.0))
     assert sr.calculate_similarity(2.0, "unknown") == pytest.approx(1.0 / (1 + 2.0))
+
+
+def test_search_no_connection_returns_none():
+    """search() returns None when no connection is set (lines 51-52)."""
+    sr = SearchRunner()  # connection=None
+    result = sr.search("col", "query")
+    assert result is None
+
+
+def test_search_connection_without_query_method_returns_none():
+    """search() returns None when connection lacks query attribute (lines ~70-71)."""
+
+    class NoQueryConn:
+        pass
+
+    sr = SearchRunner(connection=NoQueryConn())
+    result = sr.search("col", "query")
+    assert result is None
+
+
+def test_search_query_exception_returns_none():
+    """search() returns None when connection.query raises (exception handler)."""
+    fake_conn = MagicMock()
+    fake_conn.query.side_effect = RuntimeError("query failed")
+    sr = SearchRunner(connection=fake_conn)
+    result = sr.search("col", "query")
+    assert result is None
+
+
+def test_search_by_id_no_connection_returns_none():
+    """search_by_id returns None when no connection (lines 89-90)."""
+    sr = SearchRunner()  # connection=None
+    result = sr.search_by_id("col", "item-id")
+    assert result is None
+
+
+def test_search_by_id_connection_without_get_by_ids_returns_none():
+    """search_by_id returns None when connection lacks get_by_ids (lines 105-110)."""
+
+    class NoGetByIdsConn:
+        pass
+
+    sr = SearchRunner(connection=NoGetByIdsConn())
+    result = sr.search_by_id("col", "item-id")
+    assert result is None
+
+
+def test_search_by_id_get_by_ids_returns_none_data():
+    """search_by_id returns None when get_by_ids returns None."""
+    fake_conn = MagicMock()
+    fake_conn.get_by_ids.return_value = None
+    sr = SearchRunner(connection=fake_conn)
+    result = sr.search_by_id("col", "item-id")
+    assert result is None
+
+
+def test_set_connection():
+    """set_connection updates the active connection."""
+    sr = SearchRunner()
+    assert sr.connection is None
+
+    fake_conn = MagicMock()
+    sr.set_connection(fake_conn)
+    assert sr.connection is fake_conn
