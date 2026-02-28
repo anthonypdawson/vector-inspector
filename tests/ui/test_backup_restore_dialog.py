@@ -225,6 +225,7 @@ def test_on_restore_error_shows_warning(monkeypatch, qtbot):
 
 def _make_sample_backup(backup_dir=None):
     import os
+
     return {
         "collection_name": "colA",
         "timestamp": "2026-01-01T00:00:00",
@@ -240,7 +241,9 @@ def test_delete_backup_no_selection_does_nothing(monkeypatch, qtbot):
     import vector_inspector.ui.components.backup_restore_dialog as brd
 
     called = {}
-    monkeypatch.setattr(brd.QMessageBox, "question", lambda *a, **k: called.update({"q": True}) or brd.QMessageBox.StandardButton.No)
+    monkeypatch.setattr(
+        brd.QMessageBox, "question", lambda *a, **k: called.update({"q": True}) or brd.QMessageBox.StandardButton.No
+    )
 
     dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={})
     dlg.backups_list.clearSelection()
@@ -319,9 +322,7 @@ def test_create_backup_with_collection_starts_thread(monkeypatch, qtbot):
 
     monkeypatch.setattr(brd, "BackupThread", FakeThread)
 
-    dlg, service, settings = make_dialog(
-        monkeypatch, qtbot, backups=[], settings_initial={}, collection_name="my_col"
-    )
+    dlg, service, settings = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={}, collection_name="my_col")
     dlg._create_backup()
 
     assert started.get("called") is True
