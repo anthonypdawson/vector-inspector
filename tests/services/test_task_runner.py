@@ -179,6 +179,13 @@ def test_threaded_task_runner_cancel_task(qapp):
     while not ttr.is_running("slow") and (time.time() - start) < timeout:
         time.sleep(0.01)
 
+    # Wait briefly for the background task to start to avoid a race where
+    # is_running("slow") is checked before the task is registered as active.
+    start = time.time()
+    timeout = 1.0
+    while not ttr.is_running("slow") and (time.time() - start) < timeout:
+        time.sleep(0.01)
+
     assert ttr.is_running("slow")
     ttr.cancel_task("slow")
     assert not ttr.is_running("slow")
