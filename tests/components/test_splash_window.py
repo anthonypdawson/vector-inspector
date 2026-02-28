@@ -38,4 +38,6 @@ def test_splash_window_accept_closes(qtbot):
     dlg = SplashWindow()
     qtbot.addWidget(dlg)
     dlg.accept()
-    assert dlg.result() != 0 or True  # accept() sets result to Accepted
+    from PySide6.QtWidgets import QDialog
+
+    assert dlg.result() == QDialog.DialogCode.Accepted

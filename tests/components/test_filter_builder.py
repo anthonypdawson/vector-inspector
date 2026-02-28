@@ -167,12 +167,13 @@ def test_filter_rule_remove_signal(qtbot):
     removed = []
     rule.remove_requested.connect(lambda r: removed.append(r))
 
-    # Find and click the remove button
-    for child in rule.findChildren(type(rule.value_input).__mro__[0]):
-        pass
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QPushButton
 
-    # Emit remove signal directly
-    rule.remove_requested.emit(rule)
+    # Find and click the actual remove button
+    remove_btns = [b for b in rule.findChildren(QPushButton) if b.text() == "\u2715"]
+    assert len(remove_btns) == 1
+    qtbot.mouseClick(remove_btns[0], Qt.MouseButton.LeftButton)
     assert removed == [rule]
 
 

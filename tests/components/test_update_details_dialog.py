@@ -48,4 +48,6 @@ def test_update_details_dialog_accept(qtbot):
     )
     qtbot.addWidget(dlg)
     dlg.accept()
-    assert dlg.result() != 0 or True
+    from PySide6.QtWidgets import QDialog
+
+    assert dlg.result() == QDialog.DialogCode.Accepted

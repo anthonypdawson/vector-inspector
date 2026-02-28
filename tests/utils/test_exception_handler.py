@@ -357,7 +357,7 @@ def test_global_exception_hook_inner_log_error_failure_silenced(monkeypatch):
 
     monkeypatch.setattr(eh, "_get_telemetry_service", failing_telemetry)
 
-    # log_error raises only when logging the telemetry failure (line 70 area)
+    # log_error raises only when logging the telemetry failure message
     def failing_log_error(msg, *a, **k):
         if "Failed to send exception" in str(msg):
             raise RuntimeError("log_error dead")

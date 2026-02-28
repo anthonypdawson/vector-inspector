@@ -422,7 +422,7 @@ def test_update_item_invalid_timestamp(qtbot):
 
 
 def test_update_item_bad_embedding_len(qtbot):
-    """Covers lines 313-314: exception when calculating embedding dimension."""
+    """exception when calculating embedding dimension raises is handled gracefully."""
     pane = InlineDetailsPane(view_mode="data_browser")
     qtbot.addWidget(pane)
 
@@ -459,7 +459,7 @@ def test_copy_vector_no_current_item(qtbot):
 
 
 def test_copy_vector_exception(qtbot):
-    """Covers lines 405-406: exception in _copy_vector is silenced."""
+    """exception raised by embedding in _copy_vector is silenced without crashing."""
     pane = InlineDetailsPane(view_mode="data_browser")
     qtbot.addWidget(pane)
     pane._current_item = {"id": "test", "embedding": BadEmbedding()}
@@ -474,7 +474,7 @@ def test_copy_vector_json_no_current_item(qtbot):
 
 
 def test_copy_vector_json_exception(qtbot):
-    """Covers lines 428-429: exception in _copy_vector_json is silenced."""
+    """exception raised by embedding in _copy_vector_json is silenced without crashing."""
     pane = InlineDetailsPane(view_mode="data_browser")
     qtbot.addWidget(pane)
     pane._current_item = {"id": "test", "embedding": BadEmbedding()}

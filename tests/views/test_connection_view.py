@@ -427,10 +427,6 @@ def _make_fake_connection_view_dependencies(monkeypatch, mod):
             pass
 
     class SyncThread:
-        def __init__(self, connection):
-            self.connection = connection
-            self._cbs = []
-
         class _Signal:
             def __init__(self):
                 self._cbs = []
