@@ -480,22 +480,19 @@ class SearchView(QWidget):
             if results and results.get("ids") and len(results["ids"]) > 0:
                 result_count = len(results["ids"][0])
 
-            telemetry = TelemetryService()
-            telemetry.queue_event(
-                {
-                    "event_name": "query.executed",
-                    "metadata": {
-                        "query_type": "similarity",
-                        "db_type": provider_type,
-                        "result_count": result_count,
-                        "latency_ms": duration_ms,
-                        "correlation_id": self._search_correlation_id,
-                        "has_filters": bool(self._search_server_filter or self._search_client_filters),
-                        "success": True,
-                    },
-                }
-            )
-            telemetry.send_batch()
+            event = {
+                "event_name": "query.executed",
+                "metadata": {
+                    "query_type": "similarity",
+                    "db_type": provider_type,
+                    "result_count": result_count,
+                    "latency_ms": duration_ms,
+                    "correlation_id": self._search_correlation_id,
+                    "has_filters": bool(self._search_server_filter or self._search_client_filters),
+                    "success": True,
+                },
+            }
+            TelemetryService.send_event(event["event_name"], event)
         except Exception:
             pass  # Best effort telemetry
 

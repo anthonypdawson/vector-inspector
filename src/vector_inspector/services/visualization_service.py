@@ -63,9 +63,7 @@ class VisualizationService:
                 # Suppress n_jobs warning when using random_state
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore", message=".*n_jobs.*overridden.*")
-                    reducer = UMAP(
-                        n_components=n_components, n_neighbors=n_neighbors, random_state=42
-                    )
+                    reducer = UMAP(n_components=n_components, n_neighbors=n_neighbors, random_state=42)
                     reduced = reducer.fit_transform(X)
 
             else:
@@ -84,21 +82,18 @@ class VisualizationService:
 
             # Send visualization telemetry
             try:
-                telemetry = TelemetryService()
-                telemetry.queue_event(
-                    {
-                        "event_name": "visualization.generated",
-                        "metadata": {
-                            "method": method_normalized,
-                            "dims": n_components,
-                            "points_rendered": points_rendered,
-                            "duration_ms": duration_ms,
-                            "correlation_id": correlation_id,
-                            "success": success,
-                        },
-                    }
-                )
-                telemetry.send_batch()
+                event = {
+                    "event_name": "visualization.generated",
+                    "metadata": {
+                        "method": method_normalized,
+                        "dims": n_components,
+                        "points_rendered": points_rendered,
+                        "duration_ms": duration_ms,
+                        "correlation_id": correlation_id,
+                        "success": success,
+                    },
+                }
+                TelemetryService.send_event(event["event_name"], event)
             except Exception:
                 pass  # Best effort telemetry
 

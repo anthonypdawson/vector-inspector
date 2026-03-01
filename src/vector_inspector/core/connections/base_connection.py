@@ -378,22 +378,19 @@ class VectorDBConnection(ABC):
             # Send embedding telemetry
             try:
                 provider_type = type(self).__name__.replace("Connection", "").lower()
-                telemetry = TelemetryService()
-                telemetry.queue_event(
-                    {
-                        "event_name": "embedding.request",
-                        "metadata": {
-                            "provider": model_type if "model_type" in locals() else "unknown",
-                            "model_id": model_name if "model_name" in locals() else "unknown",
-                            "batch_size": batch_size,
-                            "latency_ms": duration_ms,
-                            "correlation_id": correlation_id,
-                            "db_type": provider_type,
-                            "success": success,
-                            "embedding_count": embedding_count,
-                        },
-                    }
-                )
-                telemetry.send_batch()
+                event = {
+                    "event_name": "embedding.request",
+                    "metadata": {
+                        "provider": model_type if "model_type" in locals() else "unknown",
+                        "model_id": model_name if "model_name" in locals() else "unknown",
+                        "batch_size": batch_size,
+                        "latency_ms": duration_ms,
+                        "correlation_id": correlation_id,
+                        "db_type": provider_type,
+                        "success": success,
+                        "embedding_count": embedding_count,
+                    },
+                }
+                TelemetryService.send_event(event["event_name"], event)
             except Exception:
                 pass  # Best effort telemetry

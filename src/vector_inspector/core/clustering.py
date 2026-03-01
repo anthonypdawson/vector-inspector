@@ -14,9 +14,7 @@ import numpy as np
 from vector_inspector.services.telemetry_service import TelemetryService
 
 
-def run_clustering(
-    embeddings: np.ndarray, algorithm: str, params: dict[str, Any]
-) -> tuple[np.ndarray, str]:
+def run_clustering(embeddings: np.ndarray, algorithm: str, params: dict[str, Any]) -> tuple[np.ndarray, str]:
     """Run clustering on embeddings.
 
     Args:
@@ -130,22 +128,19 @@ def run_clustering(
         try:
             # Create params summary (just key param names for privacy)
             params_summary = ",".join(sorted(params.keys()))
-            telemetry = TelemetryService()
-            telemetry.queue_event(
-                {
-                    "event_name": "clustering.run",
-                    "metadata": {
-                        "algorithm": algorithm,
-                        "dataset_size": dataset_size,
-                        "duration_ms": duration_ms,
-                        "correlation_id": correlation_id,
-                        "success": success,
-                        "cluster_count": cluster_count,
-                        "noise_count": noise_count,
-                        "params_summary": params_summary,
-                    },
-                }
-            )
-            telemetry.send_batch()
+            event = {
+                "event_name": "clustering.run",
+                "metadata": {
+                    "algorithm": algorithm,
+                    "dataset_size": dataset_size,
+                    "duration_ms": duration_ms,
+                    "correlation_id": correlation_id,
+                    "success": success,
+                    "cluster_count": cluster_count,
+                    "noise_count": noise_count,
+                    "params_summary": params_summary,
+                },
+            }
+            TelemetryService.send_event(event["event_name"], event)
         except Exception:
             pass  # Best effort telemetry
