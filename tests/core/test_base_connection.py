@@ -143,3 +143,64 @@ def test_contains_operator_is_not_server_side():
     conn = _MinimalConnection()
     contains_op = next(op for op in conn.get_supported_filter_operators() if op["name"] == "contains")
     assert contains_op["server_side"] is False
+
+
+# ---------------------------------------------------------------------------
+# get_embedding_model()
+# ---------------------------------------------------------------------------
+
+
+def test_get_embedding_model_from_collection_info():
+    """Returns model name stored in collection_info."""
+    conn = _MinimalConnection()
+    conn.get_collection_info = lambda name: {"embedding_model": "all-MiniLM-L6-v2"}
+    result = conn.get_embedding_model("my_col")
+    assert result == "all-MiniLM-L6-v2"
+
+
+def test_get_embedding_model_from_item_metadata(monkeypatch):
+    """Falls back to checking first item's metadata when collection_info has no model."""
+    conn = _MinimalConnection()
+    conn.get_collection_info = lambda name: {}
+    conn.get_all_items = lambda name, limit=None, offset=None: {
+        "metadatas": [{"_embedding_model": "paraphrase-MiniLM-L6-v2"}]
+    }
+    result = conn.get_embedding_model("my_col")
+    assert result == "paraphrase-MiniLM-L6-v2"
+
+
+def test_get_embedding_model_from_settings_via_profile_name(monkeypatch):
+    """Falls through to settings when no other source available."""
+    from unittest.mock import MagicMock, patch
+
+    conn = _MinimalConnection()
+    conn.get_collection_info = lambda name: {}
+    conn.get_all_items = lambda name, limit=None, offset=None: {"metadatas": [{}]}
+    conn.profile_name = "my_profile"
+
+    mock_settings = MagicMock()
+    mock_settings.get_embedding_model.return_value = {"model": "settings-model"}
+
+    with patch(
+        "vector_inspector.services.settings_service.SettingsService",
+        return_value=mock_settings,
+    ):
+        result = conn.get_embedding_model("my_col")
+    assert result == "settings-model"
+
+
+def test_get_embedding_model_returns_none_when_nothing_found():
+    """Returns None when no model found on any source."""
+    conn = _MinimalConnection()
+    conn.get_collection_info = lambda name: {}
+    conn.get_all_items = lambda name, limit=None, offset=None: {"metadatas": [{}]}
+    result = conn.get_embedding_model("my_col")
+    assert result is None
+
+
+def test_get_embedding_model_returns_none_on_exception():
+    """Returns None without raising when an exception occurs."""
+    conn = _MinimalConnection()
+    conn.get_collection_info = None  # will cause AttributeError when called
+    result = conn.get_embedding_model("col")
+    assert result is None

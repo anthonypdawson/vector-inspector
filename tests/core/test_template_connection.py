@@ -1,9 +1,11 @@
+from unittest.mock import MagicMock
+
 from vector_inspector.core.connections.template_connection import TemplateConnection
 
 
-def test_template_defaults():
-    # TemplateConnection is abstract via VectorDBConnection; create a minimal
-    # concrete subclass to exercise the base implementations.
+def _make_concrete() -> TemplateConnection:
+    """Return a minimal concrete subclass of TemplateConnection."""
+
     class ConcreteTemplate(TemplateConnection):
         def connect(self) -> bool:
             return super().connect()
@@ -48,7 +50,11 @@ def test_template_defaults():
         def delete_items(self, *args, **kwargs):
             return super().delete_items(*args, **kwargs)
 
-    conn = ConcreteTemplate()
+    return ConcreteTemplate()
+
+
+def test_template_defaults():
+    conn = _make_concrete()
     # connect() returns True (best-effort) even though no client is created
     assert conn.connect() is True
     # Not actually connected because _client remains None
@@ -67,3 +73,56 @@ def test_template_defaults():
     info = conn.get_connection_info()
     assert isinstance(info, dict)
     assert info.get("provider") == "Template"
+
+
+def test_disconnect_resets_client():
+    """disconnect() sets _client to None."""
+    conn = _make_concrete()
+    conn._client = MagicMock()  # simulate a connected state
+    assert conn.is_connected is True
+
+    conn.disconnect()
+    assert conn._client is None
+    assert conn.is_connected is False
+
+
+def test_methods_with_client_set():
+    """Calling methods when _client is set covers the 'happy path' branches."""
+    conn = _make_concrete()
+    conn._client = MagicMock()  # bypass connect(); set client directly
+
+    # list_collections — returns [] stub
+    result = conn.list_collections()
+    assert result == []
+
+    # get_collection_info — returns dict stub
+    info = conn.get_collection_info("my-collection")
+    assert isinstance(info, dict)
+    assert info["name"] == "my-collection"
+    assert info["count"] == 0
+
+    # query_collection — returns dict stub
+    qr = conn.query_collection("my-collection")
+    assert isinstance(qr, dict)
+    assert "ids" in qr
+
+    # get_all_items — returns dict stub
+    items = conn.get_all_items("my-collection")
+    assert isinstance(items, dict)
+    assert "ids" in items
+
+    # add_items — returns True stub
+    assert conn.add_items("my-collection", ["doc1"], metadatas=[{}], ids=["id1"]) is True
+
+    # update_items — returns True stub
+    assert conn.update_items("my-collection", ["id1"], documents=["doc1"]) is True
+
+    # delete_items — returns True stub
+    assert conn.delete_items("my-collection", ids=["id1"]) is True
+
+    # delete_collection — returns True stub
+    assert conn.delete_collection("my-collection") is True
+
+    # get_connection_info — connected state
+    ci = conn.get_connection_info()
+    assert ci["connected"] is True

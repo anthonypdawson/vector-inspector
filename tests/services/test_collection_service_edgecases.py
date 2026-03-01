@@ -173,3 +173,45 @@ def test_signals_emitted_in_sequence(monkeypatch):
     # basic checks for recorded sequences
     assert any(s[0] == "started" for s in seq)
     assert any(s[0] == "completed" for s in seq)
+
+
+def test_create_collection_exception_returns_false(monkeypatch):
+    """create_collection returns False when connection.create_collection raises."""
+    svc = CollectionService()
+
+    class ThrowingConn:
+        def create_collection(self, **kwargs):
+            raise RuntimeError("DB is down")
+
+    conn = ThrowingConn()
+    result = svc.create_collection(conn, "boom", dimension=128)
+    assert result is False
+
+
+def test_populate_with_profile_name_saves_settings(monkeypatch):
+    """populate_with_sample_data saves embedding model when profile_name is set."""
+    svc = CollectionService()
+
+    monkeypatch.setattr(
+        "vector_inspector.services.collection_service.ProviderFactory.create",
+        staticmethod(lambda n, t: ProviderBase(dimension=4)),
+    )
+
+    # FakeSettings that records calls
+    saved = []
+
+    class GoodSettings:
+        def save_embedding_model(self, **kwargs):
+            saved.append(kwargs)
+
+    import vector_inspector.services.settings_service as settings_mod
+
+    monkeypatch.setattr(settings_mod, "SettingsService", GoodSettings)
+
+    # connection WITH a profile_name
+    conn = FakeConnection(add_success=True, profile_name="my-profile")
+    success, msg = svc.populate_with_sample_data(conn, "colP", 2, SampleDataType.TEXT, "my-model")
+    assert success is True
+    # The settings save should have been called since profile_name was set
+    assert len(saved) == 1
+    assert saved[0]["profile_name"] == "my-profile"
