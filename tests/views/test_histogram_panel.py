@@ -1,4 +1,6 @@
 # Ensure a QApplication exists for QWidget creation during tests
+from types import SimpleNamespace
+
 from PySide6.QtWidgets import QApplication
 
 from vector_inspector.ui.views.visualization.histogram_panel import (
@@ -396,6 +398,55 @@ def test_dim_scan_thread_none_embeddings_skips():
     t.finished.connect(lambda v: results.append(v))
     t.run()
     assert results == [[]]
+
+
+class MockConnForScan:
+    def __init__(self, name, collections):
+        self.name = name
+        self._cols = collections
+
+    def list_collections(self):
+        return list(self._cols.keys())
+
+    def get_all_items(self, name, limit=None):
+        return {"embeddings": self._cols.get(name, [])}
+
+
+def test_collection_scan_includes_same_name_on_different_connection():
+    # Primary connection A has a collection named 'shared'
+    conn_a = MockConnForScan("A", {"shared": [[1, 2]], "only_a": [[1, 2]]})
+    # Another connection B also has a collection named 'shared'
+    conn_b = MockConnForScan("B", {"shared": [[1, 2]], "only_b": [[1, 2]]})
+
+    target_dim = 2
+
+    # Capture the emitted compatible list by replacing the thread.finished.emit
+    capture = SimpleNamespace(value=None)
+
+    thread = _CollectionDimScanThread(
+        [
+            conn_a,
+            conn_b,
+        ],
+        exclude_collection="shared",
+        target_dim=target_dim,
+        exclude_connection=conn_a,
+    )
+
+    # Monkeypatch the finished signal to capture the emitted value synchronously
+    thread.finished = SimpleNamespace(emit=lambda v: setattr(capture, "value", v))
+
+    # Run synchronously
+    thread.run()
+
+    assert capture.value is not None, "Scanner did not emit any results"
+
+    # Ensure conn_b's 'shared' was included and conn_a's 'shared' was excluded
+    found_b_shared = any(coll == "shared" and conn is conn_b for (_, coll, conn) in capture.value)
+    found_a_shared = any(coll == "shared" and conn is conn_a for (_, coll, conn) in capture.value)
+
+    assert found_b_shared, "Expected 'shared' from other connection to be present"
+    assert not found_a_shared, "Expected primary connection's 'shared' to be excluded"
 
 
 def test_dim_scan_thread_get_all_items_exception_skips():

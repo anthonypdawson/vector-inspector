@@ -45,12 +45,14 @@ class _CollectionDimScanThread(QThread):
         connections: list,
         exclude_collection: str,
         target_dim: int,
+        exclude_connection: Optional[object] = None,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
         self._connections = connections  # snapshot taken at scan time
         self._exclude = exclude_collection
         self._target_dim = target_dim
+        self._exclude_connection = exclude_connection
 
     def run(self) -> None:
         compatible: list[tuple[str, str, object]] = []
@@ -60,7 +62,11 @@ class _CollectionDimScanThread(QThread):
             except Exception:
                 continue
             for name in all_collections:
-                if name == self._exclude:
+                # Skip the excluded collection. If an explicit exclude_connection
+                # was provided, only skip when the collection belongs to that
+                # specific connection; otherwise skip all collections with that
+                # name (backwards-compatible behavior).
+                if name == self._exclude and (self._exclude_connection is None or conn is self._exclude_connection):
                     continue
                 try:
                     sample = conn.get_all_items(name, limit=1)
@@ -489,6 +495,7 @@ class HistogramPanel(QWidget):
             connections,
             self._primary_collection,
             self._primary_dim,
+            exclude_connection=self._connection,
             parent=self,
         )
         self._dim_scan_thread.finished.connect(self._on_dim_scan_finished)
@@ -563,3 +570,48 @@ class HistogramPanel(QWidget):
         self.compare_load_button.setEnabled(True)
         self.compare_status_label.setText(f"Load failed: {message}")
         self.compare_status_label.setStyleSheet("color: red;")
+
+    def dispose(self) -> None:
+        """Dispose of WebEngine objects and stop background threads."""
+        try:
+            # Stop background threads if running
+            try:
+                if self._dim_scan_thread and self._dim_scan_thread.isRunning():
+                    self._dim_scan_thread.quit()
+                    self._dim_scan_thread.wait()
+            except Exception:
+                pass
+
+            try:
+                if self._compare_load_thread and self._compare_load_thread.isRunning():
+                    self._compare_load_thread.quit()
+                    self._compare_load_thread.wait()
+            except Exception:
+                pass
+
+            # Dispose web view/page
+            if hasattr(self, "web_view") and self.web_view is not None:
+                try:
+                    page = self.web_view.page()
+                    try:
+                        page.setWebChannel(None)
+                    except Exception:
+                        pass
+                    page.deleteLater()
+                except Exception:
+                    pass
+
+                try:
+                    self.web_view.setParent(None)
+                except Exception:
+                    pass
+                try:
+                    self.web_view.deleteLater()
+                except Exception:
+                    pass
+                self.web_view = None
+
+            # Clear stored HTML
+            self._current_html = None
+        except Exception:
+            pass
