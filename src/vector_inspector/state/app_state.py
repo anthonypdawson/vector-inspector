@@ -96,6 +96,19 @@ class AppState(QObject):
         self._is_loading: bool = False
         self._loading_message: str = ""
 
+        # LLM provider instance (lazy-initialised on first access)
+        self._llm_provider_instance = None
+
+    # LLM provider property
+    @property
+    def llm_provider(self):
+        """Return the active LLMProviderInstance, creating it on first access."""
+        if self._llm_provider_instance is None:
+            from vector_inspector.core.llm_providers import LLMProviderInstance  # noqa: PLC0415
+
+            self._llm_provider_instance = LLMProviderInstance(self.settings_service)
+        return self._llm_provider_instance
+
     # Provider property
     @property
     def provider(self) -> Optional[ConnectionInstance]:

@@ -1,0 +1,154 @@
+"""Factory and runtime instance wrapper for LLM providers."""
+
+from __future__ import annotations
+
+from typing import Optional
+
+from vector_inspector.core.logging import log_error, log_info
+
+from .base_provider import LLMProvider
+
+# Provider type constants
+AUTO = "auto"
+LLAMA_CPP = "llama-cpp"
+OLLAMA = "ollama"
+OPENAI_COMPATIBLE = "openai-compatible"
+
+PROVIDER_TYPES: tuple[str, ...] = (AUTO, LLAMA_CPP, OLLAMA, OPENAI_COMPATIBLE)
+
+
+class LLMProviderFactory:
+    """Creates LLM provider instances based on a configured type or auto-detection.
+
+    Auto-detection order (highest to lowest priority):
+      1. User-configured provider (when not ``'auto'``).
+      2. Ollama — probed at ``llm.ollama_url`` (default ``localhost:11434``).
+      3. llama-cpp — in-process fallback (model must be present in cache).
+    """
+
+    @classmethod
+    def create_from_settings(cls, settings) -> Optional[LLMProvider]:
+        """Create a provider from a ``SettingsService`` instance.
+
+        Args:
+            settings: ``SettingsService`` instance.
+
+        Returns:
+            An ``LLMProvider`` (may not yet be available — call
+            ``is_available()`` to verify), or ``None`` if the requested type
+            is completely unusable.
+        """
+        provider_type = settings.get("llm.provider", AUTO)
+        if provider_type == OLLAMA:
+            return cls._make_ollama(settings)
+        if provider_type == LLAMA_CPP:
+            return cls._make_llama_cpp(settings)
+        if provider_type == OPENAI_COMPATIBLE:
+            return cls._make_openai_compatible(settings)
+        if provider_type == AUTO:
+            return cls._auto_detect(settings)
+        log_error("Unknown LLM provider type '%s'; falling back to auto.", provider_type)
+        return cls._auto_detect(settings)
+
+    # ------------------------------------------------------------------
+    # Auto-detection
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def _auto_detect(cls, settings) -> Optional[LLMProvider]:
+        """Try Ollama first, then fall back to llama-cpp."""
+        ollama = cls._make_ollama(settings)
+        if ollama.is_available():
+            log_info(
+                "LLM auto-detect: Ollama available at %s (model: %s)",
+                settings.get("llm.ollama_url", "http://localhost:11434"),
+                settings.get("llm.ollama_model", "llama3.2"),
+            )
+            return ollama
+        llama = cls._make_llama_cpp(settings)
+        log_info(
+            "LLM auto-detect: using llama-cpp (model available: %s)",
+            llama.is_available(),
+        )
+        return llama
+
+    # ------------------------------------------------------------------
+    # Provider constructors
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def _make_llama_cpp(cls, settings) -> LLMProvider:
+        from .llama_cpp_provider import LlamaCppProvider  # noqa: PLC0415
+
+        return LlamaCppProvider(
+            model_path=settings.get("llm.model_path") or None,
+            context_length=int(settings.get("llm.context_length", 4096)),
+            temperature=float(settings.get("llm.temperature", 0.1)),
+        )
+
+    @classmethod
+    def _make_ollama(cls, settings) -> LLMProvider:
+        from .ollama_provider import OllamaProvider  # noqa: PLC0415
+
+        return OllamaProvider(
+            base_url=settings.get("llm.ollama_url", "http://localhost:11434"),
+            model=settings.get("llm.ollama_model", "llama3.2"),
+            context_length=int(settings.get("llm.context_length", 4096)),
+            temperature=float(settings.get("llm.temperature", 0.1)),
+        )
+
+    @classmethod
+    def _make_openai_compatible(cls, settings) -> LLMProvider:
+        from .openai_compatible_provider import OpenAICompatibleProvider  # noqa: PLC0415
+
+        return OpenAICompatibleProvider(
+            base_url=settings.get("llm.openai_url", ""),
+            model=settings.get("llm.openai_model", ""),
+            api_key=settings.get("llm.openai_api_key", ""),
+            context_length=int(settings.get("llm.context_length", 4096)),
+            temperature=float(settings.get("llm.temperature", 0.1)),
+        )
+
+
+class LLMProviderInstance:
+    """Runtime wrapper that manages the currently active LLM provider.
+
+    Call ``refresh()`` after the user changes LLM settings in the
+    Settings dialog so the provider is re-created from updated values.
+    All ``LLMProvider`` methods are forwarded to the active provider.
+    """
+
+    def __init__(self, settings) -> None:
+        self._settings = settings
+        self._provider: Optional[LLMProvider] = None
+
+    def _ensure(self) -> None:
+        if self._provider is None:
+            self._provider = LLMProviderFactory.create_from_settings(self._settings)
+
+    def refresh(self) -> None:
+        """Re-detect and rebuild the provider from current settings."""
+        self._provider = None
+        self._ensure()
+
+    # ------------------------------------------------------------------
+    # Forwarded LLMProvider interface
+    # ------------------------------------------------------------------
+
+    def generate(self, prompt: str, **opts) -> str:
+        self._ensure()
+        if self._provider is None:
+            raise RuntimeError("No LLM provider is available.")
+        return self._provider.generate(prompt, **opts)
+
+    def is_available(self) -> bool:
+        self._ensure()
+        return self._provider is not None and self._provider.is_available()
+
+    def get_model_name(self) -> str:
+        self._ensure()
+        return self._provider.get_model_name() if self._provider else "none"
+
+    def get_provider_name(self) -> str:
+        self._ensure()
+        return self._provider.get_provider_name() if self._provider else "none"
