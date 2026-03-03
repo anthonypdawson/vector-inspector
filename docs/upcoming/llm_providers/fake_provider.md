@@ -37,6 +37,8 @@ Implement the same interface as real providers:
 - `capabilities()` — reports `supports_streaming=True`, `concurrency='multi'`, and `supports_tools=False`.
 - `health()` — returns healthy status unless `error_inject` forces unhealthy responses.
 
+Note: the fake provider exposes `supports_tools: False` by default. To enable tool-testing mode, set the fake provider config option `supports_tools: True` (or `tool_mode: true`) and the fake provider will accept simple deterministic tool invocation patterns and return deterministic tool outputs for testing.
+
 ## Example behavior
 
 Given `messages=[{"role":"user","content":"Hello"}]`, `fragment_size=2`:
