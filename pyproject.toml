@@ -64,6 +64,15 @@ dev = [
     "pytest-timeout>=2.4.0",
 ]
 
+[project.optional-dependencies]
+# llama-cpp-python does not ship pre-built wheels on PyPI for all platforms;
+# on Windows (no C++ toolchain) install via the pre-built wheel index:
+#   pip install llama-cpp-python --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+# or for CUDA:
+#   pip install llama-cpp-python --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
+# The llm extra is provided for Linux/macOS where the source build works out-of-the-box.
+llm = ["llama-cpp-python>=0.3.0"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py312"
