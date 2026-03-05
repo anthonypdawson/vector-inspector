@@ -7,6 +7,8 @@
 - Default llama-cpp model: Phi-3-mini-4k-instruct Q4_K_M (~2.4 GB); `download_default_model()` helper downloads on first use with progress callback support.
 - New optional dependency group `llm` (`llama-cpp-python>=0.3.0`); install with `pdm add "vector-inspector[llm]"`.
 
+- Developer: add hidden CLI flag `--llm-console` to open an interactive LLM test window alongside the main app for manual provider testing and quick reloads.
+
 ### Settings
 - Add LLM provider settings keys to `SettingsService` (`llm.provider`, `llm.model_path`, `llm.cache_dir`, `llm.ollama_url`, `llm.ollama_model`, `llm.openai_url`, `llm.openai_api_key`, `llm.openai_model`, `llm.context_length`, `llm.temperature`) with typed getters/setters.
 - Add **LLM Provider** status group to the Settings dialog (free tier): shows configured provider, live availability check button, and a disabled "Configure LLM…" stub that Vector Studio enables.
