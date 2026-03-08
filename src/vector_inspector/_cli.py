@@ -72,6 +72,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print current settings as JSON and exit.",
     )
+    parser.add_argument(
+        "--llm-console",
+        action="store_true",
+        help=argparse.SUPPRESS,  # Hidden debug/dev flag — not shown in --help
+    )
     return parser
 
 
@@ -177,12 +182,16 @@ def parse_cli_args(argv: list[str] | None = None) -> None:
     # Step 5: Set remaining runtime env vars.
     if args.no_splash:
         os.environ["VI_NO_SPLASH"] = "1"
+    if args.llm_console:
+        os.environ["VI_LLM_CONSOLE"] = "1"
 
 
 def console_entry() -> None:
     """Console script entry point for the ``vector-inspector`` command."""
     parse_cli_args()
     # Only reached when no early-exit flag was given; launch the GUI.
+    # --llm-console (VI_LLM_CONSOLE=1) causes main.py to also open the
+    # LLM debug window alongside the main application window.
     from vector_inspector.main import main
 
     main()
