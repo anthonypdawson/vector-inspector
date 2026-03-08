@@ -18,4 +18,4 @@ fi
 
 $PIP_CMD install $PACKAGE $PREFER_BINARY --extra-index-url $EXTRA_INDEX
 
-echo "Done. Verify with: python -c 'import llama_cpp; print("ok")'"
+echo "Done. Verify with: python -c 'import llama_cpp; print(\"ok\")'"
