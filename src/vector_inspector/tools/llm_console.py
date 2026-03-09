@@ -37,7 +37,15 @@ def _make_provider():
 
         settings = SettingsService()
         provider = LLMProviderFactory.create_from_settings(settings)
-        log_info("LLM console: provider=%s model=%s", provider.get_provider_name(), provider.get_model_name())
+        if provider is None:
+            log_error("LLM console: provider factory returned None — could not create provider from settings")
+            return None
+
+        log_info(
+            "LLM console: provider=%s model=%s",
+            provider.get_provider_name(),
+            provider.get_model_name(),
+        )
         return provider
     except Exception as exc:
         log_error("LLM console: could not create provider — %s", exc)
