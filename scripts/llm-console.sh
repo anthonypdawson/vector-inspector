@@ -3,4 +3,4 @@
 
 cd "$(dirname "$0")/.."
 cd src
-pdm run python -m vector_inspector.main "$@"
+pdm run vector-inspector --llm-console

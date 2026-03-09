@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:31893082c9c488150ad406ef7672fe3a33cd9b485879d6512c8e200e1ef28b06"
+content_hash = "sha256:7ddb262f40d91c0a1bd74baff0bf4281e1038b19f086364e2ae4a9c98639c350"
 
 [[metadata.targets]]
 requires_python = ">=3.11,<3.14"
@@ -266,7 +266,7 @@ files = [
 [[package]]
 name = "build"
 version = "1.4.0"
-requires_python = ">=3.9"
+requires_python = ">= 3.9"
 summary = "A simple, correct Python build frontend"
 groups = ["default", "dev"]
 marker = "python_version >= \"3.11\" and python_version < \"3.14\""
@@ -698,7 +698,7 @@ files = [
 [[package]]
 name = "cryptography"
 version = "46.0.4"
-requires_python = "!=3.9.0,!=3.9.1,>=3.8"
+requires_python = ">=3.8, !=3.9.0, !=3.9.1"
 summary = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
 groups = ["default"]
 marker = "python_version >= \"3.11\" and python_version < \"3.14\""
@@ -1671,7 +1671,7 @@ files = [
 [[package]]
 name = "loguru"
 version = "0.7.3"
-requires_python = "<4.0,>=3.5"
+requires_python = ">=3.5,<4.0"
 summary = "Python logging made (stupidly) simple"
 groups = ["default"]
 marker = "python_version >= \"3.11\" and python_version < \"3.14\""
@@ -2667,7 +2667,7 @@ files = [
 [[package]]
 name = "pinecone-plugin-assistant"
 version = "3.0.2"
-requires_python = "<4.0,>=3.10"
+requires_python = ">=3.10,<4.0"
 summary = "Assistant plugin for Pinecone SDK"
 groups = ["default"]
 marker = "python_version >= \"3.11\" and python_version < \"3.14\""
@@ -2683,7 +2683,7 @@ files = [
 [[package]]
 name = "pinecone-plugin-interface"
 version = "0.0.7"
-requires_python = "<4.0,>=3.8"
+requires_python = ">=3.8,<4.0"
 summary = "Plugin interface for the Pinecone python client"
 groups = ["default"]
 marker = "python_version >= \"3.11\" and python_version < \"3.14\""
@@ -4100,7 +4100,7 @@ files = [
 [[package]]
 name = "six"
 version = "1.17.0"
-requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 summary = "Python 2 and 3 compatibility utilities"
 groups = ["default", "dev"]
 marker = "python_version >= \"3.11\" and python_version < \"3.14\""
@@ -4274,9 +4274,9 @@ dependencies = [
     "typing-extensions>=4.10.0",
 ]
 files = [
-    {file = "torch-2.10.0-1-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:f699f31a236a677b3118bc0a3ef3d89c0c29b5ec0b20f4c4bf0b110378487464"},
-    {file = "torch-2.10.0-1-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:6abb224c2b6e9e27b592a1c0015c33a504b00a0e0938f1499f7f514e9b7bfb5c"},
-    {file = "torch-2.10.0-1-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:7350f6652dfd761f11f9ecb590bfe95b573e2961f7a242eccb3c8e78348d26fe"},
+    {file = "torch-2.10.0-2-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:418997cb02d0a0f1497cf6a09f63166f9f5df9f3e16c8a716ab76a72127c714f"},
+    {file = "torch-2.10.0-2-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:13ec4add8c3faaed8d13e0574f5cd4a323c11655546f91fbe6afa77b57423574"},
+    {file = "torch-2.10.0-2-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:e521c9f030a3774ed770a9c011751fb47c4d12029a3d6522116e48431f2ff89e"},
     {file = "torch-2.10.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:3282d9febd1e4e476630a099692b44fdc214ee9bf8ee5377732d9d9dfe5712e4"},
     {file = "torch-2.10.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:a2f9edd8dbc99f62bc4dfb78af7bf89499bca3d753423ac1b4e06592e467b763"},
     {file = "torch-2.10.0-cp311-cp311-win_amd64.whl", hash = "sha256:29b7009dba4b7a1c960260fc8ac85022c784250af43af9fb0ebafc9883782ebd"},
@@ -4370,7 +4370,7 @@ files = [
 [[package]]
 name = "truststore"
 version = "0.10.4"
-requires_python = ">=3.10"
+requires_python = ">= 3.10"
 summary = "Verify certificates using native system trust stores"
 groups = ["dev"]
 marker = "python_version >= \"3.11\" and python_version < \"3.14\""

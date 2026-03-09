@@ -152,6 +152,22 @@ def main():
     window = MainWindow()
     window.show()
 
+    # --llm-console flag: open the debug LLM console alongside the main window.
+    # Both windows share the same event loop; closing either one independently
+    # is fine — the app exits when all windows are closed.
+    if os.environ.get("VI_LLM_CONSOLE"):
+        try:
+            from vector_inspector.tools.llm_console import LLMConsoleWindow, _make_provider
+
+            _console_provider = _make_provider()
+            if _console_provider is not None:
+                _console_win = LLMConsoleWindow(_console_provider)
+                _console_win.show()
+            else:
+                log_error("LLM console: no provider available; console window skipped.")
+        except Exception as _console_err:
+            log_error("LLM console failed to open: %s", _console_err)
+
     # Always fade out loading screen automatically
     if loading:
         loading.fade_out()

@@ -108,6 +108,43 @@ vector-inspector
 > Note: The Quick Install script launches the app automatically. If you installed via pip or from source, use the command above.
 > This opens the full desktop application.
 
+### Optional LLM runtime (llama-cpp-python)
+llama-cpp-python is optional and only needed for the in-process LLM provider (`llama-cpp`).
+
+- Install via PDM optional-dependency group (developer / recommended):
+
+```bash
+pdm install -G llm
+```
+
+- Platform-specific pip install (end users / PyPI):
+
+Windows (pre-built CPU wheel index):
+```powershell
+pip install llama-cpp-python --prefer-binary \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+```
+
+Linux / macOS (official wheels / source build):
+```bash
+pip install llama-cpp-python
+```
+
+CUDA / GPU wheels (pick matching CUDA version):
+```bash
+pip install llama-cpp-python --prefer-binary \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
+```
+
+- Scripts included in this repo:
+  - `scripts/install-llm-windows.ps1` — PowerShell helper for Windows
+  - `scripts/install-llm-unix.sh` — bash helper for Linux/macOS
+
+Notes:
+- If you cannot build native wheels on Windows, use the Windows pre-built index above.
+- **Vector Studio users** can use **Settings → LLM → "Download default model"** to automatically download the default Phi-3-mini GGUF model into the local cache. This button is disabled in the free Vector Inspector tier.
+- **Free-tier users** should download a GGUF model manually (or use the scripts above) and set the path in Settings → LLM, or configure Ollama (local server) or an OpenAI-compatible API instead.
+
 ---
 ## Table of Contents
 

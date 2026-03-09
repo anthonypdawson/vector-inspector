@@ -167,6 +167,73 @@ class SettingsService:
         """Set whether telemetry is enabled."""
         self.set("telemetry.enabled", bool(enabled))
 
+    # ------------------------------------------------------------------
+    # LLM provider settings
+    # ------------------------------------------------------------------
+
+    def get_llm_provider(self) -> str:
+        """Return configured LLM provider: 'auto', 'llama-cpp', 'ollama', or 'openai-compatible'."""
+        return str(self.settings.get("llm.provider", "auto"))
+
+    def set_llm_provider(self, provider: str) -> None:
+        self.set("llm.provider", provider)
+
+    def get_llm_model_path(self) -> str:
+        """Return explicit llama-cpp model path (empty string = use default from cache)."""
+        return str(self.settings.get("llm.model_path", ""))
+
+    def set_llm_model_path(self, path: str) -> None:
+        self.set("llm.model_path", path)
+
+    def get_llm_cache_dir(self) -> str:
+        """Return custom LLM model cache directory (empty = use default)."""
+        return str(self.settings.get("llm.cache_dir", ""))
+
+    def set_llm_cache_dir(self, path: str) -> None:
+        self.set("llm.cache_dir", path)
+
+    def get_llm_ollama_url(self) -> str:
+        return str(self.settings.get("llm.ollama_url", "http://localhost:11434"))
+
+    def set_llm_ollama_url(self, url: str) -> None:
+        self.set("llm.ollama_url", url)
+
+    def get_llm_ollama_model(self) -> str:
+        return str(self.settings.get("llm.ollama_model", "llama3.2"))
+
+    def set_llm_ollama_model(self, model: str) -> None:
+        self.set("llm.ollama_model", model)
+
+    def get_llm_openai_url(self) -> str:
+        return str(self.settings.get("llm.openai_url", ""))
+
+    def set_llm_openai_url(self, url: str) -> None:
+        self.set("llm.openai_url", url)
+
+    def get_llm_openai_api_key(self) -> str:
+        return str(self.settings.get("llm.openai_api_key", ""))
+
+    def set_llm_openai_api_key(self, key: str) -> None:
+        self.set("llm.openai_api_key", key)
+
+    def get_llm_openai_model(self) -> str:
+        return str(self.settings.get("llm.openai_model", ""))
+
+    def set_llm_openai_model(self, model: str) -> None:
+        self.set("llm.openai_model", model)
+
+    def get_llm_context_length(self) -> int:
+        return int(self.settings.get("llm.context_length", 4096))
+
+    def set_llm_context_length(self, n: int) -> None:
+        self.set("llm.context_length", int(n))
+
+    def get_llm_temperature(self) -> float:
+        return float(self.settings.get("llm.temperature", 0.1))
+
+    def set_llm_temperature(self, temp: float) -> None:
+        self.set("llm.temperature", float(temp))
+
     def set(self, key: str, value: Any):
         """Set a setting value."""
         self.settings[key] = value

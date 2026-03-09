@@ -119,3 +119,8 @@ try:
     import vector_inspector.extensions.telemetry_settings_panel
 except Exception:
     pass
+
+try:
+    import vector_inspector.extensions.llm_settings_panel
+except Exception:
+    pass
