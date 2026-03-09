@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -23,12 +24,13 @@ class TestOllamaListModels:
         assert models[0].model_name == "llama3.2"
         assert models[1].model_name == "mistral"
 
-    def test_list_models_fallback_on_error(self):
+    def test_list_models_fallback_on_error(self, caplog):
         p = OllamaProvider(model="llama3.2")
         with patch("urllib.request.urlopen", side_effect=OSError("unreachable")):
-            models = p.list_models()
-        assert len(models) == 1
-        assert models[0].model_name == "llama3.2"
+            with caplog.at_level(logging.ERROR, logger="vector_inspector"):
+                models = p.list_models()
+        assert len(models) == 0
+        assert any("Ollama list_models failed" in r.getMessage() for r in caplog.records)
 
     def test_get_health_ok_path(self):
         p = OllamaProvider(model="llama3.2")

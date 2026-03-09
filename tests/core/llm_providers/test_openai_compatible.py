@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -22,12 +23,13 @@ class TestOpenAICompatibleListModels:
         assert len(models) == 2
         assert models[0].model_name == "gpt-4"
 
-    def test_list_models_fallback_on_error(self):
+    def test_list_models_fallback_on_error(self, caplog):
         p = OpenAICompatibleProvider(base_url="http://localhost:1234", model="gpt-4")
         with patch("urllib.request.urlopen", side_effect=OSError("unreachable")):
-            models = p.list_models()
-        assert len(models) == 1
-        assert models[0].model_name == "gpt-4"
+            with caplog.at_level(logging.ERROR, logger="vector_inspector"):
+                models = p.list_models()
+        assert len(models) == 0
+        assert any("Failed to fetch model list" in r.getMessage() for r in caplog.records)
 
     def test_list_models_empty_base_url_returns_configured_model(self):
         p = OpenAICompatibleProvider(base_url="", model="gpt-4o")

@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-# Ensure tests/utils is importable for FakeLLMProvider
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "tests"))
-
 from tests.utils.fake_llm_provider import FakeLLMProvider  # noqa: F401
 
 
