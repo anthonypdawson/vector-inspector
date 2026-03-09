@@ -24,7 +24,7 @@ def _import_raiser(module_name: str):
     return _raiser
 
 
-def _passthrough_except(substring: str):
+def _passthrough_except(_substring: str):
     real_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
 
     def _passthrough(name, *args, **kwargs):
