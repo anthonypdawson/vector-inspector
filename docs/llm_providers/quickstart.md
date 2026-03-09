@@ -1,112 +1,74 @@
-# Quickstart — installing llama-cpp-python
+---
+title: LLM Providers Quickstart
+---
 
-This page explains how to install the `llama-cpp-python` bindings used by
-`LlamaCppProvider`. It covers common platforms and both CPU-only and GPU setups.
+# Quickstart — LLM Provider Configuration
 
-This project exposes an optional dependency group which includes LLM dependencies.
+This quick reference shows example environment variables and selection behavior for common setups: `llama-cpp` (local in-process), `Ollama` (self-hosted HTTP), and OpenAI-compatible cloud providers.
 
-If you are working inside a local clone of this repository (developer):
+> Note: actual provider implementations may require additional setup; this example shows the selection/configuration rules used by the runtime manager.
 
-    pdm install -G llm
+## Environment variables (examples)
 
-If you are installing from PyPI into another project:
+- `VI_LLM_PROVIDER` — preferred provider id (e.g., `llama-cpp`, `ollama`, `openai-compatible`).
+- `VI_LLM_MODEL` — default model name to use when none is specified in calls.
+- `VI_OLLAMA_URL` — Ollama HTTP endpoint (e.g., `http://localhost:11434`).
+- `OPENAI_API_KEY` — API key for OpenAI-compatible providers (used by `openai-compatible` runtime).
+- `VI_LLM_DEBUG` — enable structured debug logging for selection and requests.
 
-    pip install "vector-inspector[llm]"
+## Example setups
 
-If you prefer to manage `llama-cpp-python` yourself (recommended for advanced
-users), follow the guidelines below.
+1) Local llama-cpp (in-process)
 
-Prerequisites
- - Python 3.11 or later (the project targets py312; check your virtualenv)
- - Up-to-date `pip`, `setuptools`, and `wheel`:
+Set environment and start application with the model manager pointing to downloaded model files.
 
-    python -m pip install --upgrade pip setuptools wheel
+```bash
+export VI_LLM_PROVIDER=llama-cpp
+export VI_LLM_MODEL=ggml-vicuna-13b-q4_0
+export VI_LLM_DEBUG=1
+```
 
-If installation fails while building native wheels, install the platform build
-tools (see each OS section).
+Notes: ensure `llama-cpp` optional deps are installed in your environment. The runtime manager will mark `health().ok == false` and include remediation hints if optional deps are missing.
 
-CPU-only installation (recommended for quick start)
- - This is the simplest path. On most platforms `pip install llama-cpp-python`
-   will install a prebuilt wheel.
+2) Ollama (self-hosted HTTP)
 
-    python -m pip install llama-cpp-python
+```bash
+export VI_LLM_PROVIDER=ollama
+export VI_OLLAMA_URL=http://localhost:11434
+export VI_LLM_MODEL=vicuna-13b
+```
 
- - Verify the installation:
+3) OpenAI-compatible (cloud)
 
-    python -c "import llama_cpp; print('llama-cpp-python', llama_cpp.__version__)"
+```bash
+export VI_LLM_PROVIDER=openai-compatible
+export OPENAI_API_KEY=sk-xxxx
+export VI_LLM_MODEL=gpt-4o-mini
+```
 
-macOS
- - Install Xcode command line tools if not present:
+## Selection_debug example
 
-    xcode-select --install
+When `VI_LLM_DEBUG=1`, the runtime manager logs a structured `selection_debug` like:
 
- - Install `libomp` which is commonly required by native wheels:
+```json
+{
+  "selected_provider": "ollama",
+  "selected_model": "llama3.2",
+  "reasons": [
+    {"source": "env", "key": "VI_LLM_PROVIDER", "value": "ollama", "timestamp": "2026-03-03T12:00:00+00:00", "precedence_rank": 2, "outcome": "selected"}
+  ],
+  "fallbacks_considered": [],
+  "api_key_present": false,
+  "api_key_value": "[REDACTED]"
+}
+```
 
-    brew install libomp
+## Quick troubleshooting
 
- - Then install via pip (see CPU-only notes above).
+- Provider missing optional deps: `health().ok == false` with `remediation_hint` describing how to install.
+- Conflicting configuration: runtime manager prefers explicit app config > env vars > auto-detect > fallback.
 
-Windows
- - Most users can install the prebuilt wheel with `pip`.
- - If pip attempts to build from source you will need the Visual C++ Build
-   Tools / MSVC toolchain. Install the "Build Tools for Visual Studio" and
-   include the C++ build tools workload.
+## Next steps
 
-    https://visualstudio.microsoft.com/downloads/
-
- - Then run the CPU install command.
-
-Linux
- - Install standard build essentials (if pip needs to build):
-
-    # Debian/Ubuntu
-    sudo apt update && sudo apt install -y build-essential cmake libomp-dev
-
-    # Fedora
-    sudo dnf install -y @development-tools cmake libgomp
-
- - Then run the CPU install command.
-
-GPU (NVIDIA/CUDA) installations
- - GPU support requires an NVIDIA GPU, matching drivers, and CUDA toolkit
-   installed on the system. The exact CUDA version required depends on the
-   `llama-cpp` native build and the prebuilt wheel availability.
-
- - Common steps:
-   1. Install NVIDIA driver for your GPU (from NVIDIA).
-   2. Install CUDA toolkit that matches the wheel or your intended build.
-   3. Ensure `nvcc` and CUDA libraries are on `PATH`/`LD_LIBRARY_PATH`.
-   4. Install `llama-cpp-python` — if a CUDA-enabled wheel exists for your
-      platform the regular `pip install` will pick it up; otherwise you may
-      need to build from source per the library README.
-
- - Building with CUDA may require additional dependencies (CUDA SDK, cuBLAS,
-   etc.). Consult the `llama-cpp-python` README for exact build flags and
-   supported CUDA versions.
-
-Troubleshooting
- - If you see errors about missing compilers, install the platform build
-   tools listed above (Xcode CLT, Visual C++ Build Tools, build-essential).
- - If pip fails to find a wheel and building from source fails, check the
-   project's releases for prebuilt wheels that match your platform/CUDA
-   version.
-
-Downloading a GGUF model
- - `LlamaCppProvider` looks for GGUF models in the LLM cache (see
-   `get_llm_cache_dir()` in `llama_cpp_provider.py`). You can download a
-   model manually into that directory or use the application's helper that
-   downloads the default model URL used by this project.
-
-Verify everything from Python
-
-    python -c "import llama_cpp; print('llama-cpp-python', llama_cpp.__version__)"
-
-If `import llama_cpp` fails but you installed via the project extras,
-re-run the installation command in the same virtual environment used to run
-the application.
-
-More information
- - The authoritative instructions and platform-specific notes are maintained
-   in the `llama-cpp-python` repository and its README — consult that
-   resource for advanced build options and CUDA-specific guidance.
- - GitHub repository: https://github.com/abetlen/llama-cpp-python
+- Use `--llm-dry-run` to print prompts and inspect token counts without sending requests.
+- Run tests using the `fake_provider` to validate runtime manager behavior before enabling real providers in CI.

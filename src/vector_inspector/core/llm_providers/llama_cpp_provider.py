@@ -236,7 +236,7 @@ class LlamaCppProvider(LLMProvider):
                 remediation_hint=(
                     "Install llama-cpp-python: "
                     "pip install 'vector-inspector[llm]' "
-                    "(see docs/llm_providers/quickstart.md)"
+                    "(see docs/llm_providers/quickstart-installing.md)"
                 )[:200],
             )
         model_path = self._resolve_model_path()

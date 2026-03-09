@@ -227,7 +227,7 @@ class OllamaProvider(LLMProvider):
                 retryable=True,
                 remediation_hint=(
                     f"Ollama server not reachable at {self._base_url}. "
-                    "Start Ollama with: ollama serve (see docs/llm_providers/quickstart.md)"
+                    "Start Ollama with: ollama serve (see docs/llm_providers/quickstart-installing.md)"
                 )[:200],
             )
 
