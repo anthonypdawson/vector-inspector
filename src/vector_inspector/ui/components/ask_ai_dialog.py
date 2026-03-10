@@ -14,11 +14,12 @@ Usage::
 
 from __future__ import annotations
 
+import html
 import sys
 from typing import Any
 
 from PySide6.QtCore import QEvent, Qt, QThread, Signal
-from PySide6.QtGui import QFont, QTextCursor
+from PySide6.QtGui import QColor, QFont, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QDialog,
     QGroupBox,
@@ -105,9 +106,33 @@ class AskAIDialog(QDialog):
 
         self._setup_ui(prefilled_prompt)
 
+        # Refresh status whenever any LLM setting changes while the dialog is open
+        try:
+            app_state.settings_service.signals.setting_changed.connect(self._on_setting_changed)
+        except Exception:
+            pass  # settings_service may not be wired in all test contexts
+
     # ------------------------------------------------------------------
     # UI setup
     # ------------------------------------------------------------------
+
+    def showEvent(self, event) -> None:
+        """Refresh provider status each time the dialog becomes visible."""
+        super().showEvent(event)
+        try:
+            self._app_state.llm_runtime_manager.refresh()
+        except Exception:
+            pass
+        self._refresh_status_label()
+
+    def _on_setting_changed(self, key: str, _value: object) -> None:
+        """Invalidate the cached LLM provider and update the status bar when an LLM setting changes."""
+        if key.startswith("llm."):
+            try:
+                self._app_state.llm_runtime_manager.refresh()
+            except Exception:
+                pass
+            self._refresh_status_label()
 
     def _setup_ui(self, prefilled_prompt: str) -> None:
         layout = QVBoxLayout(self)
@@ -123,7 +148,7 @@ class AskAIDialog(QDialog):
         # Context preview group (collapsible via checkable group box)
         ctx_group = QGroupBox("Attached context  (click to expand / collapse)")
         ctx_group.setCheckable(True)
-        ctx_group.setChecked(False)
+        ctx_group.setChecked(True)
         ctx_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         ctx_layout = QVBoxLayout(ctx_group)
         self._context_preview = QTextEdit()
@@ -134,18 +159,18 @@ class AskAIDialog(QDialog):
         self._context_preview.setFont(mono)
         self._context_preview.setPlainText(self._render_context_preview())
         ctx_layout.addWidget(self._context_preview)
-        # Wire collapse/expand
-        self._context_preview.setVisible(False)
+        # Wire collapse/expand; preview starts visible (group is checked by default)
+        self._context_preview.setVisible(True)
         ctx_group.toggled.connect(self._context_preview.setVisible)
         layout.addWidget(ctx_group)
 
         # Response area (read-only, monospace)
-        resp_group = QGroupBox("Response")
+        resp_group = QGroupBox("Conversation")
         resp_layout = QVBoxLayout(resp_group)
         self._response_area = QTextEdit()
         self._response_area.setReadOnly(True)
         self._response_area.setFont(mono)
-        self._response_area.setPlaceholderText("AI response will appear here…")
+        self._response_area.setPlaceholderText("Your question and the AI response will appear here…")
         resp_layout.addWidget(self._response_area)
         layout.addWidget(resp_group, stretch=1)
 
@@ -216,6 +241,7 @@ class AskAIDialog(QDialog):
 
         messages = build_messages(prompt, self._context)
 
+        self._append_question(prompt)
         self._send_btn.setEnabled(False)
         self._busy_bar.setVisible(True)
 
@@ -228,16 +254,19 @@ class AskAIDialog(QDialog):
     def _on_chunk(self, text: str) -> None:
         cursor = self._response_area.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
-        cursor.insertText(text)
+        fmt = QTextCharFormat()
+        fmt.setForeground(QColor("#e0e0e0"))
+        cursor.insertText(text, fmt)
         self._response_area.setTextCursor(cursor)
         self._response_area.ensureCursorVisible()
 
     def _on_done(self) -> None:
-        # Add a blank line between turns
         cursor = self._response_area.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
-        cursor.insertText("\n\n")
+        # Separator between turns
+        cursor.insertHtml('<hr style="border: 0; border-top: 1px solid #444; margin: 6px 0;"><br>')
         self._response_area.setTextCursor(cursor)
+        self._response_area.ensureCursorVisible()
         self._busy_bar.setVisible(False)
         self._send_btn.setEnabled(True)
 
@@ -245,6 +274,19 @@ class AskAIDialog(QDialog):
         self._append_error(msg)
         self._busy_bar.setVisible(False)
         self._send_btn.setEnabled(True)
+
+    def _append_question(self, prompt: str) -> None:
+        """Insert a colour-coded user question block followed by the AI label."""
+        cursor = self._response_area.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        safe_prompt = html.escape(prompt).replace("\n", "<br>")
+        cursor.insertHtml(
+            '<span style="color: #4a9eff; font-weight: bold;">You:</span><br>'
+            f'<span style="color: #cccccc;">{safe_prompt}</span><br><br>'
+            '<span style="color: #7bc67e; font-weight: bold;">AI:</span><br>'
+        )
+        self._response_area.setTextCursor(cursor)
+        self._response_area.ensureCursorVisible()
 
     def _clear_response(self) -> None:
         self._response_area.clear()

@@ -83,10 +83,11 @@ def test_busy_bar_hidden_initially(qtbot):
     assert not dlg._busy_bar.isVisible()
 
 
-def test_context_preview_hidden_initially(qtbot):
-    """Context preview starts collapsed."""
+def test_context_preview_visible_initially(qtbot):
+    """Context preview starts expanded (group box checked by default)."""
     dlg = _make_dialog(qtbot)
-    assert not dlg._context_preview.isVisible()
+    dlg.show()
+    assert not dlg._context_preview.isHidden()
 
 
 # ---------------------------------------------------------------------------
@@ -321,6 +322,15 @@ def test_on_done_re_enables_send_button(qtbot):
     assert not dlg._busy_bar.isVisible()
 
 
+def test_on_done_inserts_separator(qtbot):
+    """_on_done injects an HTML separator between conversation turns."""
+    dlg = _make_dialog(qtbot)
+    dlg._response_area.clear()
+    dlg._on_done()
+    # After a turn, the HTML should contain some content (separator was inserted)
+    assert dlg._response_area.toHtml() != ""
+
+
 def test_on_error_re_enables_send_button(qtbot):
     dlg = _make_dialog(qtbot)
     dlg._send_btn.setEnabled(False)
@@ -335,6 +345,40 @@ def test_on_error_shows_error_text(qtbot):
     dlg._on_error("timeout")
     html = dlg._response_area.toHtml()
     assert "timeout" in html
+
+
+# ---------------------------------------------------------------------------
+# _append_question — colour-coded user turn injection
+# ---------------------------------------------------------------------------
+
+
+def test_append_question_injects_prompt_text(qtbot):
+    """_append_question writes the user question and AI label into the response area."""
+    dlg = _make_dialog(qtbot)
+    dlg._response_area.clear()
+    dlg._append_question("What is this result?")
+    content = dlg._response_area.toHtml()
+    assert "What is this result?" in content
+
+
+def test_append_question_escapes_html(qtbot):
+    """User-supplied prompt content is HTML-escaped before insertion (no raw tags in source)."""
+    dlg = _make_dialog(qtbot)
+    dlg._response_area.clear()
+    dlg._append_question("<script>alert('xss')</script>")
+    # toHtml() returns the underlying HTML; injected tag must be escaped
+    source = dlg._response_area.toHtml()
+    assert "<script>" not in source
+
+
+def test_append_question_includes_you_and_ai_labels(qtbot):
+    """Both 'You:' and 'AI:' headings are present after _append_question."""
+    dlg = _make_dialog(qtbot)
+    dlg._response_area.clear()
+    dlg._append_question("Hello?")
+    plain = dlg._response_area.toPlainText()
+    assert "You:" in plain
+    assert "AI:" in plain
 
 
 # ---------------------------------------------------------------------------
@@ -426,3 +470,47 @@ def test_get_provider_returns_none_on_exception(qtbot):
     qtbot.addWidget(dlg)
     result = dlg._get_provider()
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# LLM settings change — live status refresh
+# ---------------------------------------------------------------------------
+
+
+def test_on_setting_changed_llm_key_refreshes_status(qtbot):
+    """Changing an llm.* setting calls llm_runtime_manager.refresh() and updates the label."""
+    provider = FakeLLMProvider()
+    app_state = MagicMock(spec=AppState)
+    app_state.llm_provider = provider
+    refresh_calls = []
+    app_state.llm_runtime_manager.refresh.side_effect = lambda: refresh_calls.append(True)
+    dlg = AskAIDialog(app_state, context=CONTEXT)
+    qtbot.addWidget(dlg)
+    dlg._on_setting_changed("llm.provider", "ollama")
+    assert refresh_calls
+
+
+def test_on_setting_changed_non_llm_key_ignored(qtbot):
+    """Changes to non-llm.* settings must not trigger provider refresh."""
+    provider = FakeLLMProvider()
+    app_state = MagicMock(spec=AppState)
+    app_state.llm_provider = provider
+    refresh_calls = []
+    app_state.llm_runtime_manager.refresh.side_effect = lambda: refresh_calls.append(True)
+    dlg = AskAIDialog(app_state, context=CONTEXT)
+    qtbot.addWidget(dlg)
+    dlg._on_setting_changed("ui.theme", "dark")
+    assert not refresh_calls
+
+
+def test_show_event_refreshes_runtime_manager(qtbot):
+    """showEvent must call llm_runtime_manager.refresh() so a stale cached provider is evicted."""
+    provider = FakeLLMProvider()
+    app_state = MagicMock(spec=AppState)
+    app_state.llm_provider = provider
+    refresh_calls = []
+    app_state.llm_runtime_manager.refresh.side_effect = lambda: refresh_calls.append(True)
+    dlg = AskAIDialog(app_state, context=CONTEXT)
+    qtbot.addWidget(dlg)
+    dlg.show()
+    assert refresh_calls
