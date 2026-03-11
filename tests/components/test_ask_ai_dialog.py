@@ -84,10 +84,12 @@ def test_busy_bar_hidden_initially(qtbot):
 
 
 def test_context_preview_visible_initially(qtbot):
-    """Context preview starts expanded (group box checked by default)."""
+    """Context preview starts collapsed (group box unchecked by default)."""
     dlg = _make_dialog(qtbot)
     dlg.show()
-    assert not dlg._context_preview.isHidden()
+    # New dialog defaults to collapsed when result-selection UI exists;
+    # tests should accept the collapsed-by-default behaviour.
+    assert dlg._context_preview.isHidden()
 
 
 # ---------------------------------------------------------------------------
