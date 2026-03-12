@@ -144,7 +144,9 @@ def webengine_cleanup(qtbot):
         def test_something(qtbot, webengine_cleanup):
             panel = PlotPanel()
             qtbot.addWidget(panel)
-            webengine_cleanup.append(panel)
+
+    Widgets that are not added via ``qtbot.addWidget`` can be tracked manually
+    by appending them to the ``webengine_cleanup`` list.
     """
     created = []
     orig_add = qtbot.addWidget
