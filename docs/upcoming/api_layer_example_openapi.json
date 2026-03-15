@@ -1,0 +1,566 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Vector Inspector API",
+        "version": "1.0.0",
+        "description": "API for interacting with providers, collections, items, queries, and comparison operations."
+    },
+    "paths": {
+        "/providers": {
+            "get": {
+                "tags": [
+                    "providers"
+                ],
+                "summary": "List all configured providers",
+                "responses": {
+                    "200": {
+                        "description": "List of providers",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Provider"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/providers/{provider_id}": {
+            "get": {
+                "tags": [
+                    "providers"
+                ],
+                "summary": "Get provider details",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/provider_id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Provider details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Provider"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/providers/{provider_id}/collections": {
+            "get": {
+                "tags": [
+                    "collections"
+                ],
+                "summary": "List collections for a provider",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/provider_id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of collections",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Collection"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/providers/{provider_id}/collections/{collection_id}": {
+            "get": {
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Get collection details",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/provider_id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/collection_id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Collection details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Collection"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/providers/{provider_id}/collections/{collection_id}/items": {
+            "get": {
+                "tags": [
+                    "items"
+                ],
+                "summary": "List items in a collection",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/provider_id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/collection_id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of items",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Item"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/providers/{provider_id}/collections/{collection_id}/items/{item_id}": {
+            "get": {
+                "tags": [
+                    "items"
+                ],
+                "summary": "Get item details",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/provider_id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/collection_id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/item_id"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Item"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                }
+            }
+        },
+        "/providers/{provider_id}/collections/{collection_id}/query": {
+            "post": {
+                "tags": [
+                    "search"
+                ],
+                "summary": "Run a similarity search on a collection",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/provider_id"
+                    },
+                    {
+                        "$ref": "#/components/parameters/collection_id"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QueryRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Query results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueryResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/compare/providers": {
+            "post": {
+                "tags": [
+                    "compare"
+                ],
+                "summary": "Compare query results across two providers",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ComparisonRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Comparison results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ComparisonResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/compare/collections": {
+            "post": {
+                "tags": [
+                    "compare"
+                ],
+                "summary": "Compare two collections within the same provider",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ComparisonRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Comparison results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ComparisonResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/compare/models": {
+            "post": {
+                "tags": [
+                    "compare"
+                ],
+                "summary": "Compare two embedding models",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ComparisonRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Comparison results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ComparisonResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/compare": {
+            "post": {
+                "tags": [
+                    "compare"
+                ],
+                "summary": "Compare arbitrary configurations",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ComparisonRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Comparison results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ComparisonResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "parameters": {
+            "provider_id": {
+                "name": "provider_id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            },
+            "collection_id": {
+                "name": "collection_id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            },
+            "item_id": {
+                "name": "item_id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses": {
+            "NotFound": {
+                "description": "Resource not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "Provider": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Collection": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "dimension": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "Item": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "vector": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    },
+                    "metadata": {
+                        "type": "object"
+                    }
+                }
+            },
+            "QueryRequest": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    },
+                    "top_k": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "text"
+                ]
+            },
+            "QueryResponse": {
+                "type": "object",
+                "properties": {
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Item"
+                        }
+                    }
+                }
+            },
+            "ComparisonRequest": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "$ref": "#/components/schemas/QueryRequest"
+                    },
+                    "left": {
+                        "$ref": "#/components/schemas/ComparisonSide"
+                    },
+                    "right": {
+                        "$ref": "#/components/schemas/ComparisonSide"
+                    }
+                },
+                "required": [
+                    "query",
+                    "left",
+                    "right"
+                ]
+            },
+            "ComparisonSide": {
+                "type": "object",
+                "properties": {
+                    "provider_id": {
+                        "type": "string"
+                    },
+                    "collection_id": {
+                        "type": "string"
+                    },
+                    "model": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "provider_id",
+                    "collection_id"
+                ]
+            },
+            "ComparisonResponse": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string"
+                    },
+                    "left_results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Item"
+                        }
+                    },
+                    "right_results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Item"
+                        }
+                    },
+                    "diff": {
+                        "type": "object",
+                        "properties": {
+                            "overlap": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "unique_left": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "unique_right": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "score_delta": {
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                }
+                            }
+                        }
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "properties": {
+                            "latency_left_ms": {
+                                "type": "number"
+                            },
+                            "latency_right_ms": {
+                                "type": "number"
+                            },
+                            "provider_left": {
+                                "type": "string"
+                            },
+                            "provider_right": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
