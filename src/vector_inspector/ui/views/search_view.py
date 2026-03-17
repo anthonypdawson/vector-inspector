@@ -618,10 +618,9 @@ class SearchView(QWidget):
                 else "unknown"
             )
 
-            telemetry = TelemetryService()
-            telemetry.queue_event(
+            TelemetryService.send_event(
+                "query.executed",
                 {
-                    "event_name": "query.executed",
                     "metadata": {
                         "query_type": "similarity",
                         "db_type": provider_type,
@@ -630,10 +629,9 @@ class SearchView(QWidget):
                         "correlation_id": self._search_correlation_id,
                         "has_filters": bool(self._search_server_filter or self._search_client_filters),
                         "success": False,
-                    },
-                }
+                    }
+                },
             )
-            telemetry.send_batch()
         except Exception:
             pass  # Best effort telemetry
 

@@ -5,7 +5,10 @@ can record launch attempts even when the GUI dependencies fail to load.
 """
 
 import os
+import platform
 import sys
+import time
+import uuid
 
 from vector_inspector.core.logging import log_error
 
@@ -19,8 +22,7 @@ if not os.environ.get("VI_NO_TELEMETRY"):
         from vector_inspector.services.telemetry_service import TelemetryService
 
         try:
-            telemetry = TelemetryService()
-            telemetry.send_launch_ping(app_version=get_version())
+            TelemetryService.get_instance().send_launch_ping(app_version=get_version())
         except Exception as _err:
             # Best-effort: avoid raising here so that missing telemetry deps
             # don't stop the application from proceeding.
@@ -72,8 +74,7 @@ def main():
         try:
             from vector_inspector.services.telemetry_service import TelemetryService
 
-            telemetry = TelemetryService()
-            telemetry.send_error_event(message=str(_qt_err), tb=tb, app_version=get_version())
+            TelemetryService.get_instance().send_error_event(message=str(_qt_err), tb=tb, app_version=get_version())
         except Exception:
             try:
                 sys.stderr.write(f"[Telemetry] Failed sending PySide import error: {_qt_err}\n{tb}\n")
@@ -86,6 +87,41 @@ def main():
     app.setApplicationName("Vector Inspector")
     app.setApplicationDisplayName("Vector Inspector")  # For some dialogs and OS integrations
     app.setOrganizationName("Vector Inspector")
+
+    # Initialise the telemetry singleton with the real app version so all
+    # subsequent call sites (services, workers, etc.) share the same instance.
+    try:
+        from vector_inspector.services.telemetry_service import TelemetryService
+
+        telemetry = TelemetryService.initialize(app_version=app_version)
+        _session_id = str(uuid.uuid4())
+        _session_start = time.time()
+        telemetry.set_session_id(_session_id)
+
+        try:
+            TelemetryService.queue_event_static(
+                {"event_name": "session.start", "metadata": {"os": platform.platform()}}
+            )
+            telemetry.send_batch()
+        except Exception:
+            pass
+
+        def _on_app_quit() -> None:
+            try:
+                duration_ms = int((time.time() - _session_start) * 1000)
+                TelemetryService.queue_event_static(
+                    {"event_name": "session.end", "metadata": {"os": platform.platform(), "duration_ms": duration_ms}}
+                )
+                telemetry.send_batch()
+            except Exception:
+                pass
+
+        try:
+            app.aboutToQuit.connect(_on_app_quit)
+        except Exception:
+            pass
+    except Exception:
+        pass
 
     # Apply global stylesheet using configured highlight color (if any)
     try:
