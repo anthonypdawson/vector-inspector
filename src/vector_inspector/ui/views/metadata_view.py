@@ -191,6 +191,10 @@ class MetadataView(QWidget):
         self.page_size_spin = self.pagination.page_size_spin
         controls_layout.addWidget(self.pagination)
 
+        # Total count label
+        self.total_count_label = QLabel("")
+        controls_layout.addWidget(self.total_count_label)
+
         controls_layout.addStretch()
 
         # Action buttons
@@ -304,6 +308,12 @@ class MetadataView(QWidget):
         )
         log_info("[MetadataView] Cache enabled: %s", self.ctx.cache_manager.is_enabled())
 
+        # Clear total count immediately to avoid showing stale values while loading
+        try:
+            self.total_count_label.setText("")
+        except Exception:
+            pass
+
         # Try loading from cache first
         if try_load_from_cache(
             self.ctx,
@@ -313,6 +323,7 @@ class MetadataView(QWidget):
             self.next_button,
             self.filter_builder,
             self.status_label,
+            self.total_count_label,
         ):
             return
 
@@ -407,6 +418,7 @@ class MetadataView(QWidget):
             self.prev_button,
             self.next_button,
             self.filter_builder,
+            self.total_count_label,
         )
         # Telemetry: table view opened (collection data loaded)
         try:

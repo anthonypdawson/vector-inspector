@@ -23,6 +23,7 @@ def try_load_from_cache(
     next_button: QPushButton,
     filter_builder: Any,
     status_label: QLabel,
+    total_label: QLabel,
 ) -> bool:
     """Try to load data from cache.
 
@@ -80,4 +81,8 @@ def try_load_from_cache(
         pass
 
     status_label.setText(f"✓ Loaded from cache - {len(cached.data.get('ids', []))} items")
+    try:
+        total_label.setText(f"Total: {len(cached.data.get('ids', []))}")
+    except Exception:
+        pass
     return True

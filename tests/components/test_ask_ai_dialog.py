@@ -120,6 +120,28 @@ def test_status_label_shows_provider_info(qtbot):
     assert "fake-model" in text
 
 
+def test_status_label_reflects_runtime_manager_provider_and_model(qtbot):
+    """Status label should reflect the provider/model returned by the runtime manager."""
+    from unittest.mock import MagicMock
+
+    from vector_inspector.state import AppState
+
+    provider = MagicMock()
+    provider.get_provider_name.return_value = "cool-provider"
+    provider.get_model_name.return_value = "cool-model:42"
+    provider.is_available.return_value = True
+
+    app_state = MagicMock(spec=AppState)
+    app_state.llm_runtime_manager = MagicMock()
+    app_state.llm_runtime_manager.get_provider.return_value = provider
+
+    dlg = AskAIDialog(app_state, context=CONTEXT)
+    qtbot.addWidget(dlg)
+    text = dlg._status_label.text()
+    assert "cool-provider" in text
+    assert "cool-model" in text
+
+
 def test_status_label_green_when_available(qtbot):
     provider = FakeLLMProvider()
     dlg = _make_dialog(qtbot, app_state=_make_app_state(provider))

@@ -216,7 +216,9 @@ class AskAIDialog(QDialog):
         self._configure_llm_btn.setFixedWidth(130)
         self._configure_llm_btn.setToolTip("Open Settings to configure an LLM provider")
         self._configure_llm_btn.clicked.connect(self._open_settings)
-        self._configure_llm_btn.setVisible(False)
+        # Keep the Configure button visible so users can change provider/model
+        # without leaving the Ask-AI dialog.
+        self._configure_llm_btn.setVisible(True)
         status_row.addWidget(self._configure_llm_btn)
         layout.addLayout(status_row)
         self._refresh_status_label()
@@ -497,6 +499,15 @@ class AskAIDialog(QDialog):
         if self._worker and self._worker.isRunning():
             return  # Silently ignore — button is disabled while busy
 
+        # Ensure the runtime manager picks up any recently-changed settings
+        # (user may have updated provider/model in Preferences while dialog
+        # was open). Refreshing forces re-selection on next get_provider().
+        try:
+            if hasattr(self._app_state, "llm_runtime_manager"):
+                self._app_state.llm_runtime_manager.refresh()
+        except Exception:
+            pass
+
         provider = self._get_provider()
         if provider is None:
             self._append_error("No LLM provider is available. Check Settings → LLM.")
@@ -574,7 +585,15 @@ class AskAIDialog(QDialog):
         from vector_inspector.ui.dialogs.settings_dialog import SettingsDialog
 
         dlg = SettingsDialog(self._app_state.settings_service, self)
+        # Modal exec — after closing, refresh runtime manager so new settings
+        # take effect immediately for this dialog.
         dlg.exec()
+        try:
+            if hasattr(self._app_state, "llm_runtime_manager"):
+                self._app_state.llm_runtime_manager.refresh()
+        except Exception:
+            pass
+        self._refresh_status_label()
 
     def _get_provider(self) -> Any | None:
         try:
@@ -585,22 +604,32 @@ class AskAIDialog(QDialog):
 
     def _refresh_status_label(self) -> None:
         try:
-            provider = self._app_state.llm_provider
+            # Ensure the runtime manager re-reads settings so the active provider
+            # reflects the latest preferences immediately.
+            try:
+                if hasattr(self._app_state, "llm_runtime_manager"):
+                    self._app_state.llm_runtime_manager.refresh()
+            except Exception:
+                pass
+
+            # Use the runtime manager to obtain the active provider instance.
+            try:
+                provider = self._app_state.llm_runtime_manager.get_provider()
+            except Exception:
+                provider = None
+
             if provider:
                 pname = provider.get_provider_name()
                 mname = provider.get_model_name()
                 available = provider.is_available()
                 status = f"Provider: {pname}  •  Model: {mname}  •  {'✓ available' if available else '✗ not available'}"
                 color = "green" if available else "#d9534f"
-                self._configure_llm_btn.setVisible(not available)
             else:
                 status = "No LLM provider configured — click 'Configure LLM…' to set one up"
                 color = "#d9534f"
-                self._configure_llm_btn.setVisible(True)
         except Exception:
             status = "Provider status unknown"
             color = "gray"
-            self._configure_llm_btn.setVisible(False)
         self._status_label.setText(status)
         self._status_label.setStyleSheet(f"color: {color}; font-size: 11px;")
 

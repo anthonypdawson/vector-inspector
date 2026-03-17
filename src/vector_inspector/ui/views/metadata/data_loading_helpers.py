@@ -26,6 +26,7 @@ def process_loaded_data(
     prev_button: QPushButton,
     next_button: QPushButton,
     filter_builder: Any,
+    total_label: QLabel,
 ) -> None:
     """Process data loaded from background thread.
 
@@ -64,11 +65,13 @@ def process_loaded_data(
 
     # If client-side filtering was used, perform pagination locally
     if ctx.client_filters:
-        _handle_client_side_pagination(full_data, table, ctx, page_label, prev_button, next_button, filter_builder)
+        _handle_client_side_pagination(
+            full_data, table, ctx, page_label, prev_button, next_button, filter_builder, total_label
+        )
         return
 
     # No client-side filters: display server-paginated data
-    _handle_server_side_pagination(data, table, ctx, page_label, prev_button, next_button, filter_builder)
+    _handle_server_side_pagination(data, table, ctx, page_label, prev_button, next_button, filter_builder, total_label)
 
 
 def _handle_empty_data(
@@ -103,6 +106,7 @@ def _handle_client_side_pagination(
     prev_button: QPushButton,
     next_button: QPushButton,
     filter_builder: Any,
+    total_label: QLabel,
 ) -> None:
     """Handle client-side filtering and pagination."""
     total_count = len(full_data.get("ids", []))
@@ -129,6 +133,12 @@ def _handle_client_side_pagination(
         total_count=total_count,
     )
 
+    # Update total count display
+    try:
+        total_label.setText(f"Total: {total_count}")
+    except Exception:
+        pass
+
     # Update filter fields based on the full filtered dataset
     update_filter_fields(filter_builder, full_data)
 
@@ -144,6 +154,7 @@ def _handle_server_side_pagination(
     prev_button: QPushButton,
     next_button: QPushButton,
     filter_builder: Any,
+    total_label: QLabel,
 ) -> None:
     """Handle server-side pagination without client filtering."""
     # Check if we fetched more items than page_size (to detect next page)
@@ -165,6 +176,25 @@ def _handle_server_side_pagination(
         next_button,
         has_next_page=has_next_page,
     )
+
+    # Try to resolve total count: prefer explicit total_count in data, otherwise ask connection
+    total_count = None
+    try:
+        if isinstance(data, dict) and ("total_count" in data or "count" in data):
+            total_count = data.get("total_count") or data.get("count")
+        elif ctx.connection and ctx.current_collection:
+            # Best-effort count (may be slow for very large collections)
+            total_count = ctx.connection.count_collection(ctx.current_collection)
+    except Exception:
+        total_count = None
+
+    try:
+        if total_count is not None:
+            total_label.setText(f"Total: {total_count}")
+        else:
+            total_label.setText("")
+    except Exception:
+        pass
 
     # Update filter builder with available metadata fields
     update_filter_fields(filter_builder, data)
