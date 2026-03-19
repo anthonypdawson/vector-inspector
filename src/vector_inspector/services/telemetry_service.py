@@ -163,6 +163,9 @@ class TelemetryService:
         # ensure queued events have a chance to send.
         self._worker_stop = threading.Event()
         self._worker_wake = threading.Event()
+        # Signalled by the worker after each send_batch attempt.  Tests can
+        # ``wait()`` on this instead of polling the queue with a sleep loop.
+        self._batch_processed = threading.Event()
         # Start the background worker only when telemetry is enabled.
         # During test runs the default is disabled (set above), so the worker
         # won't start unless a test explicitly enables telemetry via settings.
@@ -250,6 +253,16 @@ class TelemetryService:
                     self.send_batch()
                 except Exception as e:
                     log_error(f"[Telemetry] worker send_batch failed: {e}")
+                finally:
+                    # Signal any test waiter that a batch cycle has completed,
+                    # regardless of whether the send succeeded.  The event is
+                    # intentionally left set so tests can call wait() without
+                    # racing; tests that need to observe a *second* batch
+                    # should clear it before queueing the next event.
+                    try:
+                        self._batch_processed.set()
+                    except Exception:
+                        pass
             # Final flush on exit
             try:
                 self.send_batch()
