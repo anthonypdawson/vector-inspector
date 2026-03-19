@@ -1,6 +1,8 @@
 import json
+import os
 import platform
 import sys
+import tempfile
 import threading
 import uuid
 from pathlib import Path
@@ -58,7 +60,24 @@ class TelemetryService:
         self._initialised = True
         self._lock = threading.Lock()
         self.settings = settings_service or SettingsService()
-        self.queue_file = Path.home() / ".vector-inspector" / "telemetry_queue.json"
+        # Detect test environments. Tests should not leak telemetry or
+        # write to the user's home directory unless explicitly allowed by
+        # an environment override `VECTOR_INSPECTOR_TELEMETRY_ALLOW_IN_TESTS=1`.
+        self._running_under_test = (
+            "pytest" in sys.modules
+            or "unittest" in sys.modules
+            or os.getenv("PYTEST_CURRENT_TEST") is not None
+            or os.getenv("CI") is not None
+            or os.getenv("GITHUB_ACTIONS") is not None
+        )
+        self._allow_telemetry_in_tests = os.getenv("VECTOR_INSPECTOR_TELEMETRY_ALLOW_IN_TESTS") == "1"
+
+        # Use an isolated temp queue file when running tests so we don't
+        # write into the user's home directory during CI/test runs.
+        if self._running_under_test and not self._allow_telemetry_in_tests:
+            self.queue_file = Path(tempfile.gettempdir()) / "vector-inspector-telemetry-test-queue.json"
+        else:
+            self.queue_file = Path.home() / ".vector-inspector" / "telemetry_queue.json"
         self.app_version = app_version or get_version()
         self.client_type = client_type
         self.session_id: str | None = self.settings.get("telemetry.session_id")
@@ -80,11 +99,10 @@ class TelemetryService:
         except Exception:
             # Best-effort fallback
             self._cached_hwid = str(uuid.uuid4())
-        # Disable telemetry if running under pytest or unittest, but only
-        # if the setting isn't already present. Tests may explicitly enable
-        # telemetry on the settings object prior to constructing the
-        # service; respect that to allow controlled test behavior.
-        if "pytest" in sys.modules or "unittest" in sys.modules:
+        # Disable telemetry by default when running under tests or CI
+        # unless the env override enables it or tests explicitly set the
+        # preference on the settings object prior to construction.
+        if self._running_under_test and not self._allow_telemetry_in_tests:
             try:
                 if self.settings.get("telemetry.enabled", None) is None:
                     self.settings.set("telemetry.enabled", False)
@@ -98,12 +116,17 @@ class TelemetryService:
         # ensure queued events have a chance to send.
         self._worker_stop = threading.Event()
         self._worker_wake = threading.Event()
-        try:
-            self._worker = threading.Thread(target=self._worker_loop, daemon=False, name="telemetry-worker")
-            self._worker.start()
-        except Exception:
-            # Best-effort: if thread creation fails, telemetry still queues locally
-            self._worker = None
+        # Start the background worker only when telemetry is enabled.
+        # During test runs the default is disabled (set above), so the worker
+        # won't start unless a test explicitly enables telemetry via settings.
+        self._worker = None
+        if self.is_enabled():
+            try:
+                self._worker = threading.Thread(target=self._worker_loop, daemon=False, name="telemetry-worker")
+                self._worker.start()
+            except Exception:
+                # Best-effort: if thread creation fails, telemetry still queues locally
+                self._worker = None
 
     @classmethod
     def initialize(
