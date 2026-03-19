@@ -122,12 +122,70 @@ def fake_settings():
     return FakeSettings()
 
 
+@pytest.fixture(autouse=True)
+def _block_telemetry_http(monkeypatch):
+    """Global test guard: prevent any real HTTP calls to the telemetry backend.
+
+    Replaces ``requests.post`` inside the telemetry service module with a
+    stub that returns a synthetic 200 response.  Returning 200 causes
+    ``send_batch`` to treat events as successfully sent and remove them from
+    the persistent queue, which prevents stale events accumulating across
+    tests.
+
+    Individual tests that need to verify POST behaviour (e.g. assert on posted
+    payloads or test non-200 handling) call ``monkeypatch.setattr`` themselves;
+    because they share the same function-scoped ``monkeypatch`` instance, their
+    patch takes precedence over this one for the duration of that test.
+    """
+
+    class _GuardResponse:
+        status_code = 200
+        text = "blocked-by-test-guard"
+
+    monkeypatch.setattr(
+        "vector_inspector.services.telemetry_service.requests.post",
+        lambda _url, **_kw: _GuardResponse(),
+    )
+
+
+@pytest.fixture(autouse=True)
+def _reset_telemetry_singleton():
+    """Reset the TelemetryService singleton before and after every test.
+
+    Tests that construct ``TelemetryService`` themselves call
+    ``reset_for_tests()`` explicitly, but this fixture ensures the singleton
+    is always clean at test boundaries regardless of test order.
+
+    It also purges the shared test-mode queue file so stale events from one
+    test cannot affect the next test's singleton initialisation.
+    """
+    import tempfile
+    from pathlib import Path
+
+    from vector_inspector.services.telemetry_service import TelemetryService
+
+    _test_queue = Path(tempfile.gettempdir()) / "vector-inspector-telemetry-test-queue.json"
+
+    def _purge_queue_file():
+        try:
+            if _test_queue.exists():
+                _test_queue.unlink()
+        except Exception:
+            pass
+
+    TelemetryService.reset_for_tests()
+    _purge_queue_file()
+    yield
+    TelemetryService.reset_for_tests()
+    _purge_queue_file()
+
+
 @pytest.fixture
 def webengine_cleanup(qtbot):
-    """Opt-in fixture to track widgets added via `qtbot.addWidget` and detach
-    their `QWebEngineView` pages on teardown to avoid Qt WebEngineProfile
-    warnings. Use in tests that create `QWebEngineView` widgets (e.g.
-    `PlotPanel`, `HistogramPanel`) by accepting the `webengine_cleanup` fixture.
+    """Opt-in fixture to track widgets added via ``qtbot.addWidget`` and detach
+    their ``QWebEngineView`` pages on teardown to avoid Qt WebEngineProfile
+    warnings. Use in tests that create ``QWebEngineView`` widgets (e.g.
+    ``PlotPanel``, ``HistogramPanel``) by accepting the ``webengine_cleanup`` fixture.
 
     Example:
         def test_something(qtbot, webengine_cleanup):
