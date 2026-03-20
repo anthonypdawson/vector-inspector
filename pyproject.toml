@@ -26,8 +26,9 @@ dependencies = [
     "pgvector>=0.4.2",
     "pymilvus>=2.6.8",
     "hdbscan>=0.8.41",
-    "gputil>=1.4.0",
     "weaviate-client>=4.19.2",
+    "gputil>=1.4.0",
+    "gputil-fix>=1.4.1.2"
 ]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -63,7 +64,7 @@ dev = [
     "pytest-testmon>=2.2.0",
     "pytest-timeout>=2.4.0",
     "pytest-env>=1.5.0",
-    "pdoc>=16.0.0",
+    "pdoc>=16.0.0"
 ]
 
 [project.optional-dependencies]
