@@ -143,7 +143,7 @@ class StatusReporter(QObject):
 
         base = f"{action} complete"
         if detail_parts:
-            detail_str = ', '.join(detail_parts)
+            detail_str = ", ".join(detail_parts)
             if subject:
                 message = f"{base} \u2013 {subject}: {detail_str}"
             else:
