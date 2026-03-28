@@ -147,7 +147,7 @@ class SettingsService:
 
     def get_status_timeout_ms(self) -> int:
         """Return how long status bar messages are visible (ms). 0 = permanent."""
-        return int(self.settings.get("status.timeout_ms", 5000))
+        return int(self.settings.get("status.timeout_ms", 0))
 
     def set_status_timeout_ms(self, ms: int) -> None:
         """Set status bar message visibility duration in ms. 0 = permanent."""

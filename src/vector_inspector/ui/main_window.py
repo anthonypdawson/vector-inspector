@@ -244,10 +244,8 @@ class MainWindow(InspectorShell):
         help_menu.addAction(check_update_action)
 
     def _check_for_update_from_menu(self):
-        import threading
         import time as _time
 
-        from PySide6.QtCore import QTimer
         from PySide6.QtWidgets import QMessageBox
 
         from vector_inspector.services.update_service import UpdateService
@@ -257,26 +255,31 @@ class MainWindow(InspectorShell):
         _start = _time.time()
 
         def _do_check():
-            latest = UpdateService.get_latest_release(force_refresh=True)
+            return UpdateService.get_latest_release(force_refresh=True)
+
+        def _on_update_result(latest):
             elapsed = _time.time() - _start
+            if latest:
+                current_version = get_app_version()
+                latest_version = latest.get("tag_name")
+                if latest_version and UpdateService.compare_versions(current_version, latest_version):
+                    self._latest_release = latest
+                    self.update_indicator.setText(f"Update available: v{latest_version}")
+                    self.update_indicator.setVisible(True)
+                    self.app_state.status_reporter.report(f"Update available: v{latest_version}", timeout_ms=0)
+                    self._on_update_indicator_clicked(None)
+                    return
+            self.app_state.status_reporter.report_action("Update check", elapsed_seconds=elapsed)
+            QMessageBox.information(self, "Check for Update", "No update available.")
 
-            def _on_ui():
-                if latest:
-                    current_version = get_app_version()
-                    latest_version = latest.get("tag_name")
-                    if latest_version and UpdateService.compare_versions(current_version, latest_version):
-                        self._latest_release = latest
-                        self.update_indicator.setText(f"Update available: v{latest_version}")
-                        self.update_indicator.setVisible(True)
-                        self.app_state.status_reporter.report(f"Update available: v{latest_version}", timeout_ms=0)
-                        self._on_update_indicator_clicked(None)
-                        return
-                self.app_state.status_reporter.report_action("Update check", elapsed_seconds=elapsed)
-                QMessageBox.information(self, "Check for Update", "No update available.")
+        def _on_update_error(error: str):
+            self.app_state.status_reporter.report(f"Update check failed: {error}", level="error")
 
-            QTimer.singleShot(0, _on_ui)
-
-        threading.Thread(target=_do_check, daemon=True).start()
+        self.task_runner.run_task(
+            _do_check,
+            on_finished=_on_update_result,
+            on_error=_on_update_error,
+        )
 
     def _setup_toolbar(self):
         """Setup application toolbar."""
@@ -459,8 +462,11 @@ class MainWindow(InspectorShell):
         if success:
             # Switch to Active connections tab
             self.set_left_panel_active(0)
+            instance = self.connection_manager.get_connection(connection_id)
+            conn_name = instance.name if instance else None
             self.app_state.status_reporter.report_action(
-                "Connected",
+                "Connection",
+                subject=conn_name,
                 result_count=len(collections),
                 result_label="collection",
                 elapsed_seconds=duration_ms / 1000.0,

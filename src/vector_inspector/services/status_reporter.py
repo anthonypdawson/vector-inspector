@@ -29,7 +29,7 @@ from typing import Optional
 from PySide6.QtCore import QObject, Signal
 
 
-@dataclass
+@dataclass(frozen=True)
 class StatusLogEntry:
     """A single immutable entry in the status log."""
 
@@ -53,7 +53,7 @@ class StatusReporter(QObject):
 
     status_updated = Signal(str, int)  # (message, timeout_ms)
 
-    DEFAULT_TIMEOUT_MS: int = 5_000
+    DEFAULT_TIMEOUT_MS: int = 0
     MAX_LOG_SIZE: int = 100
 
     def __init__(
@@ -99,6 +99,7 @@ class StatusReporter(QObject):
     def report_action(
         self,
         action: str,
+        subject: Optional[str] = None,
         result_count: Optional[int] = None,
         result_label: str = "result",
         elapsed_seconds: Optional[float] = None,
@@ -110,12 +111,16 @@ class StatusReporter(QObject):
         Produces human-friendly messages such as:
 
         * ``"Search complete \u2013 28 results in 0.43s"``
-        * ``"Data loaded \u2013 1,000 items in 1.20s"``
+        * ``"Data loaded complete \u2013 1,000 items in 1.20s"``
+        * ``"Connection complete \u2013 MyDB: 10 collections in 0.15s"``
         * ``"Clustering complete \u2013 5 clusters in 2.10s"``
-        * ``"Visualization complete \u2013 in 3.51s"``
+        * ``"Visualization complete \u2013 500 points in 3.51s"``
 
         Args:
             action: Short verb phrase, e.g. ``"Search"``, ``"Data loaded"``.
+            subject: Optional named subject to include after the em-dash, e.g.
+                a connection name.  When present the message reads
+                ``"{action} complete \u2013 {subject}: {details}"``.
             result_count: Optional count to include in the message.
             result_label: Singular noun that describes a result, e.g.
                 ``"result"``, ``"item"``, ``"cluster"``.
@@ -137,7 +142,14 @@ class StatusReporter(QObject):
             detail_parts.append(f"in {elapsed_seconds:.2f}s")
 
         base = f"{action} complete"
-        message = f"{base} \u2013 {', '.join(detail_parts)}" if detail_parts else base
+        if detail_parts:
+            detail_str = ', '.join(detail_parts)
+            if subject:
+                message = f"{base} \u2013 {subject}: {detail_str}"
+            else:
+                message = f"{base} \u2013 {detail_str}"
+        else:
+            message = f"{base} \u2013 {subject}" if subject else base
 
         entry = StatusLogEntry(
             message=message,

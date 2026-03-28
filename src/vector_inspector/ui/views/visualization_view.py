@@ -408,17 +408,14 @@ class VisualizationView(QWidget):
         self.status_label.setText("Visualization complete")
 
         # Report to status bar with timing
-        try:
-            elapsed = time.time() - self._dr_start_time
-            n_points = len(reduced_data) if reduced_data is not None else 0
-            self.app_state.status_reporter.report_action(
-                "Visualization",
-                result_count=n_points,
-                result_label="point",
-                elapsed_seconds=elapsed,
-            )
-        except Exception:
-            pass
+        elapsed = time.time() - self._dr_start_time
+        n_points = len(reduced_data) if reduced_data is not None else 0
+        self.app_state.status_reporter.report_action(
+            "Visualization",
+            result_count=n_points,
+            result_label="point",
+            elapsed_seconds=elapsed,
+        )
 
     def _on_reduction_error(self, error_msg: str):
         """Handle dimensionality reduction error."""
@@ -544,16 +541,13 @@ class VisualizationView(QWidget):
         self.clustering_panel.cluster_button.setEnabled(True)
 
         # Report to status bar with timing
-        try:
-            elapsed = time.time() - self._cluster_start_time
-            self.app_state.status_reporter.report_action(
-                "Clustering",
-                result_count=n_clusters,
-                result_label="cluster",
-                elapsed_seconds=elapsed,
-            )
-        except Exception:
-            pass
+        elapsed = time.time() - self._cluster_start_time
+        self.app_state.status_reporter.report_action(
+            "Clustering",
+            result_count=n_clusters,
+            result_label="cluster",
+            elapsed_seconds=elapsed,
+        )
 
         # Save cluster labels to metadata if checkbox is checked
         if self.clustering_panel.save_to_metadata_checkbox.isChecked():

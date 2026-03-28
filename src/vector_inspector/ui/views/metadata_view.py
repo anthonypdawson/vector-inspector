@@ -86,6 +86,8 @@ class MetadataView(QWidget):
         self.settings_service = SettingsService()
         self.import_thread = None
         self._load_start_time: float = 0.0
+        self._add_start_time: float = 0.0
+        self._delete_start_time: float = 0.0
         self.filter_reload_timer = QTimer()
         self.filter_reload_timer.setSingleShot(True)
         self.filter_reload_timer.timeout.connect(self._reload_with_filters)
@@ -427,17 +429,14 @@ class MetadataView(QWidget):
         )
 
         # Report to status bar with timing and row count
-        try:
-            elapsed = time.time() - self._load_start_time
-            row_count = self.table.rowCount()
-            self.app_state.status_reporter.report_action(
-                "Data loaded",
-                result_count=row_count,
-                result_label="item",
-                elapsed_seconds=elapsed,
-            )
-        except Exception:
-            pass
+        elapsed = time.time() - self._load_start_time
+        row_count = self.table.rowCount()
+        self.app_state.status_reporter.report_action(
+            "Data loaded",
+            result_count=row_count,
+            result_label="item",
+            elapsed_seconds=elapsed,
+        )
         # Telemetry: table view opened (collection data loaded)
         try:
             TelemetryService.send_event(
@@ -458,10 +457,7 @@ class MetadataView(QWidget):
         """Handle error from background thread."""
         self.status_label.setText(f"Failed to load data: {error_msg}")
         self.table.setRowCount(0)
-        try:
-            self.app_state.status_reporter.report(f"Data load failed: {error_msg}", level="error")
-        except Exception:
-            pass
+        self.app_state.status_reporter.report(f"Data load failed: {error_msg}", level="error")
 
     def _previous_page(self) -> None:
         """Go to previous page."""
@@ -543,15 +539,12 @@ class MetadataView(QWidget):
             elapsed = time.time() - self._add_start_time
             if self.ctx.current_database and self.ctx.current_collection:
                 self.ctx.cache_manager.invalidate(self.ctx.current_database, self.ctx.current_collection)
-            try:
-                self.app_state.status_reporter.report_action(
-                    "Item added",
-                    result_count=1,
-                    result_label="item",
-                    elapsed_seconds=elapsed,
-                )
-            except Exception:
-                pass
+            self.app_state.status_reporter.report_action(
+                "Item added",
+                result_count=1,
+                result_label="item",
+                elapsed_seconds=elapsed,
+            )
             self._load_data()
         else:
             QMessageBox.warning(self, "Error", "Failed to add item.")
@@ -559,10 +552,7 @@ class MetadataView(QWidget):
     def _on_item_add_error(self, error_message: str) -> None:
         """Handle background add_items error."""
         self.loading_dialog.hide_loading()
-        try:
-            self.app_state.status_reporter.report(f"Add item failed: {error_message}", level="error")
-        except Exception:
-            pass
+        self.app_state.status_reporter.report(f"Add item failed: {error_message}", level="error")
         QMessageBox.warning(self, "Add Error", f"Failed to add item: {error_message}")
 
     def _delete_selected(self) -> None:
@@ -611,23 +601,17 @@ class MetadataView(QWidget):
                 if success:
                     if self.ctx.current_database and self.ctx.current_collection:
                         self.ctx.cache_manager.invalidate(self.ctx.current_database, self.ctx.current_collection)
-                    try:
-                        self.app_state.status_reporter.report_action(
-                            f"Deleted {_count} item" + ("s" if _count != 1 else ""),
-                            elapsed_seconds=elapsed,
-                        )
-                    except Exception:
-                        pass
+                    self.app_state.status_reporter.report_action(
+                        f"Deleted {_count} item" + ("s" if _count != 1 else ""),
+                        elapsed_seconds=elapsed,
+                    )
                     self._load_data()
                 else:
                     QMessageBox.warning(self, "Error", "Failed to delete items.")
 
             def _on_delete_error(error: str) -> None:
                 self.loading_dialog.hide_loading()
-                try:
-                    self.app_state.status_reporter.report(f"Delete failed: {error}", level="error")
-                except Exception:
-                    pass
+                self.app_state.status_reporter.report(f"Delete failed: {error}", level="error")
                 QMessageBox.warning(self, "Delete Error", f"Failed to delete: {error}")
 
             if self.task_runner:

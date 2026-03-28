@@ -276,7 +276,7 @@ class SettingsDialog(QDialog):
         self.auto_embed_checkbox.setChecked(True)
         self.restore_geometry_checkbox.setChecked(True)
         self.hide_splash_checkbox.setChecked(False)
-        self.status_timeout_spin.setValue(5)  # 5 second default
+        self.status_timeout_spin.setValue(0)  # permanent by default
         self._apply()
 
     def _set_button_color(self, btn: QPushButton, color: str):
