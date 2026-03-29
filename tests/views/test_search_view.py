@@ -727,3 +727,61 @@ def test_close_event_saves_pane_state(sv, qtbot, monkeypatch):
 
     sv.closeEvent(QCloseEvent())
     assert saved == [True]
+
+
+# ---------------------------------------------------------------------------
+# Status reporter integration
+# ---------------------------------------------------------------------------
+
+
+def test_on_search_finished_reports_to_status_bar(sv, qtbot):
+    """Successful search calls status_reporter.report_action with count and timing."""
+    import time
+    from unittest.mock import MagicMock
+
+    sv._search_start_time = time.time() - 0.5
+    sv._search_correlation_id = "test-corr"
+    sv._search_client_filters = []
+    sv._search_server_filter = None
+    sv._search_n_results = 10
+    sv._search_query_text = "test query"
+
+    mock_reporter = MagicMock()
+    sv.app_state.status_reporter = mock_reporter
+
+    results = {
+        "ids": [["id1", "id2"]],
+        "documents": [["doc1", "doc2"]],
+        "metadatas": [[{"key": "v1"}, {"key": "v2"}]],
+        "distances": [[0.1, 0.2]],
+    }
+    sv._on_search_finished(results)
+
+    mock_reporter.report_action.assert_called_once()
+    call_args = mock_reporter.report_action.call_args
+    assert call_args[0][0] == "Search"
+    assert call_args[1]["result_count"] == 2
+    assert call_args[1]["result_label"] == "result"
+    assert call_args[1]["elapsed_seconds"] >= 0.0
+
+
+def test_on_search_error_reports_to_status_bar(sv, qtbot):
+    """Search failure calls status_reporter.report with level='error'."""
+    import time
+    from unittest.mock import MagicMock
+
+    sv._search_start_time = time.time()
+    sv._search_correlation_id = "test-corr"
+    sv._search_client_filters = []
+    sv._search_server_filter = None
+    sv._search_query_text = "test query"
+
+    mock_reporter = MagicMock()
+    sv.app_state.status_reporter = mock_reporter
+
+    sv._on_search_error("Connection refused")
+
+    mock_reporter.report.assert_called_once()
+    call_args = mock_reporter.report.call_args
+    assert "Connection refused" in call_args[0][0]
+    assert call_args[1].get("level") == "error"

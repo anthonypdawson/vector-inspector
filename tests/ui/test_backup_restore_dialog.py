@@ -445,3 +445,54 @@ def test_no_status_reporter_no_crash_on_restore_finished(monkeypatch, qtbot):
 
     dlg._op_start_time = time.time()
     dlg._on_restore_finished("col")  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# _create_backup — cancel running thread
+# ---------------------------------------------------------------------------
+
+
+def test_create_backup_cancels_running_thread(monkeypatch, qtbot):
+    """_create_backup quits and waits for an already-running backup thread."""
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    quit_called = []
+    wait_called = []
+    started = []
+
+    class FakeRunningThread:
+        def isRunning(self):
+            return True
+
+        def quit(self):
+            quit_called.append(True)
+
+        def wait(self):
+            wait_called.append(True)
+
+        finished = type("S", (), {"connect": lambda self, fn: None})()
+        error = type("S", (), {"connect": lambda self, fn: None})()
+
+        def start(self):
+            started.append(True)
+
+    class FakeNewThread:
+        def isRunning(self):
+            return False
+
+        finished = type("S", (), {"connect": lambda self, fn: None})()
+        error = type("S", (), {"connect": lambda self, fn: None})()
+
+        def start(self):
+            started.append(True)
+
+    dlg, *_ = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={}, collection_name="my_col")
+    # Simulate a backup thread that is already running
+    dlg.backup_thread = FakeRunningThread()
+    monkeypatch.setattr(brd, "BackupThread", lambda *a, **k: FakeNewThread())
+
+    dlg._create_backup()
+
+    assert quit_called, "Expected running backup thread to be quit()"
+    assert wait_called, "Expected running backup thread to be wait()"
+    assert started, "Expected new backup thread to be started"

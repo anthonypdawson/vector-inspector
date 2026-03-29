@@ -925,3 +925,93 @@ def test_set_collection_exception_in_try_block_is_swallowed(qtbot, viz_view):
     viz_view.set_collection("some_col")  # Should not raise
 
     assert viz_view.current_collection == "some_col"
+
+
+# ---------------------------------------------------------------------------
+# Status reporter integration
+# ---------------------------------------------------------------------------
+
+
+def test_on_reduction_finished_reports_to_status_bar(viz_view, monkeypatch):
+    """_on_reduction_finished calls status_reporter.report_action with point count and elapsed."""
+    import time
+
+    monkeypatch.setattr(viz_view.plot_panel, "create_plot", lambda **kw: None)
+    monkeypatch.setattr(viz_view.plot_panel, "get_current_html", lambda: None)
+    viz_view.loading_dialog = MagicMock()
+    viz_view._dr_start_time = time.time() - 1.0
+    viz_view.current_data = {"ids": ["a", "b"], "embeddings": [[1.0, 0.0], [0.0, 1.0]]}
+
+    mock_reporter = MagicMock()
+    viz_view.app_state.status_reporter = mock_reporter
+
+    reduced = np.array([[0.1, 0.2], [0.3, 0.4]])
+    viz_view._on_reduction_finished(reduced)
+
+    mock_reporter.report_action.assert_called_once()
+    call_args = mock_reporter.report_action.call_args
+    assert call_args[0][0] == "Visualization"
+    assert call_args[1]["result_count"] == 2
+    assert call_args[1]["result_label"] == "point"
+    assert call_args[1]["elapsed_seconds"] >= 0.0
+
+
+def test_on_reduction_finished_reports_zero_points_for_none_data(viz_view, monkeypatch):
+    """_on_reduction_finished with None reduced_data reports result_count=0."""
+    import time
+
+    monkeypatch.setattr(viz_view.plot_panel, "create_plot", lambda **kw: None)
+    monkeypatch.setattr(viz_view.plot_panel, "get_current_html", lambda: None)
+    viz_view.loading_dialog = MagicMock()
+    viz_view._dr_start_time = time.time() - 0.5
+    viz_view.current_data = {"ids": [], "embeddings": []}
+
+    mock_reporter = MagicMock()
+    viz_view.app_state.status_reporter = mock_reporter
+
+    viz_view._on_reduction_finished(None)
+
+    mock_reporter.report_action.assert_called_once()
+    call_args = mock_reporter.report_action.call_args
+    assert call_args[1]["result_count"] == 0
+
+
+def test_on_clustering_finished_reports_to_status_bar(viz_view):
+    """_on_clustering_finished calls status_reporter.report_action with cluster count and elapsed."""
+    import time
+
+    viz_view.loading_dialog = MagicMock()
+    viz_view._cluster_start_time = time.time() - 2.0
+
+    mock_reporter = MagicMock()
+    viz_view.app_state.status_reporter = mock_reporter
+
+    labels = np.array([0, 1, 0, 1])
+    viz_view._on_clustering_finished((labels, "KMeans"))
+
+    mock_reporter.report_action.assert_called_once()
+    call_args = mock_reporter.report_action.call_args
+    assert call_args[0][0] == "Clustering"
+    assert call_args[1]["result_count"] == 2  # 2 unique KMeans labels
+    assert call_args[1]["result_label"] == "cluster"
+    assert call_args[1]["elapsed_seconds"] >= 0.0
+
+
+def test_on_clustering_finished_hdbscan_reports_non_noise_clusters(viz_view):
+    """HDBSCAN clustering reports only non-noise (-1) cluster count to status bar."""
+    import time
+
+    viz_view.loading_dialog = MagicMock()
+    viz_view._cluster_start_time = time.time() - 1.0
+
+    mock_reporter = MagicMock()
+    viz_view.app_state.status_reporter = mock_reporter
+
+    # 2 real clusters + 2 noise points
+    labels = np.array([0, 1, -1, -1])
+    viz_view._on_clustering_finished((labels, "HDBSCAN"))
+
+    mock_reporter.report_action.assert_called_once()
+    call_args = mock_reporter.report_action.call_args
+    assert call_args[0][0] == "Clustering"
+    assert call_args[1]["result_count"] == 2  # only non-noise clusters
