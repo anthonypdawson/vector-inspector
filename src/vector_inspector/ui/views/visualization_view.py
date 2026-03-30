@@ -159,7 +159,6 @@ class VisualizationView(QWidget):
         self.loading_dialog = LoadingDialog("Loading visualization...", self)
         self._connection_manager = connection_manager
         # Timers for status reporting
-        self._viz_load_start_time: float = 0.0
         self._dr_start_time: float = 0.0
         self._cluster_start_time: float = 0.0
         self._setup_ui()
@@ -338,7 +337,6 @@ class VisualizationView(QWidget):
 
         # Show loading dialog during data load
         self.loading_dialog.show_loading("Loading data for visualization...")
-        self._viz_load_start_time = time.time()
         self.data_load_thread.start()
 
     def _on_data_loaded(self, data: dict) -> None:

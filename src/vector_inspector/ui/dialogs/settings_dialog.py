@@ -246,7 +246,11 @@ class SettingsDialog(QDialog):
         self.auto_embed_checkbox.setChecked(self.settings.get_auto_generate_embeddings())
         self.restore_geometry_checkbox.setChecked(self.settings.get_window_restore_geometry())
         self.hide_splash_checkbox.setChecked(self.settings.get("hide_loading_screen", False))
-        self.status_timeout_spin.setValue(self.settings.get_status_timeout_ms() // 1000)
+        timeout_ms = self.settings.get_status_timeout_ms()
+        timeout_seconds = (timeout_ms + 500) // 1000
+        self.status_timeout_spin.blockSignals(True)
+        self.status_timeout_spin.setValue(timeout_seconds)
+        self.status_timeout_spin.blockSignals(False)
         self.cache_enabled_checkbox.setChecked(self.settings.get_embedding_cache_enabled())
         self._update_cache_info()
         # Load appearance colors

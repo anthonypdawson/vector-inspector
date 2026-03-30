@@ -72,7 +72,7 @@ class FakeSettingsForAppearance:
 
     # Status timeout
     def get_status_timeout_ms(self):
-        return self._store.get("status.timeout_ms", 5000)
+        return self._store.get("status.timeout_ms", 0)
 
     def set_status_timeout_ms(self, ms):
         self._store["status.timeout_ms"] = int(ms)

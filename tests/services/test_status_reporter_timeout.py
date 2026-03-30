@@ -31,7 +31,7 @@ def _collect(reporter: StatusReporter) -> list[tuple[str, int]]:
 
 
 class TestMutableDefaultTimeout:
-    def test_default_is_5000(self, qapp):
+    def test_default_is_0(self, qapp):
         r = StatusReporter()
         assert r._default_timeout_ms == StatusReporter.DEFAULT_TIMEOUT_MS == 0
 
@@ -102,7 +102,7 @@ class TestMutableDefaultTimeout:
 
 
 class TestSettingsServiceStatusTimeout:
-    def test_default_returns_5000(self, tmp_path, monkeypatch):
+    def test_default_returns_0(self, tmp_path, monkeypatch):
         from pathlib import Path
 
         from vector_inspector.services.settings_service import SettingsService

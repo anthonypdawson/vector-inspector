@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from vector_inspector.core.connection_manager import ConnectionInstance
+from vector_inspector.core.logging import log_error
 from vector_inspector.services.backup_restore_service import BackupRestoreService
 from vector_inspector.services.settings_service import SettingsService
 from vector_inspector.ui.components.backup_restore_threads import BackupThread, RestoreThread
@@ -238,7 +239,7 @@ class BackupRestoreDialog(QDialog):
             try:
                 self._status_reporter.report_action("Backup", elapsed_seconds=elapsed)
             except Exception:
-                pass
+                log_error("Failed to report backup completion status.", exc_info=True)
         QMessageBox.information(self, "Backup Successful", f"Backup created successfully:\n{backup_path}")
         self._refresh_backups_list()
 
@@ -249,7 +250,7 @@ class BackupRestoreDialog(QDialog):
             try:
                 self._status_reporter.report(f"Backup failed: {error_message}", level="error")
             except Exception:
-                pass
+                log_error("Failed to report backup error status.", exc_info=True)
         QMessageBox.warning(self, "Backup Failed", f"Failed to create backup: {error_message}")
 
     def _refresh_backups_list(self):
@@ -470,7 +471,7 @@ class BackupRestoreDialog(QDialog):
             try:
                 self._status_reporter.report_action("Restore", elapsed_seconds=elapsed)
             except Exception:
-                pass
+                log_error("Failed to report restore completion status.", exc_info=True)
         QMessageBox.information(
             self,
             "Restore Successful",
@@ -484,7 +485,7 @@ class BackupRestoreDialog(QDialog):
             try:
                 self._status_reporter.report(f"Restore failed: {error_message}", level="error")
             except Exception:
-                pass
+                log_error("Failed to report restore error status.", exc_info=True)
         QMessageBox.warning(self, "Restore Failed", f"Failed to restore backup: {error_message}")
 
     def _delete_backup(self):
