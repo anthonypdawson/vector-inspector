@@ -244,21 +244,42 @@ class MainWindow(InspectorShell):
         help_menu.addAction(check_update_action)
 
     def _check_for_update_from_menu(self):
+        import time as _time
+
         from PySide6.QtWidgets import QMessageBox
 
         from vector_inspector.services.update_service import UpdateService
         from vector_inspector.utils.version import get_app_version
 
-        latest = UpdateService.get_latest_release(force_refresh=True)
-        if latest:
-            current_version = get_app_version()
-            latest_version = latest.get("tag_name")
-            if latest_version and UpdateService.compare_versions(current_version, latest_version):
-                # Show update modal
-                self._latest_release = latest
-                self._on_update_indicator_clicked(None)
-                return
-        QMessageBox.information(self, "Check for Update", "No update available.")
+        self.app_state.status_reporter.report("Checking for updates\u2026", timeout_ms=0)
+        _start = _time.time()
+
+        def _do_check():
+            return UpdateService.get_latest_release(force_refresh=True)
+
+        def _on_update_result(latest):
+            elapsed = _time.time() - _start
+            if latest:
+                current_version = get_app_version()
+                latest_version = latest.get("tag_name")
+                if latest_version and UpdateService.compare_versions(current_version, latest_version):
+                    self._latest_release = latest
+                    self.update_indicator.setText(f"Update available: v{latest_version}")
+                    self.update_indicator.setVisible(True)
+                    self.app_state.status_reporter.report(f"Update available: v{latest_version}", timeout_ms=0)
+                    self._on_update_indicator_clicked(None)
+                    return
+            self.app_state.status_reporter.report_action("Update check", elapsed_seconds=elapsed)
+            QMessageBox.information(self, "Check for Update", "No update available.")
+
+        def _on_update_error(error: str):
+            self.app_state.status_reporter.report(f"Update check failed: {error}", level="error")
+
+        self.task_runner.run_task(
+            _do_check,
+            on_finished=_on_update_result,
+            on_error=_on_update_error,
+        )
 
     def _setup_toolbar(self):
         """Setup application toolbar."""
@@ -293,7 +314,14 @@ class MainWindow(InspectorShell):
         self.update_indicator.setCursor(Qt.PointingHandCursor)
         self.statusBar().addPermanentWidget(self.update_indicator)
 
-        self.statusBar().showMessage("Ready")
+        # Route all status messages through the centralised StatusReporter so
+        # they are both displayed AND recorded in the in-memory activity log.
+        self.app_state.status_reporter.status_updated.connect(self.statusBar().showMessage)
+
+        # Apply the user-configured default timeout now (and again whenever it changes).
+        self.app_state.status_reporter._default_timeout_ms = self.settings_service.get_status_timeout_ms()
+
+        self.app_state.status_reporter.report("Ready", timeout_ms=0)
 
         # Connect click event
         self.update_indicator.mousePressEvent = self._on_update_indicator_clicked
@@ -379,6 +407,11 @@ class MainWindow(InspectorShell):
                         self.search_view.n_results_spin.setValue(n)
                 except Exception:
                     pass
+            elif key == "status.timeout_ms":
+                try:
+                    self.app_state.status_reporter._default_timeout_ms = int(value)
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -422,12 +455,22 @@ class MainWindow(InspectorShell):
         except Exception:
             pass
 
-    def _on_connection_completed(self, connection_id: str, success: bool, collections: list, error: str):
+    def _on_connection_completed(
+        self, connection_id: str, success: bool, collections: list, error: str, duration_ms: float = 0.0
+    ):
         """Handle connection completed event from controller."""
         if success:
             # Switch to Active connections tab
             self.set_left_panel_active(0)
-            self.statusBar().showMessage(f"Connected successfully ({len(collections)} collections)", 5000)
+            instance = self.connection_manager.get_connection(connection_id)
+            conn_name = instance.name if instance else None
+            self.app_state.status_reporter.report_action(
+                "Connection",
+                subject=conn_name,
+                result_count=len(collections),
+                result_label="collection",
+                elapsed_seconds=duration_ms / 1000.0,
+            )
 
     def _on_tab_changed(self, index: int):
         """Handle tab change - lazy load visualization tab."""
@@ -646,17 +689,27 @@ class MainWindow(InspectorShell):
             self.set_left_panel_active(0)
 
     def _refresh_active_connection(self):
-        """Refresh collections for the active connection."""
+        """Refresh collections for the active connection (non-blocking)."""
+        import time as _time
+
         active = self.connection_manager.get_active_connection()
         if not active or not active.is_connected:
             QMessageBox.information(self, "No Connection", "No active connection to refresh.")
             return
 
-        try:
-            collections = active.list_collections()
-            self.connection_manager.update_collections(active.id, collections)
-            self.statusBar().showMessage(f"Refreshed collections ({len(collections)} found)", 3000)
+        connection_id = active.id
+        self.app_state.status_reporter.report("Refreshing collections\u2026", timeout_ms=0)
+        _start = _time.time()
 
+        def _on_refresh_done(collections: list) -> None:
+            elapsed = _time.time() - _start
+            self.connection_manager.update_collections(connection_id, collections)
+            self.app_state.status_reporter.report_action(
+                "Refresh",
+                result_count=len(collections),
+                result_label="collection",
+                elapsed_seconds=elapsed,
+            )
             try:
                 TelemetryService.send_event(
                     "ui.refresh_triggered",
@@ -664,11 +717,17 @@ class MainWindow(InspectorShell):
                 )
             except Exception:
                 pass
-
-            # Also refresh info panel
             self.info_panel.refresh_database_info()
-        except Exception as e:
-            QMessageBox.warning(self, "Refresh Failed", f"Failed to refresh collections: {e}")
+
+        def _on_refresh_error(error: str) -> None:
+            self.app_state.status_reporter.report(f"Refresh failed: {error}", level="error")
+            QMessageBox.warning(self, "Refresh Failed", f"Failed to refresh collections: {error}")
+
+        self.task_runner.run_task(
+            active.list_collections,
+            on_finished=_on_refresh_done,
+            on_error=_on_refresh_error,
+        )
 
     def _restore_session(self):
         """Restore previously active connections on startup."""
@@ -676,9 +735,9 @@ class MainWindow(InspectorShell):
         # For now, we'll just show a message if there are saved profiles
         profiles = self.profile_service.get_all_profiles()
         if profiles:
-            self.statusBar().showMessage(
+            self.app_state.status_reporter.report(
                 f"{len(profiles)} saved profile(s) available. Switch to Profiles tab to connect.",
-                10000,
+                timeout_ms=10000,
             )
 
         # Apply settings to views after UI is built
@@ -697,7 +756,7 @@ class MainWindow(InspectorShell):
         else:
             self.app_state.cache_manager.disable()
         status = "enabled" if checked else "disabled"
-        self.statusBar().showMessage(f"Caching {status}", 3000)
+        self.app_state.status_reporter.report(f"Caching {status}", timeout_ms=3000)
 
     def _show_migration_dialog(self):
         """Show cross-database migration dialog."""
@@ -710,7 +769,12 @@ class MainWindow(InspectorShell):
         collection_name = self.connection_manager.get_active_collection()
 
         # Show dialog
-        result = DialogService.show_backup_restore_dialog(connection, collection_name or "", self)
+        result = DialogService.show_backup_restore_dialog(
+            connection,
+            collection_name or "",
+            self,
+            status_reporter=self.app_state.status_reporter,
+        )
 
         if result == QDialog.DialogCode.Accepted:
             # Refresh collections after restore
@@ -726,7 +790,7 @@ class MainWindow(InspectorShell):
 
         # Show dialog and create collection
         if self.connection_controller.create_collection_with_dialog(active.id):
-            self.statusBar().showMessage("Collection created successfully", 3000)
+            self.app_state.status_reporter.report("Collection created successfully", timeout_ms=3000)
             # Refresh the active connection to show the new collection
             self._refresh_active_connection()
 

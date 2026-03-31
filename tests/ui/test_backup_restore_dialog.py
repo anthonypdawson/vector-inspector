@@ -326,3 +326,173 @@ def test_create_backup_with_collection_starts_thread(monkeypatch, qtbot):
     dlg._create_backup()
 
     assert started.get("called") is True
+
+
+# ---------------------------------------------------------------------------
+# status_reporter integration tests
+# ---------------------------------------------------------------------------
+
+
+class FakeStatusReporter:
+    """Minimal stub that captures calls to report / report_action."""
+
+    def __init__(self):
+        self.actions: list[dict] = []
+        self.reports: list[dict] = []
+
+    def report_action(self, action, *, elapsed_seconds=None, **kwargs):
+        self.actions.append({"action": action, "elapsed_seconds": elapsed_seconds, **kwargs})
+
+    def report(self, message, *, level="info", **kwargs):
+        self.reports.append({"message": message, "level": level, **kwargs})
+
+
+def make_dialog_with_reporter(monkeypatch, qtbot, reporter):
+    """Helper that creates a dialog wired to a FakeStatusReporter."""
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    fake_backup_service = FakeBackupService(backups=[])
+    fake_settings = FakeSettingsService(initial={})
+    monkeypatch.setattr(brd, "BackupRestoreService", lambda: fake_backup_service)
+    monkeypatch.setattr(brd, "SettingsService", lambda: fake_settings)
+
+    class NoopLoading:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def show_loading(self, *a, **k):
+            pass
+
+        def hide_loading(self):
+            pass
+
+    monkeypatch.setattr(brd, "LoadingDialog", NoopLoading)
+    monkeypatch.setattr(brd.QMessageBox, "warning", lambda *a, **k: None)
+    monkeypatch.setattr(brd.QMessageBox, "information", lambda *a, **k: None)
+    monkeypatch.setattr(brd.QMessageBox, "question", lambda *a, **k: brd.QMessageBox.StandardButton.No)
+
+    conn = FakeConnection()
+    dlg = brd.BackupRestoreDialog(conn, collection_name="col", status_reporter=reporter)
+    qtbot.addWidget(dlg)
+    return dlg
+
+
+def test_on_backup_finished_calls_report_action(monkeypatch, qtbot):
+    """_on_backup_finished should call status_reporter.report_action with 'Backup'."""
+    reporter = FakeStatusReporter()
+    dlg = make_dialog_with_reporter(monkeypatch, qtbot, reporter)
+    import time
+
+    dlg._op_start_time = time.time() - 0.5  # simulate 0.5s operation
+    dlg._on_backup_finished("/tmp/backup.zip")
+
+    assert len(reporter.actions) == 1
+    assert reporter.actions[0]["action"] == "Backup"
+    assert reporter.actions[0]["elapsed_seconds"] >= 0.0
+
+
+def test_on_restore_finished_calls_report_action(monkeypatch, qtbot):
+    """_on_restore_finished should call status_reporter.report_action with 'Restore'."""
+    reporter = FakeStatusReporter()
+    dlg = make_dialog_with_reporter(monkeypatch, qtbot, reporter)
+    import time
+
+    dlg._op_start_time = time.time() - 1.0
+    dlg._on_restore_finished("my_collection")
+
+    assert len(reporter.actions) == 1
+    assert reporter.actions[0]["action"] == "Restore"
+    assert reporter.actions[0]["elapsed_seconds"] >= 0.0
+
+
+def test_on_backup_error_calls_report_with_error_level(monkeypatch, qtbot):
+    """_on_backup_error should call status_reporter.report with level='error'."""
+    reporter = FakeStatusReporter()
+    dlg = make_dialog_with_reporter(monkeypatch, qtbot, reporter)
+    dlg._on_backup_error("disk full")
+
+    assert len(reporter.reports) == 1
+    assert reporter.reports[0]["level"] == "error"
+    assert "disk full" in reporter.reports[0]["message"]
+
+
+def test_on_restore_error_calls_report_with_error_level(monkeypatch, qtbot):
+    """_on_restore_error should call status_reporter.report with level='error'."""
+    reporter = FakeStatusReporter()
+    dlg = make_dialog_with_reporter(monkeypatch, qtbot, reporter)
+    dlg._on_restore_error("file not found")
+
+    assert len(reporter.reports) == 1
+    assert reporter.reports[0]["level"] == "error"
+    assert "file not found" in reporter.reports[0]["message"]
+
+
+def test_no_status_reporter_no_crash_on_backup_finished(monkeypatch, qtbot):
+    """When status_reporter=None, _on_backup_finished must not raise."""
+    dlg, *_ = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={})
+    assert dlg._status_reporter is None
+    import time
+
+    dlg._op_start_time = time.time()
+    dlg._on_backup_finished("/tmp/x.zip")  # must not raise
+
+
+def test_no_status_reporter_no_crash_on_restore_finished(monkeypatch, qtbot):
+    """When status_reporter=None, _on_restore_finished must not raise."""
+    dlg, *_ = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={})
+    assert dlg._status_reporter is None
+    import time
+
+    dlg._op_start_time = time.time()
+    dlg._on_restore_finished("col")  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# _create_backup — cancel running thread
+# ---------------------------------------------------------------------------
+
+
+def test_create_backup_cancels_running_thread(monkeypatch, qtbot):
+    """_create_backup quits and waits for an already-running backup thread."""
+    import vector_inspector.ui.components.backup_restore_dialog as brd
+
+    quit_called = []
+    wait_called = []
+    started = []
+
+    class FakeRunningThread:
+        def isRunning(self):
+            return True
+
+        def quit(self):
+            quit_called.append(True)
+
+        def wait(self):
+            wait_called.append(True)
+
+        finished = type("S", (), {"connect": lambda self, fn: None})()
+        error = type("S", (), {"connect": lambda self, fn: None})()
+
+        def start(self):
+            started.append(True)
+
+    class FakeNewThread:
+        def isRunning(self):
+            return False
+
+        finished = type("S", (), {"connect": lambda self, fn: None})()
+        error = type("S", (), {"connect": lambda self, fn: None})()
+
+        def start(self):
+            started.append(True)
+
+    dlg, *_ = make_dialog(monkeypatch, qtbot, backups=[], settings_initial={}, collection_name="my_col")
+    # Simulate a backup thread that is already running
+    dlg.backup_thread = FakeRunningThread()
+    monkeypatch.setattr(brd, "BackupThread", lambda *a, **k: FakeNewThread())
+
+    dlg._create_backup()
+
+    assert quit_called, "Expected running backup thread to be quit()"
+    assert wait_called, "Expected running backup thread to be wait()"
+    assert started, "Expected new backup thread to be started"

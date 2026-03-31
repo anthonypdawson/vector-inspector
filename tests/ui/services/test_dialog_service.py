@@ -134,3 +134,68 @@ def test_show_update_details(qtbot, monkeypatch):
     qtbot.addWidget(parent)
     DialogService.show_update_details({"tag_name": "v1.0.0", "body": "notes"}, parent)
     assert executions == [True]
+
+
+# ---------------------------------------------------------------------------
+# show_backup_restore_dialog — status_reporter forwarding
+# ---------------------------------------------------------------------------
+
+
+def test_show_backup_restore_dialog_passes_status_reporter(qtbot, monkeypatch):
+    """status_reporter kwarg is forwarded to the BackupRestoreDialog constructor."""
+    import sys
+    import types
+
+    captured = {}
+
+    class CapturingDialog:
+        def __init__(self, conn, col="", parent=None, status_reporter=None):
+            captured["status_reporter"] = status_reporter
+
+        def exec(self):
+            return QDialog.Accepted
+
+    fake_mod = types.ModuleType("vector_inspector.ui.components.backup_restore_dialog")
+    fake_mod.BackupRestoreDialog = CapturingDialog
+    monkeypatch.setitem(sys.modules, "vector_inspector.ui.components.backup_restore_dialog", fake_mod)
+
+    parent = QWidget()
+    qtbot.addWidget(parent)
+
+    sentinel = object()
+
+    class FakeConn:
+        pass
+
+    DialogService.show_backup_restore_dialog(FakeConn(), "col1", parent, status_reporter=sentinel)
+
+    assert captured.get("status_reporter") is sentinel
+
+
+def test_show_backup_restore_dialog_without_status_reporter_defaults_none(qtbot, monkeypatch):
+    """Calling without status_reporter passes None to BackupRestoreDialog."""
+    import sys
+    import types
+
+    captured = {}
+
+    class CapturingDialog:
+        def __init__(self, conn, col="", parent=None, status_reporter=None):
+            captured["status_reporter"] = status_reporter
+
+        def exec(self):
+            return QDialog.Accepted
+
+    fake_mod = types.ModuleType("vector_inspector.ui.components.backup_restore_dialog")
+    fake_mod.BackupRestoreDialog = CapturingDialog
+    monkeypatch.setitem(sys.modules, "vector_inspector.ui.components.backup_restore_dialog", fake_mod)
+
+    parent = QWidget()
+    qtbot.addWidget(parent)
+
+    class FakeConn:
+        pass
+
+    DialogService.show_backup_restore_dialog(FakeConn(), "col1", parent)
+
+    assert captured.get("status_reporter") is None

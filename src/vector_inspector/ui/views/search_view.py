@@ -568,6 +568,22 @@ class SearchView(QWidget):
         self.search_results = results
         self._display_results(results)
 
+        # Report completion to the status bar (with timing and result count)
+        elapsed = time.time() - self._search_start_time
+        ids = results.get("ids", [[]])
+        displayed_count = len(ids[0]) if ids and isinstance(ids[0], list) else 0
+        try:
+            self.app_state.status_reporter.report_action(
+                "Search",
+                result_count=displayed_count,
+                result_label="result",
+                elapsed_seconds=elapsed,
+            )
+        except AttributeError:
+            log_error("Status reporter is missing on AppState during search completion.", exc_info=True)
+        except Exception:
+            log_error("Unexpected error while reporting search completion status.", exc_info=True)
+
         # Update app state with search context
         self.app_state.set_search_results(
             results,
@@ -633,6 +649,14 @@ class SearchView(QWidget):
     def _on_search_error(self, error_message: str) -> None:
         """Handle search error."""
         self.loading_dialog.hide_loading()
+
+        # Report error to status bar
+        try:
+            self.app_state.status_reporter.report(f"Search failed: {error_message}", level="error")
+        except AttributeError:
+            log_error("Status reporter is missing on AppState during search error reporting.", exc_info=True)
+        except Exception:
+            log_error("Failed to report search error status: %s", error_message, exc_info=True)
 
         # Send telemetry for failed search
         duration_ms = int((time.time() - self._search_start_time) * 1000)
