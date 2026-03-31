@@ -256,6 +256,49 @@ def update_pagination_controls(
     next_button.setEnabled(has_more)
 
 
+def _reingest_item(table: QTableWidget, ctx: MetadataContext, row: int) -> None:
+    """Re-ingest a single item's source file (overwrite=True)."""
+    import os
+
+    metadatas = (ctx.current_data or {}).get("metadatas", [])
+    item_meta: dict = metadatas[row] if row < len(metadatas) and metadatas[row] else {}
+    file_path_val: str = item_meta.get("file_path", "")
+    if not file_path_val or not os.path.isfile(file_path_val):
+        QMessageBox.warning(table, "File Not Found", f"Cannot locate file: {file_path_val or '(no path)'}")
+        return
+
+    answer = QMessageBox.question(
+        table,
+        "Re-ingest File",
+        f"Re-ingest and overwrite entries for:\n{file_path_val}",
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+    )
+    if answer != QMessageBox.StandardButton.Yes:
+        return
+
+    try:
+        from vector_inspector.services.file_ingestion_service import FileIngestionService
+        from vector_inspector.utils.file_preview_utils import file_type
+
+        kind = file_type(file_path_val)
+        if kind == "unknown":
+            QMessageBox.warning(table, "Unsupported File", f"Cannot ingest file type: {os.path.splitext(file_path_val)[1]}")
+            return
+
+        service = FileIngestionService()
+        result = service.ingest_files(
+            file_paths=[file_path_val],
+            connection=ctx.connection,
+            collection_name=ctx.current_collection or "",
+            file_kind=kind,  # type: ignore[arg-type]
+            overwrite=True,
+        )
+        QMessageBox.information(table, "Re-ingest Complete", result.summary())
+    except Exception as exc:
+        log_info("Re-ingest failed: %s", exc)
+        QMessageBox.critical(table, "Re-ingest Failed", str(exc))
+
+
 def show_context_menu(
     table: QTableWidget,
     position: Any,  # QPoint
@@ -300,6 +343,17 @@ def show_context_menu(
     # Add "Edit" action
     edit_action = menu.addAction("✏️ Edit")
     edit_action.triggered.connect(lambda: on_row_double_clicked_callback(table.model().index(row, 0)))
+
+    # Add "Re-ingest file…" action (only when a file_path is found in item metadata)
+    metadatas = current_data.get("metadatas", [])
+    item_meta: dict = metadatas[row] if row < len(metadatas) and metadatas[row] else {}
+    file_path_val: str = item_meta.get("file_path", "") or item_meta.get("parent_id", "")
+    # parent_id is a hash, not a path — only use file_path key
+    file_path_val = item_meta.get("file_path", "")
+    reingest_action = menu.addAction("🔄 Re-ingest file…")
+    import os
+    reingest_action.setEnabled(bool(file_path_val and os.path.isfile(file_path_val)))
+    reingest_action.triggered.connect(lambda: _reingest_item(table, ctx, row))
 
     # Add separator
     menu.addSeparator()

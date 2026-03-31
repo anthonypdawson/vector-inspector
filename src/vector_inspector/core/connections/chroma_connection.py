@@ -411,7 +411,7 @@ class ChromaDBConnection(VectorDBConnection):
             )
             return True
         except Exception as e:
-            log_error("Failed to add items: %s", e)
+            log_error("Failed to add items: %.400s", str(e))
             return False
 
     def update_items(
@@ -515,8 +515,11 @@ class ChromaDBConnection(VectorDBConnection):
             return False
 
     # Implement base connection uniform APIs
+    @property
+    def supports_configurable_vector_size(self) -> bool:
+        return False
+
     def create_collection(self, name: str, vector_size: int, distance: str = "Cosine") -> bool:
-        """Create a collection. If it doesn't exist, attempt to create it using Chroma client APIs."""
         if not self._client:
             return False
 

@@ -21,6 +21,10 @@ if not _logger.handlers:
     except Exception:
         _logger.setLevel(logging.WARNING)
 
+    # Silence verbose third-party libraries so their output doesn't bury our errors.
+    for _noisy in ("chromadb", "sentence_transformers", "transformers", "httpx", "httpcore"):
+        logging.getLogger(_noisy).setLevel(logging.WARNING)
+
 
 def log_info(msg: str, *args: Any, **kwargs: Any) -> None:
     _logger.info(msg, *args, **kwargs)

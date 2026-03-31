@@ -85,3 +85,66 @@ def get_weaviate_client() -> Any:
 
         _weaviate_cache = weaviate
     return _weaviate_cache
+
+
+# ---------------------------------------------------------------------------
+# Ingestion dependencies (optional)
+# ---------------------------------------------------------------------------
+
+_clip_cache: tuple[Any, Any] | None = None
+_sentence_transformer_cache: dict[str, Any] = {}
+_pillow_cache: Any = None
+_pypdf_cache: Any = None
+_docx_cache: Any = None
+
+
+def get_clip_model_and_processor() -> tuple[Any, Any]:
+    """Lazy-load OpenAI CLIP model and processor (cached after first call)."""
+    global _clip_cache
+    if _clip_cache is None:
+        from transformers import CLIPModel, CLIPProcessor
+
+        model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        _clip_cache = (model, processor)
+    return _clip_cache
+
+
+def get_sentence_transformer(model_name: str = "all-MiniLM-L6-v2") -> Any:
+    """Lazy-load a SentenceTransformer model (cached per model name)."""
+    global _sentence_transformer_cache
+    if model_name not in _sentence_transformer_cache:
+        from sentence_transformers import SentenceTransformer
+
+        _sentence_transformer_cache[model_name] = SentenceTransformer(model_name)
+    return _sentence_transformer_cache[model_name]
+
+
+def get_pillow() -> Any:
+    """Lazy-load Pillow (PIL.Image, cached after first call)."""
+    global _pillow_cache
+    if _pillow_cache is None:
+        from PIL import Image
+
+        _pillow_cache = Image
+    return _pillow_cache
+
+
+def get_pypdf() -> Any:
+    """Lazy-load pypdf module (cached after first call)."""
+    global _pypdf_cache
+    if _pypdf_cache is None:
+        import pypdf
+
+        _pypdf_cache = pypdf
+    return _pypdf_cache
+
+
+def get_python_docx() -> Any:
+    """Lazy-load python-docx module (cached after first call)."""
+    global _docx_cache
+    if _docx_cache is None:
+        import docx
+
+        _docx_cache = docx
+    return _docx_cache

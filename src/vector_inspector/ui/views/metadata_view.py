@@ -208,6 +208,8 @@ class MetadataView(QWidget):
         self.action_buttons.delete_clicked.connect(self._delete_selected)
         self.action_buttons.export_requested.connect(self._export_data)
         self.action_buttons.import_requested.connect(self._import_data)
+        self.action_buttons.ingest_images_requested.connect(self._ingest_images)
+        self.action_buttons.ingest_documents_requested.connect(self._ingest_documents)
         # Get widgets we need to reference
         self.refresh_button = self.action_buttons.refresh_button
         self.add_button = self.action_buttons.add_button
@@ -938,6 +940,104 @@ class MetadataView(QWidget):
         from vector_inspector.ui.views.metadata.import_export_helpers import on_import_error
 
         on_import_error(self.loading_dialog, self, error_message)
+
+    # ── Ingestion handlers ─────────────────────────────────────────────────
+
+    def _ingest_images(self) -> None:
+        """Open ingestion dialog and run image ingestion pipeline."""
+        self._run_ingestion("image")
+
+    def _ingest_documents(self) -> None:
+        """Open ingestion dialog and run document ingestion pipeline."""
+        self._run_ingestion("document")
+
+    def _run_ingestion(self, file_kind: str) -> None:
+        """Show ingestion config dialog then run the ingestion in a background thread."""
+        from vector_inspector.ui.components.ingestion_dialog import IngestionDialog
+
+        if not self.ctx.connection:
+            from PySide6.QtWidgets import QMessageBox
+
+            QMessageBox.warning(self, "Not Connected", "Connect to a database before ingesting files.")
+            return
+
+        dlg = IngestionDialog(
+            self,
+            file_kind=file_kind,  # type: ignore[arg-type]
+            connection=self.ctx.connection,
+            current_collection=self.ctx.current_collection,
+        )
+        if dlg.exec() != IngestionDialog.DialogCode.Accepted:
+            return
+
+        from vector_inspector.services.collection_service import CollectionService
+        from vector_inspector.services.file_ingestion_service import FileIngestionService
+
+        service = FileIngestionService()
+        collection_service = CollectionService()
+        connection = self.ctx.connection
+        collection_name = dlg.collection_name
+        new_collection_vector_size = dlg.new_collection_vector_size
+
+        def _run() -> object:
+            # Create the collection now (inside the background thread) if the user
+            # chose "+ New" in the dialog.  CollectionService handles backends that
+            # don't require an explicit dimension (e.g. ChromaDB).
+            if new_collection_vector_size is not None:
+                collection_service.create_collection(
+                    connection=connection,
+                    collection_name=collection_name,
+                    dimension=new_collection_vector_size,
+                )
+
+            if dlg.folder_mode:
+                return service.ingest_folder(
+                    folder_path=dlg.file_paths[0],
+                    connection=connection,
+                    collection_name=collection_name,
+                    file_kind=file_kind,  # type: ignore[arg-type]
+                    batch_size=dlg.batch_size,
+                    recursive=dlg.recursive,
+                    overwrite=dlg.overwrite,
+                    max_chunk_size=dlg.max_chunk_size,
+                )
+            return service.ingest_files(
+                file_paths=dlg.file_paths,
+                connection=connection,
+                collection_name=collection_name,
+                file_kind=file_kind,  # type: ignore[arg-type]
+                batch_size=dlg.batch_size,
+                overwrite=dlg.overwrite,
+                max_chunk_size=dlg.max_chunk_size,
+            )
+
+        def _on_done(result: object) -> None:
+            self.loading_dialog.hide()
+            from vector_inspector.services.file_ingestion_service import IngestionResult
+
+            if isinstance(result, IngestionResult):
+                from PySide6.QtWidgets import QMessageBox
+
+                QMessageBox.information(self, "Ingestion Complete", result.summary())
+                if collection_name == self.ctx.current_collection:
+                    self._refresh_data()
+
+        def _on_error(msg: str) -> None:
+            self.loading_dialog.hide()
+            from PySide6.QtWidgets import QMessageBox
+
+            QMessageBox.critical(self, "Ingestion Error", msg)
+            from vector_inspector.core.logging import log_error
+
+            log_error("Ingestion error: %s", msg)
+
+        self.loading_dialog.show_loading("Ingesting files…")
+        self.task_runner.run_task(
+            _run,
+            task_id="file_ingestion",
+            on_finished=_on_done,
+            on_error=_on_error,
+        )
 
     def closeEvent(self, event):
         """Save state before closing."""
