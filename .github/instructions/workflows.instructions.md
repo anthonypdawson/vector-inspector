@@ -49,6 +49,7 @@ This file is cleared when the version is incremented and a new release is create
 - Individual change
 
 ## Another section (omit if empty)
+### Subsection (optional)
 - Individual change
 
 ---
