@@ -28,6 +28,11 @@ dependencies = [
     "hdbscan>=0.8.41",
     "weaviate-client>=4.19.2",
     "gputil>=1.4.0",
+    "torch>=2.0.0",
+    "transformers>=4.40.0",
+    "Pillow>=10.0.0",
+    "pypdf>=4.0.0",
+    "python-docx>=1.1.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
