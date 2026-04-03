@@ -375,9 +375,8 @@ def show_context_menu(
     # Add "Re-ingest file…" action (only when a file_path is found in item metadata)
     metadatas = current_data.get("metadatas", [])
     item_meta: dict = metadatas[row] if row < len(metadatas) and metadatas[row] else {}
-    file_path_val: str = item_meta.get("file_path", "") or item_meta.get("parent_id", "")
     # parent_id is a hash, not a path — only use file_path key
-    file_path_val = item_meta.get("file_path", "")
+    file_path_val: str = item_meta.get("file_path", "")
     reingest_action = menu.addAction("🔄 Re-ingest file…")
     import os
 
