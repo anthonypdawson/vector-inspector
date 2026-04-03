@@ -193,6 +193,18 @@ def encode_text(text: str, model: SentenceTransformer | tuple, model_type: str) 
         inputs = processor(text=[text], return_tensors="pt", padding=True)
         with torch.no_grad():
             text_features = clip_model.get_text_features(**inputs)
+        # Some HuggingFace CLIP variants return BaseModelOutputWithPooling instead of
+        # a raw tensor.  Unwrap to the pooled tensor before normalising.
+        if not isinstance(text_features, torch.Tensor):
+            if hasattr(text_features, "pooler_output") and text_features.pooler_output is not None:
+                text_features = text_features.pooler_output
+            elif hasattr(text_features, "last_hidden_state"):
+                text_features = text_features.last_hidden_state[:, 0]
+            else:
+                raise TypeError(
+                    f"CLIP get_text_features returned unexpected type {type(text_features).__name__}; "
+                    "expected a Tensor or BaseModelOutputWithPooling"
+                )
         # Normalize the features (CLIP embeddings are typically normalized)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
         return text_features[0].cpu().numpy().tolist()
