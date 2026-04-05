@@ -462,6 +462,21 @@ class FileIngestionService:
                 inputs = processor(images=image_np, return_tensors="pt")
                 with torch.no_grad():
                     features = model.get_image_features(**inputs)
+                # Some HuggingFace CLIP variants return BaseModelOutputWithPooling
+                # instead of a raw tensor.  Unwrap to the pooled tensor before
+                # normalising to avoid accidentally encoding the full hidden state
+                # (shape (1, 50, 768) → 38400 when flattened).
+                if not isinstance(features, torch.Tensor):
+                    if hasattr(features, "pooler_output") and features.pooler_output is not None:
+                        features = features.pooler_output
+                    elif hasattr(features, "last_hidden_state"):
+                        features = features.last_hidden_state[:, 0]
+                    else:
+                        raise TypeError(
+                            f"CLIP get_image_features returned unexpected type "
+                            f"{type(features).__name__}; expected a Tensor or "
+                            "BaseModelOutputWithPooling"
+                        )
                 embedding = _l2_normalize(features[0].tolist())
 
                 filename = os.path.basename(path)

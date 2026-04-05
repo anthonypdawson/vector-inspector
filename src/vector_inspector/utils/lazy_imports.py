@@ -1,5 +1,6 @@
 """Lazy import utilities for performance optimization."""
 
+import threading
 from typing import Any
 
 _plotly_cache = None
@@ -90,32 +91,49 @@ def get_weaviate_client() -> Any:
 # Ingestion dependencies (optional)
 # ---------------------------------------------------------------------------
 
-_clip_cache: tuple[Any, Any] | None = None
+# Keyed by model name so custom CLIP variants also benefit from the same cache.
+_clip_cache: dict[str, tuple[Any, Any]] = {}
+# Lock prevents two threads from loading the same model simultaneously, which
+# can cause a native segfault inside torch_cpu.dll (access violation 0xc0000005).
+_clip_lock = threading.Lock()
 _sentence_transformer_cache: dict[str, Any] = {}
+_sentence_transformer_lock = threading.Lock()
 _pillow_cache: Any = None
 _pypdf_cache: Any = None
 _docx_cache: Any = None
 
 
-def get_clip_model_and_processor() -> tuple[Any, Any]:
-    """Lazy-load OpenAI CLIP model and processor (cached after first call)."""
-    global _clip_cache
-    if _clip_cache is None:
-        from transformers import CLIPModel, CLIPProcessor
+def get_clip_model_and_processor(model_name: str = "openai/clip-vit-base-patch32") -> tuple[Any, Any]:
+    """Lazy-load a CLIP model and processor; thread-safe; cached by model name.
 
-        model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-        processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-        _clip_cache = (model, processor)
-    return _clip_cache
+    The double-checked locking pattern ensures that once the model is cached a
+    second caller sees it immediately without acquiring the lock, while still
+    preventing two threads from loading simultaneously (which can crash
+    torch_cpu.dll with an access violation).
+    """
+    if model_name in _clip_cache:
+        return _clip_cache[model_name]
+    with _clip_lock:
+        # Re-check inside the lock in case another thread populated it while we
+        # were waiting.
+        if model_name not in _clip_cache:
+            from transformers import CLIPModel, CLIPProcessor
+
+            model = CLIPModel.from_pretrained(model_name)
+            processor = CLIPProcessor.from_pretrained(model_name)
+            _clip_cache[model_name] = (model, processor)
+    return _clip_cache[model_name]
 
 
 def get_sentence_transformer(model_name: str = "all-MiniLM-L6-v2") -> Any:
-    """Lazy-load a SentenceTransformer model (cached per model name)."""
-    global _sentence_transformer_cache
-    if model_name not in _sentence_transformer_cache:
-        from sentence_transformers import SentenceTransformer
+    """Lazy-load a SentenceTransformer model; thread-safe; cached per model name."""
+    if model_name in _sentence_transformer_cache:
+        return _sentence_transformer_cache[model_name]
+    with _sentence_transformer_lock:
+        if model_name not in _sentence_transformer_cache:
+            from sentence_transformers import SentenceTransformer
 
-        _sentence_transformer_cache[model_name] = SentenceTransformer(model_name)
+            _sentence_transformer_cache[model_name] = SentenceTransformer(model_name)
     return _sentence_transformer_cache[model_name]
 
 

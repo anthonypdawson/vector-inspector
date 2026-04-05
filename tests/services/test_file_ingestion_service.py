@@ -178,14 +178,13 @@ def _make_connection(existing_ids=None):
 
 def _fake_clip_outputs():
     """Return fake model + processor that output a 512-dim embedding."""
+    import torch
+
     model = MagicMock()
     processor = MagicMock()
-    fake_tensor = MagicMock()
-    fake_tensor.__getitem__ = lambda self, idx: [0.1] * 512  # noqa: ARG005
-    fake_tensor.tolist.return_value = [0.1] * 512
-    fake_features = MagicMock()
-    fake_features.__getitem__ = lambda self, idx: fake_tensor  # noqa: ARG005
-
+    # Use a real tensor so isinstance(features, torch.Tensor) is True and the
+    # unwrap guard in _ingest_image_files passes correctly.
+    fake_features = torch.ones(1, 512)
     model.get_image_features.return_value = fake_features
     processor.return_value = {}
     return model, processor

@@ -493,7 +493,6 @@ def test_get_embedding_function_prefers_settings_model(monkeypatch, mock_pinecon
 
 def test_get_embedding_function_handles_hosted_model(monkeypatch, mock_pinecone_client):
     """When collection reports Pinecone-hosted model, function still returns an embedding function (with fallback)."""
-    import types
 
     conn = PineconeConnection(api_key="test-api-key")
     conn.connect()

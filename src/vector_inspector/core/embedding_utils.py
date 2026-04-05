@@ -125,33 +125,15 @@ def load_embedding_model(model_name: str, model_type: str) -> SentenceTransforme
     cached_path = load_cached_path(model_name)
 
     if model_type == "clip":
-        from transformers import CLIPModel, CLIPProcessor
+        # Delegate to the shared, thread-safe in-memory cache in lazy_imports so
+        # that the ingestion code path and the search code path always receive the
+        # same model object and loading never races across QThreads (which can
+        # corrupt torch_cpu.dll native state and cause a silent access-violation
+        # crash).  Disk-cache saving for cold-start speed-up is skipped here
+        # because the in-memory cache already handles within-process reuse.
+        from vector_inspector.utils.lazy_imports import get_clip_model_and_processor
 
-        if cached_path:
-            try:
-                # Load from cache
-                model = CLIPModel.from_pretrained(str(cached_path))
-                processor_path = cached_path / "processor"
-                if processor_path.exists():
-                    processor = CLIPProcessor.from_pretrained(str(processor_path))
-                else:
-                    # Fallback: load processor from original model name
-                    processor = CLIPProcessor.from_pretrained(model_name)
-                log_info(f"Loaded CLIP model from cache: {model_name}")
-                return (model, processor)
-            except Exception as e:
-                log_info(f"Failed to load from cache, downloading: {e}")
-
-        # Load from HuggingFace
-        model = CLIPModel.from_pretrained(model_name)
-        processor = CLIPProcessor.from_pretrained(model_name)
-
-        # Cache for future use
-        if is_cache_enabled():
-            save_model_to_cache((model, processor), model_name, model_type)
-
-        # Returns a tuple: (CLIPModel, CLIPProcessor)
-        return (model, processor)
+        return get_clip_model_and_processor(model_name)
     from sentence_transformers import SentenceTransformer
 
     if cached_path:
