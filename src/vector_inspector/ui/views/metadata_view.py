@@ -1058,8 +1058,6 @@ class MetadataView(QWidget):
                 # Persist the embedding model so the Info panel shows it rather than "Auto-detect".
                 if result.succeeded > 0:
                     try:
-                        from vector_inspector.services.settings_service import SettingsService
-
                         _MODEL_FOR_KIND = {
                             "image": ("openai/clip-vit-base-patch32", "clip"),
                             "document": ("all-MiniLM-L6-v2", "sentence-transformer"),
@@ -1067,7 +1065,7 @@ class MetadataView(QWidget):
                         model_name, model_type = _MODEL_FOR_KIND.get(file_kind, (None, None))
                         if model_name and model_type:
                             profile_name = getattr(connection, "name", "") or ""
-                            SettingsService().save_embedding_model(
+                            self.app_state.settings_service.save_embedding_model(
                                 profile_name,
                                 collection_name,
                                 model_name,

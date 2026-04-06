@@ -282,8 +282,29 @@ def update_pagination_controls(
     next_button.setEnabled(has_more)
 
 
+def _ingest_kind_for_path(path: str) -> "Literal['image', 'document'] | None":
+    """Return the ingestion kind for *path* using pipeline-aware extension logic.
+
+    Uses ``_is_image_file`` / ``_is_document_file`` from the ingestion service
+    so that .pdf and .docx are correctly classified as 'document', unlike
+    ``file_type()`` which returns 'unknown' for those formats.
+    Returns None when the path cannot be handled by either pipeline.
+    """
+    from vector_inspector.services.file_ingestion_service import _is_document_file, _is_image_file
+
+    if _is_image_file(path):
+        return "image"
+    if _is_document_file(path):
+        return "document"
+    return None
+
+
 def _reingest_item(table: QTableWidget, ctx: MetadataContext, row: int) -> None:
-    """Re-ingest a single item's source file (overwrite=True)."""
+    """Re-ingest a single item's source file (overwrite=True).
+
+    Runs the heavy ingestion work in a background ``TaskRunner`` thread so the
+    GUI never freezes during model loading or embedding.
+    """
     import os
 
     metadatas = (ctx.current_data or {}).get("metadatas", [])
@@ -302,29 +323,50 @@ def _reingest_item(table: QTableWidget, ctx: MetadataContext, row: int) -> None:
     if answer != QMessageBox.StandardButton.Yes:
         return
 
-    try:
-        from vector_inspector.services.file_ingestion_service import FileIngestionService
-        from vector_inspector.utils.file_preview_utils import file_type
+    kind = _ingest_kind_for_path(file_path_val)
+    if kind is None:
+        QMessageBox.warning(table, "Unsupported File", f"Cannot ingest file type: {os.path.splitext(file_path_val)[1]}")
+        return
 
-        kind = file_type(file_path_val)
-        if kind == "unknown":
-            QMessageBox.warning(
-                table, "Unsupported File", f"Cannot ingest file type: {os.path.splitext(file_path_val)[1]}"
-            )
-            return
+    # Snapshot context values before the background thread starts.
+    _connection = ctx.connection
+    _collection = ctx.current_collection or ""
 
-        service = FileIngestionService()
-        result = service.ingest_files(
+    from PySide6.QtWidgets import QProgressDialog
+
+    from vector_inspector.services.file_ingestion_service import FileIngestionService
+    from vector_inspector.services.task_runner import TaskRunner
+
+    progress_dlg = QProgressDialog("Re-ingesting file…", None, 0, 0, table)
+    progress_dlg.setWindowTitle("Re-ingest")
+    progress_dlg.setCancelButton(None)
+    progress_dlg.setModal(True)
+    progress_dlg.show()
+
+    def _do_ingest():
+        return FileIngestionService().ingest_files(
             file_paths=[file_path_val],
-            connection=ctx.connection,
-            collection_name=ctx.current_collection or "",
-            file_kind=kind,  # type: ignore[arg-type]
+            connection=_connection,
+            collection_name=_collection,
+            file_kind=kind,
             overwrite=True,
         )
+
+    def _on_done(result) -> None:
+        progress_dlg.hide()
         QMessageBox.information(table, "Re-ingest Complete", result.summary())
-    except Exception as exc:
-        log_error("Re-ingest failed: %s", exc, exc_info=True)
-        QMessageBox.critical(table, "Re-ingest Failed", str(exc))
+
+    def _on_error(msg: str) -> None:
+        progress_dlg.hide()
+        log_error("Re-ingest failed: %s", msg)
+        QMessageBox.critical(table, "Re-ingest Failed", msg)
+
+    runner = TaskRunner(_do_ingest)
+    runner.setParent(table)  # Qt parent keeps runner alive until finished
+    runner.result_ready.connect(_on_done)
+    runner.error.connect(_on_error)
+    runner.finished.connect(runner.deleteLater)
+    runner.start()
 
 
 def show_context_menu(

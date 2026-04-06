@@ -1,5 +1,6 @@
 """Ingestion configuration dialog for image and document pipelines."""
 
+import os
 import re
 from typing import Any, Literal, Optional
 
@@ -213,9 +214,15 @@ class IngestionDialog(QDialog):
         # Validate source
         raw = self._folder_edit.text().strip()
         if not self.file_paths and raw:
-            # User typed a path manually
+            # User typed a path manually; split on semicolons for multiple files.
             self.file_paths = [p.strip() for p in raw.split(";") if p.strip()]
-            self.folder_mode = len(self.file_paths) == 1 and ";" not in raw
+            if len(self.file_paths) == 1:
+                # Use filesystem check rather than string heuristic so a single
+                # file path is not mistakenly treated as a folder.
+                self.folder_mode = os.path.isdir(self.file_paths[0])
+            else:
+                # Multiple entries are always file mode.
+                self.folder_mode = False
 
         if not self.file_paths:
             QMessageBox.warning(self, "No Source", "Please select a folder or file(s) first.")

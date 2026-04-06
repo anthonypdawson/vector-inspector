@@ -482,3 +482,49 @@ def test_preview_column_width(qtbot):
     populate_table(table, ctx)
 
     assert table.columnWidth(PREVIEW_COL) <= 30
+
+
+# ---------------------------------------------------------------------------
+# _ingest_kind_for_path tests
+# ---------------------------------------------------------------------------
+
+
+from vector_inspector.ui.views.metadata.metadata_table import _ingest_kind_for_path
+
+
+class TestIngestKindForPath:
+    """_ingest_kind_for_path classifies paths using ingestion-pipeline helpers,
+    correctly handling .pdf/.docx (return 'document') unlike file_type() which
+    returns 'unknown' for those formats."""
+
+    def test_png_is_image(self, tmp_path):
+        f = tmp_path / "photo.png"
+        f.write_bytes(b"")
+        assert _ingest_kind_for_path(str(f)) == "image"
+
+    def test_jpeg_is_image(self, tmp_path):
+        f = tmp_path / "photo.jpg"
+        f.write_bytes(b"")
+        assert _ingest_kind_for_path(str(f)) == "image"
+
+    def test_pdf_is_document(self, tmp_path):
+        """PDF must be 'document', not 'unknown' (regression for file_type() mismatch)."""
+        f = tmp_path / "doc.pdf"
+        f.write_bytes(b"%PDF-1.4")
+        assert _ingest_kind_for_path(str(f)) == "document"
+
+    def test_docx_is_document(self, tmp_path):
+        """DOCX must be 'document', not 'unknown'."""
+        f = tmp_path / "doc.docx"
+        f.write_bytes(b"PK\x03\x04")
+        assert _ingest_kind_for_path(str(f)) == "document"
+
+    def test_txt_is_document(self, tmp_path):
+        f = tmp_path / "notes.txt"
+        f.write_text("hello")
+        assert _ingest_kind_for_path(str(f)) == "document"
+
+    def test_binary_is_none(self, tmp_path):
+        f = tmp_path / "data.bin"
+        f.write_bytes(b"\x00\x01\x02\x03\xff")
+        assert _ingest_kind_for_path(str(f)) is None

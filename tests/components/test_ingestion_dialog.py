@@ -85,3 +85,69 @@ class TestIngestionDialogDefaults:
         dlg = IngestionDialog(None, file_kind="document", connection=conn)
         qtbot.addWidget(dlg)
         assert dlg.max_chunk_size == 1000
+
+
+class TestIngestionDialogAccept:
+    """Tests for _on_accept() manual-path folder_mode detection using os.path.isdir."""
+
+    def test_single_file_path_sets_folder_mode_false(self, qtbot, tmp_path):
+        """Manually typing a single file path → folder_mode False."""
+        img = tmp_path / "photo.png"
+        img.write_bytes(b"")
+
+        conn = _make_connection()
+        dlg = IngestionDialog(None, file_kind="image", connection=conn, current_collection="images")
+        qtbot.addWidget(dlg)
+
+        dlg._folder_edit.setText(str(img))
+        dlg._collection_edit.setText("images")
+        dlg._on_accept()
+
+        assert dlg.folder_mode is False
+        assert dlg.file_paths == [str(img)]
+
+    def test_single_folder_path_sets_folder_mode_true(self, qtbot, tmp_path):
+        """Manually typing an existing folder path → folder_mode True."""
+        folder = tmp_path / "images_folder"
+        folder.mkdir()
+
+        conn = _make_connection()
+        dlg = IngestionDialog(None, file_kind="image", connection=conn, current_collection="images")
+        qtbot.addWidget(dlg)
+
+        dlg._folder_edit.setText(str(folder))
+        dlg._collection_edit.setText("images")
+        dlg._on_accept()
+
+        assert dlg.folder_mode is True
+        assert dlg.file_paths == [str(folder)]
+
+    def test_multiple_paths_sets_folder_mode_false(self, qtbot, tmp_path):
+        """Multiple semicolon-separated paths → folder_mode False."""
+        f1 = tmp_path / "a.png"
+        f2 = tmp_path / "b.png"
+        f1.write_bytes(b"")
+        f2.write_bytes(b"")
+
+        conn = _make_connection()
+        dlg = IngestionDialog(None, file_kind="image", connection=conn, current_collection="images")
+        qtbot.addWidget(dlg)
+
+        dlg._folder_edit.setText(f"{f1}; {f2}")
+        dlg._collection_edit.setText("images")
+        dlg._on_accept()
+
+        assert dlg.folder_mode is False
+        assert len(dlg.file_paths) == 2
+
+    def test_nonexistent_path_sets_folder_mode_false(self, qtbot, tmp_path):
+        """A path that doesn't exist on disk is not a dir → folder_mode False."""
+        conn = _make_connection()
+        dlg = IngestionDialog(None, file_kind="image", connection=conn, current_collection="images")
+        qtbot.addWidget(dlg)
+
+        dlg._folder_edit.setText(str(tmp_path / "ghost.png"))
+        dlg._collection_edit.setText("images")
+        dlg._on_accept()
+
+        assert dlg.folder_mode is False
