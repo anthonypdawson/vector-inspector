@@ -26,7 +26,15 @@ def is_text_file(path: str) -> bool:
     """
     mime, _ = mimetypes.guess_type(path)
     if mime is not None:
-        return mime.startswith("text/")
+        if mime.startswith("text/"):
+            return True
+        # application/* covers scripting languages that vary by platform
+        # (e.g. application/x-ruby on Linux, text/x-ruby on macOS).
+        # For these, fall through to the null-byte sniff rather than
+        # returning False immediately based on MIME alone.
+        if not mime.startswith("application/"):
+            # Definitive non-text type (image/, video/, audio/, etc.) — skip sniff.
+            return False
     # Null-byte sniff fallback (same heuristic as git)
     try:
         with open(path, "rb") as fh:
