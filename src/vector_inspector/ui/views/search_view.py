@@ -122,9 +122,14 @@ class SearchView(QWidget):
         # Update connection
         self.connection = connection
 
-        # Clear results
+        # Clear results and disable action buttons (collection no longer valid)
         self.results_table.setRowCount(0)
-        self.results_status.setText("No search performed" if not connection else "Connected - enter query")
+        self.set_collection_ready(False)
+        # Override generic "select a collection" message with a more specific one
+        if not connection:
+            self.results_status.setText("No search performed")
+        else:
+            self.results_status.setText("Connected - select a collection to search")
 
     def _on_collection_changed(self, collection: str) -> None:
         """React to collection change."""
@@ -132,6 +137,8 @@ class SearchView(QWidget):
             # Use AppState's database name
             database_name = self.app_state.database or ""
             self.set_collection(collection, database_name)
+        else:
+            self.set_collection_ready(False)
 
     def _on_loading_started(self, message: str) -> None:
         """React to loading started."""
@@ -211,6 +218,9 @@ class SearchView(QWidget):
         controls_layout.addWidget(self.ask_ai_button)
 
         controls_layout.addWidget(self.search_button)
+
+        # Disable action buttons until a collection is selected
+        self.set_collection_ready(False)
 
         query_group_layout.addLayout(controls_layout)
         query_group.setLayout(query_group_layout)
@@ -304,6 +314,16 @@ class SearchView(QWidget):
         layout.addWidget(splitter)
         self.setLayout(layout)
 
+    def set_collection_ready(self, ready: bool) -> None:
+        """Enable or disable action buttons based on whether a collection is selected."""
+        tooltip = "" if ready else "Select a collection to begin"
+        self.search_button.setEnabled(ready)
+        self.search_button.setToolTip(tooltip)
+        self.ask_ai_button.setEnabled(ready)
+        self.ask_ai_button.setToolTip(tooltip)
+        if not ready:
+            self.results_status.setText("Select a collection to begin searching")
+
     def set_breadcrumb(self, text: str):
         """Set the breadcrumb indicator (for pro features)."""
         # Keep the full breadcrumb for tooltip and compute an elided
@@ -369,6 +389,9 @@ class SearchView(QWidget):
         # Always update database_name if provided (even if empty string on first call)
         if database_name:  # Only update if non-empty
             self.current_database = database_name
+
+        # Enable action buttons now that a collection is available
+        self.set_collection_ready(True)
 
         log_info(
             "[SearchView] Setting collection: db='%s', coll='%s'",
@@ -509,11 +532,7 @@ class SearchView(QWidget):
         result_count = 0
 
         try:
-            provider_type = (
-                type(self.connection._connection).__name__.replace("Connection", "").lower()
-                if hasattr(self.connection, "_connection")
-                else "unknown"
-            )
+            provider_type = getattr(self.connection, "provider", "unknown")
             if results and results.get("ids") and len(results["ids"]) > 0:
                 result_count = len(results["ids"][0])
 
@@ -661,11 +680,7 @@ class SearchView(QWidget):
         # Send telemetry for failed search
         duration_ms = int((time.time() - self._search_start_time) * 1000)
         try:
-            provider_type = (
-                type(self.connection._connection).__name__.replace("Connection", "").lower()
-                if hasattr(self.connection, "_connection")
-                else "unknown"
-            )
+            provider_type = getattr(self.connection, "provider", "unknown")
 
             TelemetryService.send_event(
                 "query.executed",
