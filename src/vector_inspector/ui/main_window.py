@@ -709,14 +709,13 @@ class MainWindow(InspectorShell):
             self._set_collection_tabs_enabled(False)
 
     def _new_connection_from_profile(self):
-        """Show dialog to create new connection (switches to Profiles tab)."""
+        """Switch to Profiles tab and open the new profile dialog."""
         self.set_left_panel_active(1)  # Switch to Profiles tab
-        DialogService.show_profile_editor_prompt(self)
+        self.profile_panel._create_profile()
 
     def _show_profile_editor(self):
         """Show profile editor to create new profile."""
-        self.set_left_panel_active(1)  # Switch to Profiles tab
-        self.profile_panel._create_profile()
+        self._new_connection_from_profile()
 
     def _connect_to_profile(self, profile_id: str):
         """Connect to a profile using the connection controller."""
