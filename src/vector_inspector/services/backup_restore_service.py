@@ -44,6 +44,7 @@ class BackupRestoreService:
                     category="data",
                     operation="backup",
                     error_type="CollectionInfoError",
+                    exc_info=True,
                 )
                 return None
 
@@ -118,6 +119,7 @@ class BackupRestoreService:
                 category="data",
                 operation="backup",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -190,6 +192,7 @@ class BackupRestoreService:
                             category="data",
                             operation="restore",
                             error_type="DimensionInferenceError",
+                            exc_info=True,
                         )
                         return False
 
@@ -204,6 +207,7 @@ class BackupRestoreService:
                             category="data",
                             operation="restore",
                             error_type="CreateCollectionError",
+                            exc_info=True,
                         )
                         return False
                 except Exception as e:
@@ -214,6 +218,7 @@ class BackupRestoreService:
                         category="data",
                         operation="restore",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     return False
 
@@ -227,6 +232,7 @@ class BackupRestoreService:
                         category="data",
                         operation="restore",
                         error_type="PrepareRestoreError",
+                        exc_info=True,
                     )
                     return False
 
@@ -260,6 +266,7 @@ class BackupRestoreService:
                             category="embedding",
                             operation="restore",
                             error_type="MissingEmbeddingModelError",
+                            exc_info=True,
                         )
                         embeddings_to_use = None
                     elif not docs:
@@ -268,6 +275,7 @@ class BackupRestoreService:
                             category="embedding",
                             operation="restore",
                             error_type="MissingDocumentsError",
+                            exc_info=True,
                         )
                         embeddings_to_use = None
                     else:
@@ -292,6 +300,7 @@ class BackupRestoreService:
                         category="embedding",
                         operation="restore",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     embeddings_to_use = None
 
@@ -318,6 +327,7 @@ class BackupRestoreService:
                                     category="embedding",
                                     operation="restore",
                                     error_type="DimensionMismatchError",
+                                    exc_info=True,
                                 )
                                 embeddings_to_use = None
                         else:
@@ -329,6 +339,7 @@ class BackupRestoreService:
                             category="embedding",
                             operation="restore",
                             error_type=type(e).__name__,
+                            exc_info=True,
                         )
                         # Try to use them anyway
                         embeddings_to_use = stored_embeddings
@@ -375,6 +386,7 @@ class BackupRestoreService:
                             category="infra",
                             operation="restore",
                             error_type=type(e).__name__,
+                            exc_info=True,
                         )
 
                 # Clear the cache for this collection so the info panel gets fresh data
@@ -396,6 +408,7 @@ class BackupRestoreService:
                             category="infra",
                             operation="restore",
                             error_type=type(e).__name__,
+                            exc_info=True,
                         )
 
                 return True
@@ -407,6 +420,7 @@ class BackupRestoreService:
                 category="data",
                 operation="restore",
                 error_type="RestoreFailedError",
+                exc_info=True,
             )
             try:
                 if restore_collection_name in connection.list_collections():
@@ -426,6 +440,7 @@ class BackupRestoreService:
                 category="data",
                 operation="restore",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             try:
                 if restore_collection_name and restore_collection_name in connection.list_collections():
@@ -494,5 +509,6 @@ class BackupRestoreService:
                 category="data",
                 operation="delete_backup",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False

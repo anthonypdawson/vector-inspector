@@ -231,6 +231,7 @@ def _delete_chunks_by_parent(connection: Any, collection_name: str, parent_id: s
             category="data",
             operation="delete_chunks",
             error_type=type(exc).__name__,
+            exc_info=True,
         )
 
 
@@ -677,6 +678,7 @@ class FileIngestionService:
                                 category="data",
                                 operation="ingest_document",
                                 error_type=type(exc).__name__,
+                                exc_info=True,
                             )
                             # Clear pending batch and clean up already-flushed chunks
                             batch_ids.clear()
@@ -704,6 +706,7 @@ class FileIngestionService:
                         category="data",
                         operation="ingest_document",
                         error_type=type(exc).__name__,
+                        exc_info=True,
                     )
                     _delete_chunks_by_parent(connection, collection_name, file_hash)
 

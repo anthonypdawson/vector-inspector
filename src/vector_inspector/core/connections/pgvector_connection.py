@@ -87,6 +87,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="connect",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             self._client = None
             return False
@@ -129,6 +130,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="list_collections",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return []
 
@@ -166,6 +168,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="list_databases",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return []
         finally:
@@ -253,6 +256,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="get_collection_info",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -311,6 +315,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="create_collection",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             if self._client:
                 self._client.rollback()
@@ -352,6 +357,7 @@ class PgVectorConnection(VectorDBConnection):
                     operation="add_items",
                     provider="pgvector",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 return False
             if embeddings is None:
@@ -415,6 +421,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="add_items",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             if self._client:
                 self._client.rollback()
@@ -492,6 +499,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="get_items",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return {}
 
@@ -520,6 +528,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="delete_collection",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             if self._client:
                 self._client.rollback()
@@ -551,6 +560,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="count_collection",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return 0
 
@@ -604,6 +614,7 @@ class PgVectorConnection(VectorDBConnection):
                     operation="query",
                     provider="pgvector",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 return None
         try:
@@ -712,6 +723,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="query",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -819,6 +831,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="get_all_items",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -883,6 +896,7 @@ class PgVectorConnection(VectorDBConnection):
                         operation="add_items",
                         provider="pgvector",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     embeddings_local = [None] * len(ids)
                     self._last_regenerated_count = 0
@@ -940,6 +954,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="update_items",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             if self._client:
                 self._client.rollback()
@@ -1008,6 +1023,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="delete_items",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             if self._client:
                 try:
@@ -1067,6 +1083,7 @@ class PgVectorConnection(VectorDBConnection):
                 operation="get_table_schema",
                 provider="pgvector",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return {}
 

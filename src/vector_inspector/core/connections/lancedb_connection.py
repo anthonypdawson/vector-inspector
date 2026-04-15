@@ -44,6 +44,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="connect",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             self._connected = False
             return False
@@ -149,6 +150,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="get_collection_info",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -219,6 +221,7 @@ class LanceDBConnection(VectorDBConnection):
                         category="data",
                         operation="add_items",
                         provider="lancedb",
+                        exc_info=True,
                     )
                     return False
 
@@ -245,6 +248,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="add_items",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -287,6 +291,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="get_items",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return {}
 
@@ -325,6 +330,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="delete_collection",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -358,6 +364,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="count_collection",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return 0
 
@@ -396,6 +403,7 @@ class LanceDBConnection(VectorDBConnection):
                         operation="query",
                         provider="lancedb",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     return None
 
@@ -415,6 +423,7 @@ class LanceDBConnection(VectorDBConnection):
                                 operation="query",
                                 provider="lancedb",
                                 error_type=type(e).__name__,
+                                exc_info=True,
                             )
                             return None
                     else:
@@ -425,6 +434,7 @@ class LanceDBConnection(VectorDBConnection):
                             category="embedding",
                             operation="query",
                             provider="lancedb",
+                            exc_info=True,
                         )
                         return None
 
@@ -488,6 +498,7 @@ class LanceDBConnection(VectorDBConnection):
                                 operation="search",
                                 provider="lancedb",
                                 error_type=type(e_search).__name__,
+                                exc_info=True,
                             )
                             return None
                     else:
@@ -498,6 +509,7 @@ class LanceDBConnection(VectorDBConnection):
                             operation="search",
                             provider="lancedb",
                             error_type=type(e_search).__name__,
+                            exc_info=True,
                         )
                         return None
                 raw_meta = results["metadata"].tolist() if "metadata" in results.columns else []
@@ -536,6 +548,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="query",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -585,6 +598,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="get_all_items",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -610,6 +624,7 @@ class LanceDBConnection(VectorDBConnection):
                 operation="update_items",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -639,6 +654,7 @@ class LanceDBConnection(VectorDBConnection):
                         operation="delete_items",
                         provider="lancedb",
                         error_type=type(native_err).__name__,
+                        exc_info=True,
                     )
                     # Fall through to atomic rewrite below
 
@@ -667,5 +683,6 @@ class LanceDBConnection(VectorDBConnection):
                 operation="delete_items",
                 provider="lancedb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False

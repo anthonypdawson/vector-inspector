@@ -53,6 +53,7 @@ class SearchRunner:
                 category="connection",
                 operation="search",
                 error_type="NoConnectionError",
+                exc_info=True,
             )
             return None
 
@@ -73,6 +74,7 @@ class SearchRunner:
                 category="connection",
                 operation="search",
                 error_type="UnsupportedOperationError",
+                exc_info=True,
             )
             return None
 
@@ -82,6 +84,7 @@ class SearchRunner:
                 category="query",
                 operation="search",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -106,6 +109,7 @@ class SearchRunner:
                 category="connection",
                 operation="search_by_id",
                 error_type="NoConnectionError",
+                exc_info=True,
             )
             return None
 
@@ -119,6 +123,7 @@ class SearchRunner:
                         category="data",
                         operation="search_by_id",
                         error_type="ItemNotFoundError",
+                        exc_info=True,
                     )
                     return None
 
@@ -130,6 +135,7 @@ class SearchRunner:
                 category="connection",
                 operation="search_by_id",
                 error_type="UnsupportedOperationError",
+                exc_info=True,
             )
             return None
 
@@ -139,6 +145,7 @@ class SearchRunner:
                 category="query",
                 operation="search_by_id",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 

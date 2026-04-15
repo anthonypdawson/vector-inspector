@@ -67,6 +67,7 @@ class TableContextMenuHook:
                     category="infra",
                     operation="context_menu",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
 
     @classmethod
@@ -116,6 +117,7 @@ class SettingsPanelHook:
                     category="infra",
                     operation="settings_panel",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
 
     @classmethod

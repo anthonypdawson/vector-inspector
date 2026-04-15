@@ -112,6 +112,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 provider="openai-compatible",
                 error_type="HTTPError",
                 error_code=str(exc.code),
+                exc_info=True,
             )
             raise ProviderError(
                 f"API returned HTTP {exc.code}: {body[:200]}",
@@ -189,6 +190,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 operation="stream_messages",
                 provider="openai-compatible",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             raise ProviderError(
                 str(exc),
@@ -226,6 +228,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 operation="list_models",
                 provider="openai-compatible",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             return []
 

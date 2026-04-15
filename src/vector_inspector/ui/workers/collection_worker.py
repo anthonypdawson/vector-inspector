@@ -98,6 +98,7 @@ class CollectionCreationWorker(QThread):
                     category="data",
                     operation="create_collection",
                     error_type="CreateCollectionError",
+                    exc_info=True,
                 )
                 self.creation_complete.emit(False, error_msg)
                 return
@@ -148,6 +149,7 @@ class CollectionCreationWorker(QThread):
                         category="data",
                         operation="populate_sample_data",
                         error_type="SampleDataError",
+                        exc_info=True,
                     )
                     self.creation_complete.emit(False, error_msg)
                     return
@@ -169,5 +171,6 @@ class CollectionCreationWorker(QThread):
                 category="data",
                 operation="create_collection",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             self.error_occurred.emit(str(e) if str(e) else "Unknown error occurred")

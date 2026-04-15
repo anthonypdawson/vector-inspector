@@ -125,6 +125,7 @@ class WeaviateConnection(VectorDBConnection):
                         operation="connect",
                         provider="weaviate",
                         error_type="ReadinessError",
+                        exc_info=True,
                     )
                     self._client = None
                     return False
@@ -216,6 +217,7 @@ class WeaviateConnection(VectorDBConnection):
                     operation="connect",
                     provider="weaviate",
                     error_type="ReadinessError",
+                    exc_info=True,
                 )
                 self._client = None
                 return False
@@ -231,6 +233,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="connect",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             if self._client:
                 try:
@@ -253,6 +256,7 @@ class WeaviateConnection(VectorDBConnection):
                     operation="disconnect",
                     provider="weaviate",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
             finally:
                 self._client = None
@@ -288,6 +292,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="list_collections",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return []
 
@@ -376,6 +381,7 @@ class WeaviateConnection(VectorDBConnection):
                         operation="get_collection_info",
                         provider="weaviate",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
 
             # Get metadata fields from a sample object
@@ -395,6 +401,7 @@ class WeaviateConnection(VectorDBConnection):
                     operation="get_collection_info",
                     provider="weaviate",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
 
             result = {
@@ -429,6 +436,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="get_collection_info",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -498,6 +506,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="create_collection",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -542,6 +551,7 @@ class WeaviateConnection(VectorDBConnection):
                     operation="add_items",
                     provider="weaviate",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 return False
 
@@ -552,6 +562,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="add_items",
                 provider="weaviate",
                 error_type="MissingEmbeddingsError",
+                exc_info=True,
             )
             return False
 
@@ -626,6 +637,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="add_items",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -674,6 +686,7 @@ class WeaviateConnection(VectorDBConnection):
                         operation="get_items",
                         provider="weaviate",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     documents.append("")
                     metadatas.append({})
@@ -688,6 +701,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="get_items",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return {"documents": [], "metadatas": []}
 
@@ -716,6 +730,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="delete_collection",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -772,6 +787,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="query",
                 provider="weaviate",
                 error_type="MissingInputError",
+                exc_info=True,
             )
             return None
 
@@ -792,6 +808,7 @@ class WeaviateConnection(VectorDBConnection):
                         operation="query",
                         provider="weaviate",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     return None
 
@@ -802,6 +819,7 @@ class WeaviateConnection(VectorDBConnection):
                     operation="query",
                     provider="weaviate",
                     error_type="MissingEmbeddingsError",
+                    exc_info=True,
                 )
                 return None
 
@@ -875,6 +893,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="query",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -943,6 +962,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="_build_filter",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -1022,6 +1042,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="get_all_items",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -1086,6 +1107,7 @@ class WeaviateConnection(VectorDBConnection):
                                     operation="update_items",
                                     provider="weaviate",
                                     error_type=type(e).__name__,
+                                    exc_info=True,
                                 )
 
                     # Update metadata if provided
@@ -1115,6 +1137,7 @@ class WeaviateConnection(VectorDBConnection):
                         operation="update_items",
                         provider="weaviate",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     continue
 
@@ -1128,6 +1151,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="update_items",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -1168,6 +1192,7 @@ class WeaviateConnection(VectorDBConnection):
                             operation="delete_items",
                             provider="weaviate",
                             error_type=type(e).__name__,
+                            exc_info=True,
                         )
             elif where:
                 # Delete by filter
@@ -1185,6 +1210,7 @@ class WeaviateConnection(VectorDBConnection):
                 operation="delete_items",
                 provider="weaviate",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 

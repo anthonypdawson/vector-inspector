@@ -106,6 +106,7 @@ class ProfileService(QObject):
                 category="infra",
                 operation="load_profiles",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             self._profiles = {}
             self._last_active_connections = []
@@ -132,6 +133,7 @@ class ProfileService(QObject):
                 category="infra",
                 operation="save_profiles",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
 
     def create_profile(

@@ -57,6 +57,7 @@ class CollectionService(QObject):
                     category="data",
                     operation="create_collection",
                     error_type="CreateCollectionError",
+                    exc_info=True,
                 )
 
             return success
@@ -67,6 +68,7 @@ class CollectionService(QObject):
                 category="data",
                 operation="create_collection",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -118,6 +120,7 @@ class CollectionService(QObject):
                     category="embedding",
                     operation="populate_with_sample_data",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 self.operation_completed.emit("populate_sample_data", False, error_msg)
                 return False, error_msg
@@ -137,6 +140,7 @@ class CollectionService(QObject):
                     category="embedding",
                     operation="populate_with_sample_data",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 self.operation_completed.emit("populate_sample_data", False, error_msg)
                 return False, error_msg
@@ -167,6 +171,7 @@ class CollectionService(QObject):
                         category="data",
                         operation="populate_with_sample_data",
                         error_type="InsertFailedError",
+                        exc_info=True,
                     )
                     self.operation_completed.emit("populate_sample_data", False, error_msg)
                     return False, error_msg
@@ -192,6 +197,7 @@ class CollectionService(QObject):
                         category="infra",
                         operation="populate_with_sample_data",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
 
                 success_msg = f"Successfully added {count} sample items to '{collection_name}'"
@@ -206,6 +212,7 @@ class CollectionService(QObject):
                     category="data",
                     operation="populate_with_sample_data",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 self.operation_completed.emit("populate_sample_data", False, error_msg)
                 return False, error_msg
@@ -217,6 +224,7 @@ class CollectionService(QObject):
                 category="data",
                 operation="populate_with_sample_data",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             self.operation_completed.emit("populate_sample_data", False, error_msg)
             return False, error_msg

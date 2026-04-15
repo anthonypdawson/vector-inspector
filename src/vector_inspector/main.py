@@ -179,6 +179,7 @@ def main():
             category="infra",
             operation="startup",
             error_type=type(_err).__name__,
+            exc_info=True,
         )
         pass
 
@@ -239,6 +240,7 @@ def main():
                     category="llm",
                     operation="startup",
                     error_type="NoProviderError",
+                    exc_info=True,
                 )
         except Exception as _console_err:
             log_tracked_error(
@@ -247,6 +249,7 @@ def main():
                 category="llm",
                 operation="startup",
                 error_type=type(_console_err).__name__,
+                exc_info=True,
             )
 
     # Always fade out loading screen automatically

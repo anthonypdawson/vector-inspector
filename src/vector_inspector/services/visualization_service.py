@@ -73,6 +73,7 @@ class VisualizationService:
                     category="infra",
                     operation="reduce_dimensions",
                     error_type="UnknownMethodError",
+                    exc_info=True,
                 )
                 return None
 
@@ -86,6 +87,7 @@ class VisualizationService:
                 category="infra",
                 operation="reduce_dimensions",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 

@@ -43,6 +43,7 @@ def _make_provider():
                 category="llm",
                 operation="create_provider",
                 error_type="NoProviderError",
+                exc_info=True,
             )
             return None
 
@@ -59,6 +60,7 @@ def _make_provider():
             category="llm",
             operation="create_provider",
             error_type=type(exc).__name__,
+            exc_info=True,
         )
         return None
 
@@ -104,6 +106,7 @@ class _GenerateWorker(QThread):
                 category="llm",
                 operation="generate",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             self.error.emit(str(exc))
         finally:

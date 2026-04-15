@@ -104,6 +104,7 @@ class OllamaProvider(LLMProvider):
                 operation="generate_messages",
                 provider="ollama",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             raise ProviderError(
                 str(exc),
@@ -173,6 +174,7 @@ class OllamaProvider(LLMProvider):
                 operation="stream_messages",
                 provider="ollama",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             raise ProviderError(
                 str(exc),
@@ -208,6 +210,7 @@ class OllamaProvider(LLMProvider):
                 operation="list_models",
                 provider="ollama",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             return []
 

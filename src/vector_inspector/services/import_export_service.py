@@ -59,6 +59,7 @@ class ImportExportService:
                 category="data",
                 operation="export_to_json",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -116,6 +117,7 @@ class ImportExportService:
                 category="data",
                 operation="export_to_csv",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -171,6 +173,7 @@ class ImportExportService:
                 category="data",
                 operation="export_to_parquet",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -220,6 +223,7 @@ class ImportExportService:
                 category="data",
                 operation="import_from_json",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -280,6 +284,7 @@ class ImportExportService:
                 category="data",
                 operation="import_from_csv",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -336,5 +341,6 @@ class ImportExportService:
                 category="data",
                 operation="import_from_parquet",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None

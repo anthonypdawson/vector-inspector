@@ -292,6 +292,7 @@ class VectorDBConnection(ABC):
                 operation="get_embedding_model",
                 provider=type(self).__name__.replace("Connection", "").lower(),
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -361,6 +362,7 @@ class VectorDBConnection(ABC):
                 operation="load_embedding_model",
                 provider=type(self).__name__.replace("Connection", "").lower(),
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             raise
 

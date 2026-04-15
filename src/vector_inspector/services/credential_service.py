@@ -63,6 +63,7 @@ class CredentialService:
                 category="infra",
                 operation="store_credentials",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -95,6 +96,7 @@ class CredentialService:
                 category="infra",
                 operation="retrieve_credentials",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -131,6 +133,7 @@ class CredentialService:
                 category="infra",
                 operation="delete_credentials",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 

@@ -123,6 +123,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="connect",
                 provider=type(self).__name__.replace("Connection", "").lower(),
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -229,6 +230,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="get_embedding_function",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
 
         return None
@@ -258,6 +260,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="get_collection",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -335,6 +338,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="get_collection_info",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -370,6 +374,7 @@ class ChromaDBConnection(VectorDBConnection):
                 category="connection",
                 operation="query",
                 provider="chromadb",
+                exc_info=True,
             )
             return None
 
@@ -413,6 +418,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="query",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -455,6 +461,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="get_items",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -498,6 +505,7 @@ class ChromaDBConnection(VectorDBConnection):
                         operation="add_items",
                         provider="chromadb",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     return False
 
@@ -516,6 +524,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="add_items",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -559,6 +568,7 @@ class ChromaDBConnection(VectorDBConnection):
                         operation="update_items",
                         provider="chromadb",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     return False
 
@@ -577,6 +587,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="update_items",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -612,6 +623,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="delete_items",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -644,6 +656,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="delete_collection",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -685,6 +698,7 @@ class ChromaDBConnection(VectorDBConnection):
                 operation="create_collection",
                 provider="chromadb",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 

@@ -148,6 +148,7 @@ class LlamaCppProvider(LLMProvider):
                 operation="load_model",
                 provider="llama-cpp",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             raise
 
@@ -193,6 +194,7 @@ class LlamaCppProvider(LLMProvider):
                 operation="generate_messages",
                 provider="llama-cpp",
                 error_type=type(exc).__name__,
+                exc_info=True,
             )
             from .errors import ProviderError
 

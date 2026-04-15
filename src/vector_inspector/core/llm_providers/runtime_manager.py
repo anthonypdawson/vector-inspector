@@ -124,6 +124,7 @@ class LLMRuntimeManager:
                         category="llm",
                         operation="select_provider",
                         error_type=type(exc).__name__,
+                        exc_info=True,
                     )
                     from .provider_factory import LLMProviderFactory
 

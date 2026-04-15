@@ -53,6 +53,7 @@ class ClusterRunner:
                 category="infra",
                 operation="run_clustering",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             raise
 

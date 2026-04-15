@@ -104,6 +104,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="connect",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             self._client = None  # Reset client on failure
             return False
@@ -170,6 +171,7 @@ class PineconeConnection(VectorDBConnection):
                         operation="list_collections",
                         provider="pinecone",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     # Fallback: just add the index name
                     collections.append(index_name)
@@ -183,6 +185,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="list_collections",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return []
 
@@ -205,6 +208,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="get_collection_info",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -260,6 +264,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="check_hosted_model",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -405,6 +410,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="get_collection_info",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -487,6 +493,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="create_collection",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -528,6 +535,7 @@ class PineconeConnection(VectorDBConnection):
                     operation="add_items",
                     provider="pinecone",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 return False
 
@@ -537,6 +545,7 @@ class PineconeConnection(VectorDBConnection):
                 category="embedding",
                 operation="add_items",
                 provider="pinecone",
+                exc_info=True,
             )
             return False
 
@@ -581,6 +590,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="add_items",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -635,6 +645,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="get_items",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return {"documents": [], "metadatas": []}
 
@@ -680,6 +691,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="delete_collection",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -737,6 +749,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="get_embedding_function",
                 provider="pinecone",
                 error_type="ConfigurationWarning",
+                exc_info=True,
             )
 
         from vector_inspector.core.embedding_utils import encode_text
@@ -797,6 +810,7 @@ class PineconeConnection(VectorDBConnection):
                     operation="query",
                     provider="pinecone",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 return None
 
@@ -806,6 +820,7 @@ class PineconeConnection(VectorDBConnection):
                 category="query",
                 operation="query",
                 provider="pinecone",
+                exc_info=True,
             )
             return None
 
@@ -896,6 +911,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="query",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -982,6 +998,7 @@ class PineconeConnection(VectorDBConnection):
                         operation="_query_with_hosted_model",
                         provider="pinecone",
                         error_type="UnexpectedResponseError",
+                        exc_info=True,
                     )
                     hits = []
 
@@ -1034,6 +1051,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="query_hosted",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -1161,6 +1179,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="get_all_items",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return {"ids": [], "documents": [], "metadatas": [], "embeddings": []}
 
@@ -1240,6 +1259,7 @@ class PineconeConnection(VectorDBConnection):
                                 operation="update_items",
                                 provider="pinecone",
                                 error_type=type(e).__name__,
+                                exc_info=True,
                             )
                     metadata["document"] = documents[i]
 
@@ -1264,6 +1284,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="update_items",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -1322,6 +1343,7 @@ class PineconeConnection(VectorDBConnection):
                 operation="delete_items",
                 provider="pinecone",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 

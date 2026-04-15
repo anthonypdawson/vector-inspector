@@ -99,6 +99,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="connect",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -168,6 +169,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="get_items",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return {"documents": [], "metadatas": []}
 
@@ -191,6 +193,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="list_collections",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return []
 
@@ -302,6 +305,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="get_collection_info",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -318,6 +322,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="resolve_embedding_model",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             from vector_inspector.core.embedding_utils import DEFAULT_MODEL, load_embedding_model
 
@@ -337,6 +342,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="build_filter",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -372,6 +378,7 @@ class QdrantConnection(VectorDBConnection):
                 category="query",
                 operation="query",
                 provider="qdrant",
+                exc_info=True,
             )
             return None
 
@@ -417,6 +424,7 @@ class QdrantConnection(VectorDBConnection):
                             operation="query",
                             provider="qdrant",
                             error_type=type(e).__name__,
+                            exc_info=True,
                         )
                         continue
                 else:
@@ -442,6 +450,7 @@ class QdrantConnection(VectorDBConnection):
                         operation="query",
                         provider="qdrant",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     continue
 
@@ -482,6 +491,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="query",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -558,6 +568,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="get_all_items",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -604,6 +615,7 @@ class QdrantConnection(VectorDBConnection):
                 category="data",
                 operation="add_items",
                 provider="qdrant",
+                exc_info=True,
             )
             return False
 
@@ -623,6 +635,7 @@ class QdrantConnection(VectorDBConnection):
                     operation="add_items",
                     provider="qdrant",
                     error_type=type(e).__name__,
+                    exc_info=True,
                 )
                 return False
 
@@ -675,6 +688,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="add_items",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -750,6 +764,7 @@ class QdrantConnection(VectorDBConnection):
                             operation="update_items",
                             provider="qdrant",
                             error_type=type(e).__name__,
+                            exc_info=True,
                         )
                         # leave existing vector unchanged
                         pass
@@ -769,6 +784,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="update_items",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -810,6 +826,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="delete_items",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -837,6 +854,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="delete_collection",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -879,6 +897,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="create_collection",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 
@@ -911,6 +930,7 @@ class QdrantConnection(VectorDBConnection):
                     operation="prepare_restore",
                     provider="qdrant",
                     error_type="DimensionInferenceError",
+                    exc_info=True,
                 )
                 return False
 
@@ -935,6 +955,7 @@ class QdrantConnection(VectorDBConnection):
                     operation="prepare_restore",
                     provider="qdrant",
                     error_type="CreateCollectionError",
+                    exc_info=True,
                 )
                 return False
 
@@ -958,6 +979,7 @@ class QdrantConnection(VectorDBConnection):
                             operation="prepare_restore",
                             provider="qdrant",
                             error_type="DimensionMismatchError",
+                            exc_info=True,
                         )
                         return False
 
@@ -985,6 +1007,7 @@ class QdrantConnection(VectorDBConnection):
                         operation="prepare_restore",
                         provider="qdrant",
                         error_type=type(e).__name__,
+                        exc_info=True,
                     )
                     return False
 
@@ -1001,6 +1024,7 @@ class QdrantConnection(VectorDBConnection):
                 operation="prepare_restore",
                 provider="qdrant",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return False
 

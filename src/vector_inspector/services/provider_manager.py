@@ -57,6 +57,7 @@ class ProviderManager:
                 category="connection",
                 operation="list_databases",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return []
 
@@ -83,6 +84,7 @@ class ProviderManager:
                 category="connection",
                 operation="list_collections",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return []
 
@@ -109,6 +111,7 @@ class ProviderManager:
                 category="connection",
                 operation="get_collection_info",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 

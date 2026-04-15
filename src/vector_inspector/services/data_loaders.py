@@ -52,6 +52,7 @@ class CollectionLoader:
                 category="connection",
                 operation="load_collection_data",
                 error_type="NoConnectionError",
+                exc_info=True,
             )
             return None
 
@@ -66,6 +67,7 @@ class CollectionLoader:
                 category="connection",
                 operation="load_collection_data",
                 error_type="UnsupportedOperationError",
+                exc_info=True,
             )
             return None
 
@@ -75,6 +77,7 @@ class CollectionLoader:
                 category="data",
                 operation="load_collection_data",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -121,6 +124,7 @@ class CollectionLoader:
                 category="data",
                 operation="get_collection_count",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return 0
 
@@ -160,6 +164,7 @@ class VectorLoader:
                 category="connection",
                 operation="load_vectors",
                 error_type="NoConnectionError",
+                exc_info=True,
             )
             return None
 
@@ -179,6 +184,7 @@ class VectorLoader:
                 category="connection",
                 operation="load_vectors",
                 error_type="UnsupportedOperationError",
+                exc_info=True,
             )
             return None
 
@@ -188,6 +194,7 @@ class VectorLoader:
                 category="data",
                 operation="load_vectors",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -265,6 +272,7 @@ class MetadataLoader:
                 category="connection",
                 operation="load_metadata",
                 error_type="NoConnectionError",
+                exc_info=True,
             )
             return None
 
@@ -293,6 +301,7 @@ class MetadataLoader:
                 category="data",
                 operation="load_metadata",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 

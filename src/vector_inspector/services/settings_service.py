@@ -68,6 +68,7 @@ class SettingsService:
                 category="infra",
                 operation="load_settings",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             self.settings = {}
 
@@ -86,6 +87,7 @@ class SettingsService:
                 category="infra",
                 operation="save_settings",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
 
     def get_last_connection(self) -> Optional[dict[str, Any]]:
@@ -150,6 +152,7 @@ class SettingsService:
                 category="infra",
                 operation="set_window_geometry",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
 
     def get_window_geometry(self) -> Optional[bytes]:
@@ -166,6 +169,7 @@ class SettingsService:
                 category="infra",
                 operation="get_window_geometry",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
             return None
 
@@ -518,6 +522,7 @@ class SettingsService:
                 category="infra",
                 operation="set_highlight_color",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
 
     def get_highlight_color_bg(self) -> str:
@@ -546,6 +551,7 @@ class SettingsService:
                 category="infra",
                 operation="set_highlight_color_bg",
                 error_type=type(e).__name__,
+                exc_info=True,
             )
 
     def get_use_accent_enabled(self) -> bool:
@@ -566,4 +572,5 @@ class SettingsService:
                 category="infra",
                 operation="set_use_accent_enabled",
                 error_type=type(e).__name__,
+                exc_info=True,
             )

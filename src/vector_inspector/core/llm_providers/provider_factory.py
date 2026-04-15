@@ -64,6 +64,7 @@ class LLMProviderFactory:
             category="llm",
             operation="create_provider",
             error_type="UnknownProviderError",
+            exc_info=True,
         )
         return cls._auto_detect(settings)
 
