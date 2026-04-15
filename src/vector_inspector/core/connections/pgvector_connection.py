@@ -890,7 +890,7 @@ class PgVectorConnection(VectorDBConnection):
                             pass
                 except Exception as e:
                     log_tracked_error(
-                        "Failed to compute embeddings on add: %s",
+                        "Failed to compute embeddings on update: %s",
                         e,
                         category="embedding",
                         operation="add_items",

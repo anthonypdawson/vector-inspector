@@ -458,7 +458,7 @@ class ChromaDBConnection(VectorDBConnection):
                 "Failed to get items: %s",
                 e,
                 category="data",
-                operation="get_items",
+                operation="get_all_items",
                 provider="chromadb",
                 error_type=type(e).__name__,
                 exc_info=True,
