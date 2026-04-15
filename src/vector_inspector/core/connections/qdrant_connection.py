@@ -16,7 +16,7 @@ from vector_inspector.core.connections.qdrant_helpers.qdrant_embedding_resolver 
     resolve_embedding_model,
 )
 from vector_inspector.core.connections.qdrant_helpers.qdrant_filter_builder import build_filter
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 
 class QdrantConnection(VectorDBConnection):
@@ -92,7 +92,14 @@ class QdrantConnection(VectorDBConnection):
             self._client.get_collections()
             return True
         except Exception as e:
-            log_error("Connection failed: %s", e)
+            log_tracked_error(
+                "Connection failed: %s",
+                e,
+                category="connection",
+                operation="connect",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return False
 
     def _to_uuid(self, id_str: str) -> uuid.UUID:
@@ -154,7 +161,14 @@ class QdrantConnection(VectorDBConnection):
 
             return {"documents": documents, "metadatas": metadatas}
         except Exception as e:
-            log_error("Failed to get items: %s", e)
+            log_tracked_error(
+                "Failed to get items: %s",
+                e,
+                category="data",
+                operation="get_items",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return {"documents": [], "metadatas": []}
 
     def list_collections(self) -> list[str]:
@@ -170,7 +184,14 @@ class QdrantConnection(VectorDBConnection):
             collections = self._client.get_collections()
             return [col.name for col in collections.collections]
         except Exception as e:
-            log_error("Failed to list collections: %s", e)
+            log_tracked_error(
+                "Failed to list collections: %s",
+                e,
+                category="connection",
+                operation="list_collections",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return []
 
     def get_collection_info(self, name: str) -> Optional[dict[str, Any]]:
@@ -274,7 +295,14 @@ class QdrantConnection(VectorDBConnection):
             return result
 
         except Exception as e:
-            log_error("Failed to get collection info: %s", e)
+            log_tracked_error(
+                "Failed to get collection info: %s",
+                e,
+                category="connection",
+                operation="get_collection_info",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return None
 
     def _get_embedding_model_for_collection(self, collection_name: str):
@@ -282,7 +310,15 @@ class QdrantConnection(VectorDBConnection):
         try:
             return resolve_embedding_model(self, collection_name)
         except Exception as e:
-            log_error("Failed to resolve embedding model for %s: %s", collection_name, e)
+            log_tracked_error(
+                "Failed to resolve embedding model for %s: %s",
+                collection_name,
+                e,
+                category="embedding",
+                operation="resolve_embedding_model",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             from vector_inspector.core.embedding_utils import DEFAULT_MODEL, load_embedding_model
 
             model_name, model_type = DEFAULT_MODEL
@@ -294,7 +330,14 @@ class QdrantConnection(VectorDBConnection):
         try:
             return build_filter(where)
         except Exception as e:
-            log_error("Failed to build filter: %s", e)
+            log_tracked_error(
+                "Failed to build filter: %s",
+                e,
+                category="query",
+                operation="build_filter",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return None
 
     def query_collection(
@@ -324,7 +367,12 @@ class QdrantConnection(VectorDBConnection):
             return None
 
         if not query_texts and not query_embeddings:
-            log_error("Either query_texts or query_embeddings required")
+            log_tracked_error(
+                "Either query_texts or query_embeddings required",
+                category="query",
+                operation="query",
+                provider="qdrant",
+            )
             return None
 
         try:
@@ -362,7 +410,14 @@ class QdrantConnection(VectorDBConnection):
                         all_results["query_embedding"] = query_vector
                         all_results["query_embedding_model"] = model_name
                     except Exception as e:
-                        log_error("Failed to embed query text: %s", e)
+                        log_tracked_error(
+                            "Failed to embed query text: %s",
+                            e,
+                            category="embedding",
+                            operation="query",
+                            provider="qdrant",
+                            error_type=type(e).__name__,
+                        )
                         continue
                 else:
                     query_vector = query
@@ -380,7 +435,14 @@ class QdrantConnection(VectorDBConnection):
                     )
                     search_results = getattr(res, "points", res)
                 except Exception as e:
-                    log_error("Query failed: %s", e)
+                    log_tracked_error(
+                        "Query failed: %s",
+                        e,
+                        category="query",
+                        operation="query",
+                        provider="qdrant",
+                        error_type=type(e).__name__,
+                    )
                     continue
 
                 # Transform results to standard format
@@ -413,7 +475,14 @@ class QdrantConnection(VectorDBConnection):
 
             return all_results
         except Exception as e:
-            log_error("Query failed: %s", e)
+            log_tracked_error(
+                "Query failed: %s",
+                e,
+                category="query",
+                operation="query",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return None
 
     def get_all_items(
@@ -482,7 +551,14 @@ class QdrantConnection(VectorDBConnection):
                 "embeddings": embeddings,
             }
         except Exception as e:
-            log_error("Failed to get items: %s", e)
+            log_tracked_error(
+                "Failed to get items: %s",
+                e,
+                category="data",
+                operation="get_all_items",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return None
 
     def add_items(
@@ -520,11 +596,14 @@ class QdrantConnection(VectorDBConnection):
 
         # If embeddings provided, ensure counts match
         if embeddings is not None and len(embeddings) != len(documents):
-            log_error(
+            log_tracked_error(
                 "Embeddings length (%d) does not match documents length (%d) for collection %s",
                 len(embeddings),
                 len(documents),
                 collection_name,
+                category="data",
+                operation="add_items",
+                provider="qdrant",
             )
             return False
 
@@ -537,7 +616,14 @@ class QdrantConnection(VectorDBConnection):
                     getattr(self, "profile_name", None),
                 )
             except Exception as e:
-                log_error("Embeddings are required for Qdrant and computing them failed: %s", e)
+                log_tracked_error(
+                    "Embeddings are required for Qdrant and computing them failed: %s",
+                    e,
+                    category="embedding",
+                    operation="add_items",
+                    provider="qdrant",
+                    error_type=type(e).__name__,
+                )
                 return False
 
         try:
@@ -582,7 +668,14 @@ class QdrantConnection(VectorDBConnection):
             self._client.upsert(collection_name=collection_name, points=points)
             return True
         except Exception as e:
-            log_error("Failed to add items: %s", e)
+            log_tracked_error(
+                "Failed to add items: %s",
+                e,
+                category="data",
+                operation="add_items",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return False
 
     def update_items(
@@ -650,7 +743,14 @@ class QdrantConnection(VectorDBConnection):
                         )
                         vector = computed[0] if computed else vector
                     except Exception as e:
-                        log_error("Failed to compute embedding for Qdrant update: %s", e)
+                        log_tracked_error(
+                            "Failed to compute embedding for Qdrant update: %s",
+                            e,
+                            category="embedding",
+                            operation="update_items",
+                            provider="qdrant",
+                            error_type=type(e).__name__,
+                        )
                         # leave existing vector unchanged
                         pass
 
@@ -662,7 +762,14 @@ class QdrantConnection(VectorDBConnection):
 
             return True
         except Exception as e:
-            log_error("Failed to update items: %s", e)
+            log_tracked_error(
+                "Failed to update items: %s",
+                e,
+                category="data",
+                operation="update_items",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return False
 
     def delete_items(
@@ -696,7 +803,14 @@ class QdrantConnection(VectorDBConnection):
                     self._client.delete(collection_name=collection_name, points_selector=qdrant_filter)
             return True
         except Exception as e:
-            log_error("Failed to delete items: %s", e)
+            log_tracked_error(
+                "Failed to delete items: %s",
+                e,
+                category="data",
+                operation="delete_items",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return False
 
     def delete_collection(self, name: str) -> bool:
@@ -716,7 +830,14 @@ class QdrantConnection(VectorDBConnection):
             self._client.delete_collection(collection_name=name)
             return True
         except Exception as e:
-            log_error("Failed to delete collection: %s", e)
+            log_tracked_error(
+                "Failed to delete collection: %s",
+                e,
+                category="data",
+                operation="delete_collection",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return False
 
     def create_collection(self, name: str, vector_size: int, distance: str = "Cosine") -> bool:
@@ -751,7 +872,14 @@ class QdrantConnection(VectorDBConnection):
             )
             return True
         except Exception as e:
-            log_error(f"Failed to create collection: {e}")
+            log_tracked_error(
+                "Failed to create collection: %s",
+                e,
+                category="data",
+                operation="create_collection",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return False
 
     def prepare_restore(self, metadata: dict[str, Any], data: dict[str, Any]) -> bool:
@@ -777,7 +905,13 @@ class QdrantConnection(VectorDBConnection):
                     vector_size = len(first)
 
             if not vector_size:
-                log_error("Cannot determine vector size for Qdrant collection during restore")
+                log_tracked_error(
+                    "Cannot determine vector size for Qdrant collection during restore",
+                    category="data",
+                    operation="prepare_restore",
+                    provider="qdrant",
+                    error_type="DimensionInferenceError",
+                )
                 return False
 
             # Determine distance metric (try several known keys)
@@ -794,7 +928,14 @@ class QdrantConnection(VectorDBConnection):
             )
 
             if not self.create_collection(metadata.get("collection_name"), int(vector_size), distance):
-                log_error("Failed to create collection %s", metadata.get("collection_name"))
+                log_tracked_error(
+                    "Failed to create collection %s",
+                    metadata.get("collection_name"),
+                    category="data",
+                    operation="prepare_restore",
+                    provider="qdrant",
+                    error_type="CreateCollectionError",
+                )
                 return False
 
             # Ensure IDs are strings — actual insertion will convert to UUIDs
@@ -808,11 +949,15 @@ class QdrantConnection(VectorDBConnection):
                         # leave conversion to normalize_embeddings later
                         continue
                     if len(emb) != int(vector_size):
-                        log_error(
+                        log_tracked_error(
                             "Embedding at index %d has length %d but expected %d",
                             i,
                             len(emb),
                             int(vector_size),
+                            category="embedding",
+                            operation="prepare_restore",
+                            provider="qdrant",
+                            error_type="DimensionMismatchError",
                         )
                         return False
 
@@ -833,7 +978,14 @@ class QdrantConnection(VectorDBConnection):
                             model_name,
                         )
                 except Exception as e:
-                    log_error("Failed to generate embeddings during prepare_restore: %s", e)
+                    log_tracked_error(
+                        "Failed to generate embeddings during prepare_restore: %s",
+                        e,
+                        category="embedding",
+                        operation="prepare_restore",
+                        provider="qdrant",
+                        error_type=type(e).__name__,
+                    )
                     return False
 
             # Normalize coll_info key for downstream code expectations
@@ -842,7 +994,14 @@ class QdrantConnection(VectorDBConnection):
 
             return True
         except Exception as e:
-            log_error("prepare_restore failed: %s", e)
+            log_tracked_error(
+                "prepare_restore failed: %s",
+                e,
+                category="data",
+                operation="prepare_restore",
+                provider="qdrant",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_connection_info(self) -> dict[str, Any]:

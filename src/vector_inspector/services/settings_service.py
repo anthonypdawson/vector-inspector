@@ -9,7 +9,7 @@ from typing import Any, Optional
 from PySide6.QtCore import QObject, Signal
 
 from vector_inspector.core.cache_manager import invalidate_cache_on_settings_change
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 
 class SettingsService:
@@ -62,7 +62,13 @@ class SettingsService:
                 with open(self.settings_file, encoding="utf-8") as f:
                     self.settings = json.load(f)
         except Exception as e:
-            log_error("Failed to load settings: %s", e)
+            log_tracked_error(
+                "Failed to load settings: %s",
+                e,
+                category="infra",
+                operation="load_settings",
+                error_type=type(e).__name__,
+            )
             self.settings = {}
 
     def _save_settings(self):
@@ -74,7 +80,13 @@ class SettingsService:
             with open(self.settings_file, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            log_error("Failed to save settings: %s", e)
+            log_tracked_error(
+                "Failed to save settings: %s",
+                e,
+                category="infra",
+                operation="save_settings",
+                error_type=type(e).__name__,
+            )
 
     def get_last_connection(self) -> Optional[dict[str, Any]]:
         """Get the last connection configuration."""
@@ -132,7 +144,13 @@ class SettingsService:
                 b64 = base64.b64encode(bytes(geometry_bytes)).decode("ascii")
             self.set("window.geometry", b64)
         except Exception as e:
-            log_error("Failed to set window geometry: %s", e)
+            log_tracked_error(
+                "Failed to set window geometry: %s",
+                e,
+                category="infra",
+                operation="set_window_geometry",
+                error_type=type(e).__name__,
+            )
 
     def get_window_geometry(self) -> Optional[bytes]:
         """Return geometry bytes or None."""
@@ -142,7 +160,13 @@ class SettingsService:
                 return None
             return base64.b64decode(b64)
         except Exception as e:
-            log_error("Failed to get window geometry: %s", e)
+            log_tracked_error(
+                "Failed to get window geometry: %s",
+                e,
+                category="infra",
+                operation="get_window_geometry",
+                error_type=type(e).__name__,
+            )
             return None
 
     def get_status_timeout_ms(self) -> int:
@@ -488,7 +512,13 @@ class SettingsService:
         try:
             self.set("ui.highlight_color", str(color))
         except Exception as e:
-            log_error("Failed to set highlight color: %s", e)
+            log_tracked_error(
+                "Failed to set highlight color: %s",
+                e,
+                category="infra",
+                operation="set_highlight_color",
+                error_type=type(e).__name__,
+            )
 
     def get_highlight_color_bg(self) -> str:
         """Return the configured highlight background color (rgba) or fallback."""
@@ -510,7 +540,13 @@ class SettingsService:
         try:
             self.set("ui.highlight_color_bg", str(color))
         except Exception as e:
-            log_error("Failed to set highlight background color: %s", e)
+            log_tracked_error(
+                "Failed to set highlight background color: %s",
+                e,
+                category="infra",
+                operation="set_highlight_color_bg",
+                error_type=type(e).__name__,
+            )
 
     def get_use_accent_enabled(self) -> bool:
         """Return whether accent/highlight styling is enabled (default: False)."""
@@ -524,4 +560,10 @@ class SettingsService:
         try:
             self.set("ui.use_accent", bool(enabled))
         except Exception as e:
-            log_error("Failed to set use_accent flag: %s", e)
+            log_tracked_error(
+                "Failed to set use_accent flag: %s",
+                e,
+                category="infra",
+                operation="set_use_accent_enabled",
+                error_type=type(e).__name__,
+            )

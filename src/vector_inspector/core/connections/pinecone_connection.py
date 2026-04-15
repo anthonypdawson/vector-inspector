@@ -24,7 +24,7 @@ from typing import Any, Optional
 from pinecone import IndexModel, Pinecone, ServerlessSpec
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 
 class PineconeConnection(VectorDBConnection):
@@ -97,7 +97,14 @@ class PineconeConnection(VectorDBConnection):
             self._client.list_indexes()
             return True
         except Exception as e:
-            log_error("Connection failed: %s", e)
+            log_tracked_error(
+                "Connection failed: %s",
+                e,
+                category="connection",
+                operation="connect",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             self._client = None  # Reset client on failure
             return False
 
@@ -155,13 +162,28 @@ class PineconeConnection(VectorDBConnection):
                             collections.append(index_name)
 
                 except Exception as e:
-                    log_error("Failed to get namespace info for index %s: %s", index_name, e)
+                    log_tracked_error(
+                        "Failed to get namespace info for index %s: %s",
+                        index_name,
+                        e,
+                        category="connection",
+                        operation="list_collections",
+                        provider="pinecone",
+                        error_type=type(e).__name__,
+                    )
                     # Fallback: just add the index name
                     collections.append(index_name)
 
             return collections
         except Exception as e:
-            log_error("Failed to list indexes: %s", e)
+            log_tracked_error(
+                "Failed to list indexes: %s",
+                e,
+                category="connection",
+                operation="list_collections",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return []
 
     def _get_index(self, name: str):
@@ -176,7 +198,14 @@ class PineconeConnection(VectorDBConnection):
                 self._current_index_name = name
             return self._current_index
         except Exception as e:
-            log_error("Failed to get index: %s", e)
+            log_tracked_error(
+                "Failed to get index: %s",
+                e,
+                category="connection",
+                operation="get_collection_info",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return None
 
     def _check_hosted_model(self, index_name: str) -> Optional[str]:
@@ -220,10 +249,18 @@ class PineconeConnection(VectorDBConnection):
             # Cache the result
             self._hosted_models[index_name] = hosted_model
             if hosted_model:
-                log_error("✓ Detected Pinecone hosted model for '%s': %s", index_name, hosted_model)
+                log_info("Detected Pinecone hosted model for '%s': %s", index_name, hosted_model)
             return hosted_model
         except Exception as e:
-            log_error("Failed to check hosted model for index %s: %s", index_name, e)
+            log_tracked_error(
+                "Failed to check hosted model for index %s: %s",
+                index_name,
+                e,
+                category="connection",
+                operation="check_hosted_model",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return None
 
     def _embed_with_inference_api(self, model: str, texts: list[str], input_type: str = "query") -> list[list[float]]:
@@ -361,7 +398,14 @@ class PineconeConnection(VectorDBConnection):
 
             return info_dict
         except Exception as e:
-            log_error("Failed to get index info: %s", e)
+            log_tracked_error(
+                "Failed to get index info: %s",
+                e,
+                category="connection",
+                operation="get_collection_info",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return None
 
     def create_collection(self, name: str, vector_size: int, distance: str = "Cosine") -> bool:
@@ -393,7 +437,7 @@ class PineconeConnection(VectorDBConnection):
 
             # Warn if using default namespace
             if not namespace:
-                log_error(
+                log_info(
                     "RECOMMENDATION: Consider using a named namespace (e.g., '%s::main') "
                     "instead of the default namespace. Named namespaces are fully visible "
                     "in Pinecone's data browser and stats API.",
@@ -401,7 +445,7 @@ class PineconeConnection(VectorDBConnection):
                 )
 
             if namespace:
-                log_error(
+                log_info(
                     "Note: Creating index '%s'. Namespace '%s' will be created when data is added.",
                     index_name,
                     namespace,
@@ -436,7 +480,14 @@ class PineconeConnection(VectorDBConnection):
 
             return False
         except Exception as e:
-            log_error("Failed to create index: %s", e)
+            log_tracked_error(
+                "Failed to create index: %s",
+                e,
+                category="data",
+                operation="create_collection",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return False
 
     def add_items(
@@ -470,11 +521,23 @@ class PineconeConnection(VectorDBConnection):
                     collection_name, documents, getattr(self, "profile_name", None)
                 )
             except Exception as e:
-                log_error("Embeddings are required for Pinecone and computing them failed: %s", e)
+                log_tracked_error(
+                    "Embeddings are required for Pinecone and computing them failed: %s",
+                    e,
+                    category="embedding",
+                    operation="add_items",
+                    provider="pinecone",
+                    error_type=type(e).__name__,
+                )
                 return False
 
         if not embeddings:
-            log_error("Embeddings are required for Pinecone but none were provided or computed")
+            log_tracked_error(
+                "Embeddings are required for Pinecone but none were provided or computed",
+                category="embedding",
+                operation="add_items",
+                provider="pinecone",
+            )
             return False
 
         index = self._get_index(index_name)
@@ -511,7 +574,14 @@ class PineconeConnection(VectorDBConnection):
 
             return True
         except Exception as e:
-            log_error("Failed to add items: %s", e)
+            log_tracked_error(
+                "Failed to add items: %s",
+                e,
+                category="data",
+                operation="add_items",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:
@@ -558,7 +628,14 @@ class PineconeConnection(VectorDBConnection):
 
             return {"documents": documents, "metadatas": metadatas}
         except Exception as e:
-            log_error("Failed to get items: %s", e)
+            log_tracked_error(
+                "Failed to get items: %s",
+                e,
+                category="data",
+                operation="get_items",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return {"documents": [], "metadatas": []}
 
     def delete_collection(self, name: str) -> bool:
@@ -596,7 +673,14 @@ class PineconeConnection(VectorDBConnection):
 
             return True
         except Exception as e:
-            log_error("Failed to delete collection: %s", e)
+            log_tracked_error(
+                "Failed to delete collection: %s",
+                e,
+                category="data",
+                operation="delete_collection",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return False
 
     def count_collection(self, name: str) -> int:
@@ -643,12 +727,16 @@ class PineconeConnection(VectorDBConnection):
         info = self.get_collection_info(collection_name)
         if info and info.get("embedding_model_type") == "pinecone-hosted":
             hosted_model = info.get("embedding_model", "unknown")
-            log_error(
+            log_tracked_error(
                 "Warning: Attempting to generate local embeddings for collection '%s' "
                 "that uses Pinecone-hosted model '%s'. This may indicate a configuration issue. "
                 "Consider using text queries instead.",
                 collection_name,
                 hosted_model,
+                category="embedding",
+                operation="get_embedding_function",
+                provider="pinecone",
+                error_type="ConfigurationWarning",
             )
 
         from vector_inspector.core.embedding_utils import encode_text
@@ -692,7 +780,7 @@ class PineconeConnection(VectorDBConnection):
 
         # If hosted model and text queries, use direct text search
         if hosted_model and query_texts and query_embeddings is None:
-            log_error("Using Pinecone hosted model '%s' for text-based search", hosted_model)
+            log_info("Using Pinecone hosted model '%s' for text-based search", hosted_model)
             return self._query_with_hosted_model(index_name, namespace, query_texts, n_results, where)
 
         # Otherwise, use vector-based query
@@ -702,11 +790,23 @@ class PineconeConnection(VectorDBConnection):
                 embedding_fn, _ = self._get_embedding_function_for_collection(collection_name)
                 query_embeddings = [embedding_fn(q) for q in query_texts]
             except Exception as e:
-                log_error("Failed to generate embeddings for query. Error: %s", e)
+                log_tracked_error(
+                    "Failed to generate embeddings for query. Error: %s",
+                    e,
+                    category="embedding",
+                    operation="query",
+                    provider="pinecone",
+                    error_type=type(e).__name__,
+                )
                 return None
 
         if not query_embeddings:
-            log_error("Query embeddings are required for Pinecone")
+            log_tracked_error(
+                "Query embeddings are required for Pinecone",
+                category="query",
+                operation="query",
+                provider="pinecone",
+            )
             return None
 
         index = self._get_index(index_name)
@@ -789,9 +889,14 @@ class PineconeConnection(VectorDBConnection):
                 "query_embedding_model": None,
             }
         except Exception as e:
-            import traceback
-
-            log_error("Query failed: %s\n%s", e, traceback.format_exc())
+            log_tracked_error(
+                "Query failed: %s",
+                e,
+                category="query",
+                operation="query",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return None
 
     def _query_with_hosted_model(
@@ -870,7 +975,14 @@ class PineconeConnection(VectorDBConnection):
                 elif isinstance(result, dict) and "result" in result and "hits" in result["result"]:
                     hits = result["result"]["hits"]
                 else:
-                    log_error("Unexpected search response structure: %s", result)
+                    log_tracked_error(
+                        "Unexpected search response structure: %s",
+                        result,
+                        category="query",
+                        operation="_query_with_hosted_model",
+                        provider="pinecone",
+                        error_type="UnexpectedResponseError",
+                    )
                     hits = []
 
                 for hit in hits:
@@ -915,9 +1027,14 @@ class PineconeConnection(VectorDBConnection):
                 "embeddings": all_embeddings,
             }
         except Exception as e:
-            import traceback
-
-            log_error("Text query with hosted model failed: %s\n%s", e, traceback.format_exc())
+            log_tracked_error(
+                "Text query with hosted model failed: %s",
+                e,
+                category="query",
+                operation="query_hosted",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return None
 
     def _convert_filter(self, where: dict[str, Any]) -> dict[str, Any]:
@@ -1037,9 +1154,14 @@ class PineconeConnection(VectorDBConnection):
             }
 
         except Exception as e:
-            import traceback
-
-            log_error("Failed to get all items: %s\n%s", e, traceback.format_exc())
+            log_tracked_error(
+                "Failed to get all items: %s",
+                e,
+                category="data",
+                operation="get_all_items",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return {"ids": [], "documents": [], "metadatas": [], "embeddings": []}
 
     def update_items(
@@ -1111,7 +1233,14 @@ class PineconeConnection(VectorDBConnection):
                             if computed:
                                 values = computed[0]
                         except Exception as e:
-                            log_error("Failed to compute embedding for Pinecone update: %s", e)
+                            log_tracked_error(
+                                "Failed to compute embedding for Pinecone update: %s",
+                                e,
+                                category="embedding",
+                                operation="update_items",
+                                provider="pinecone",
+                                error_type=type(e).__name__,
+                            )
                     metadata["document"] = documents[i]
 
                 vectors.append({"id": vid, "values": values, "metadata": metadata})
@@ -1128,7 +1257,14 @@ class PineconeConnection(VectorDBConnection):
 
             return True
         except Exception as e:
-            log_error("Failed to update items: %s", e)
+            log_tracked_error(
+                "Failed to update items: %s",
+                e,
+                category="data",
+                operation="update_items",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return False
 
     def delete_items(
@@ -1179,7 +1315,14 @@ class PineconeConnection(VectorDBConnection):
 
             return True
         except Exception as e:
-            log_error("Failed to delete items: %s", e)
+            log_tracked_error(
+                "Failed to delete items: %s",
+                e,
+                category="data",
+                operation="delete_items",
+                provider="pinecone",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_connection_info(self) -> dict[str, Any]:

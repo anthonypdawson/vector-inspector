@@ -10,7 +10,7 @@ from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 
 class DimensionAwareEmbeddingFunction(EmbeddingFunction):
@@ -116,7 +116,14 @@ class ChromaDBConnection(VectorDBConnection):
                 self._client = chromadb.Client()
             return True
         except Exception as e:
-            log_error("Connection failed: %s", e)
+            log_tracked_error(
+                "Connection failed: %s",
+                e,
+                category="connection",
+                operation="connect",
+                provider=type(self).__name__.replace("Connection", "").lower(),
+                error_type=type(e).__name__,
+            )
             return False
 
     def _resolve_path(self, input_path: str) -> str:
@@ -215,12 +222,13 @@ class ChromaDBConnection(VectorDBConnection):
                         model_type=explicit_model_type,
                     )
         except Exception as e:
-            import traceback
-
-            log_error(
-                "[ChromaDB] Failed to determine embedding function: %s\n%s",
+            log_tracked_error(
+                "[ChromaDB] Failed to determine embedding function: %s",
                 e,
-                traceback.format_exc(),
+                category="embedding",
+                operation="get_embedding_function",
+                provider="chromadb",
+                error_type=type(e).__name__,
             )
 
         return None
@@ -243,7 +251,14 @@ class ChromaDBConnection(VectorDBConnection):
             self._current_collection = self._client.get_collection(name=name)
             return self._current_collection
         except Exception as e:
-            log_error("Failed to get collection: %s", e)
+            log_tracked_error(
+                "Failed to get collection: %s",
+                e,
+                category="connection",
+                operation="get_collection",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return None
 
     def get_collection_info(self, name: str) -> Optional[dict[str, Any]]:
@@ -313,7 +328,14 @@ class ChromaDBConnection(VectorDBConnection):
 
             return result
         except Exception as e:
-            log_error("Failed to get collection info: %s", e)
+            log_tracked_error(
+                "Failed to get collection info: %s",
+                e,
+                category="connection",
+                operation="get_collection_info",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return None
 
     def query_collection(
@@ -342,7 +364,13 @@ class ChromaDBConnection(VectorDBConnection):
         log_info("[ChromaDB] query_collection called for '%s'", collection_name)
         collection = self.get_collection(collection_name)
         if not collection:
-            log_error("[ChromaDB] Failed to get collection '%s'", collection_name)
+            log_tracked_error(
+                "[ChromaDB] Failed to get collection '%s'",
+                collection_name,
+                category="connection",
+                operation="query",
+                provider="chromadb",
+            )
             return None
 
         # If query_texts provided, we need to manually embed them with dimension-aware model
@@ -378,9 +406,14 @@ class ChromaDBConnection(VectorDBConnection):
             result_dict["query_embedding_model"] = _query_embedding_model
             return result_dict
         except Exception as e:
-            import traceback
-
-            log_error("Query failed: %s\n%s", e, traceback.format_exc())
+            log_tracked_error(
+                "Query failed: %s",
+                e,
+                category="query",
+                operation="query",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return None
 
     def get_all_items(
@@ -415,7 +448,14 @@ class ChromaDBConnection(VectorDBConnection):
             )
             return cast(dict[str, Any], results)
         except Exception as e:
-            log_error("Failed to get items: %s", e)
+            log_tracked_error(
+                "Failed to get items: %s",
+                e,
+                category="data",
+                operation="get_items",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return None
 
     def add_items(
@@ -451,7 +491,14 @@ class ChromaDBConnection(VectorDBConnection):
                         collection_name, documents, getattr(self, "profile_name", None)
                     )
                 except Exception as e:
-                    log_error("Failed to compute embeddings for Chroma add_items: %s", e)
+                    log_tracked_error(
+                        "Failed to compute embeddings for Chroma add_items: %s",
+                        e,
+                        category="embedding",
+                        operation="add_items",
+                        provider="chromadb",
+                        error_type=type(e).__name__,
+                    )
                     return False
 
             collection.add(
@@ -462,7 +509,14 @@ class ChromaDBConnection(VectorDBConnection):
             )
             return True
         except Exception as e:
-            log_error("Failed to add items: %.400s", str(e))
+            log_tracked_error(
+                "Failed to add items: %.400s",
+                str(e),
+                category="data",
+                operation="add_items",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return False
 
     def update_items(
@@ -498,7 +552,14 @@ class ChromaDBConnection(VectorDBConnection):
                         collection_name, documents, getattr(self, "connection_id", None)
                     )
                 except Exception as e:
-                    log_error("Failed to compute embeddings for Chroma update_items: %s", e)
+                    log_tracked_error(
+                        "Failed to compute embeddings for Chroma update_items: %s",
+                        e,
+                        category="embedding",
+                        operation="update_items",
+                        provider="chromadb",
+                        error_type=type(e).__name__,
+                    )
                     return False
 
             collection.update(
@@ -509,7 +570,14 @@ class ChromaDBConnection(VectorDBConnection):
             )
             return True
         except Exception as e:
-            log_error("Failed to update items: %s", e)
+            log_tracked_error(
+                "Failed to update items: %s",
+                e,
+                category="data",
+                operation="update_items",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return False
 
     def delete_items(
@@ -537,7 +605,14 @@ class ChromaDBConnection(VectorDBConnection):
             collection.delete(ids=ids, where=where)
             return True
         except Exception as e:
-            log_error("Failed to delete items: %s", e)
+            log_tracked_error(
+                "Failed to delete items: %s",
+                e,
+                category="data",
+                operation="delete_items",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return False
 
     def delete_collection(self, name: str) -> bool:
@@ -562,7 +637,14 @@ class ChromaDBConnection(VectorDBConnection):
             # If the exception is about the collection not existing, treat as success (idempotent)
             if "does not exist" in str(e).lower():
                 return True
-            log_error("Failed to delete collection: %s", e)
+            log_tracked_error(
+                "Failed to delete collection: %s",
+                e,
+                category="data",
+                operation="delete_collection",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return False
 
     # Implement base connection uniform APIs
@@ -596,7 +678,14 @@ class ChromaDBConnection(VectorDBConnection):
             col = self.get_collection(name)
             return col is not None
         except Exception as e:
-            log_error("Failed to create collection: %s", e)
+            log_tracked_error(
+                "Failed to create collection: %s",
+                e,
+                category="data",
+                operation="create_collection",
+                provider="chromadb",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:

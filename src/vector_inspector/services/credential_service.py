@@ -3,7 +3,7 @@
 import json
 from typing import Optional
 
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 
 class CredentialService:
@@ -30,9 +30,7 @@ class CredentialService:
             self._PasswordDeleteError = PasswordDeleteError
             self._use_keyring = True
         except ImportError:
-            log_info(
-                "Warning: keyring module not available. Credentials will not be persisted securely."
-            )
+            log_info("Warning: keyring module not available. Credentials will not be persisted securely.")
             self._keyring = None
             self._PasswordDeleteError = None
 
@@ -59,7 +57,13 @@ class CredentialService:
 
             return True
         except Exception as e:
-            log_error("Failed to store credentials: %s", e)
+            log_tracked_error(
+                "Failed to store credentials: %s",
+                e,
+                category="infra",
+                operation="store_credentials",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_credentials(self, profile_id: str) -> Optional[dict]:
@@ -85,7 +89,13 @@ class CredentialService:
                 return json.loads(credential_json)
             return None
         except Exception as e:
-            log_error("Failed to retrieve credentials: %s", e)
+            log_tracked_error(
+                "Failed to retrieve credentials: %s",
+                e,
+                category="infra",
+                operation="retrieve_credentials",
+                error_type=type(e).__name__,
+            )
             return None
 
     def delete_credentials(self, profile_id: str) -> bool:
@@ -115,7 +125,13 @@ class CredentialService:
 
             return True
         except Exception as e:
-            log_error("Failed to delete credentials: %s", e)
+            log_tracked_error(
+                "Failed to delete credentials: %s",
+                e,
+                category="infra",
+                operation="delete_credentials",
+                error_type=type(e).__name__,
+            )
             return False
 
     def is_keyring_available(self) -> bool:

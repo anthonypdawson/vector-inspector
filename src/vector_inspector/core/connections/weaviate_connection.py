@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 from vector_inspector.utils.lazy_imports import get_weaviate_client
 
 
@@ -119,7 +119,13 @@ class WeaviateConnection(VectorDBConnection):
                 self._client.connect()
 
                 if not self._client.is_ready():
-                    log_error("Embedded Weaviate instance is not ready")
+                    log_tracked_error(
+                        "Embedded Weaviate instance is not ready",
+                        category="connection",
+                        operation="connect",
+                        provider="weaviate",
+                        error_type="ReadinessError",
+                    )
                     self._client = None
                     return False
 
@@ -204,7 +210,13 @@ class WeaviateConnection(VectorDBConnection):
 
             # Verify connection by checking if server is ready
             if not self._client.is_ready():
-                log_error("Weaviate server is not ready")
+                log_tracked_error(
+                    "Weaviate server is not ready",
+                    category="connection",
+                    operation="connect",
+                    provider="weaviate",
+                    error_type="ReadinessError",
+                )
                 self._client = None
                 return False
 
@@ -212,7 +224,14 @@ class WeaviateConnection(VectorDBConnection):
             return True
 
         except Exception as e:
-            log_error("Connection failed: %s", e)
+            log_tracked_error(
+                "Connection failed: %s",
+                e,
+                category="connection",
+                operation="connect",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             if self._client:
                 try:
                     self._client.close()
@@ -227,7 +246,14 @@ class WeaviateConnection(VectorDBConnection):
             try:
                 self._client.close()
             except Exception as e:
-                log_error("Error during disconnect: %s", e)
+                log_tracked_error(
+                    "Error during disconnect: %s",
+                    e,
+                    category="connection",
+                    operation="disconnect",
+                    provider="weaviate",
+                    error_type=type(e).__name__,
+                )
             finally:
                 self._client = None
 
@@ -255,7 +281,14 @@ class WeaviateConnection(VectorDBConnection):
             collections = self._client.collections.list_all()
             return list(collections.keys())
         except Exception as e:
-            log_error("Failed to list collections: %s", e)
+            log_tracked_error(
+                "Failed to list collections: %s",
+                e,
+                category="connection",
+                operation="list_collections",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return []
 
     def get_collection_info(self, name: str) -> Optional[dict[str, Any]]:
@@ -336,7 +369,14 @@ class WeaviateConnection(VectorDBConnection):
                             elif isinstance(obj.vector, list):
                                 vector_dimension = len(obj.vector)
                 except Exception as e:
-                    log_error("Failed to get dimension from sample vector: %s", e)
+                    log_tracked_error(
+                        "Failed to get dimension from sample vector: %s",
+                        e,
+                        category="connection",
+                        operation="get_collection_info",
+                        provider="weaviate",
+                        error_type=type(e).__name__,
+                    )
 
             # Get metadata fields from a sample object
             metadata_fields = []
@@ -348,7 +388,14 @@ class WeaviateConnection(VectorDBConnection):
                     # Exclude internal fields and 'document'
                     metadata_fields = [k for k in obj.properties if k != "document" and not k.startswith("_")]
             except Exception as e:
-                log_error("Failed to get sample object for metadata fields: %s", e)
+                log_tracked_error(
+                    "Failed to get sample object for metadata fields: %s",
+                    e,
+                    category="connection",
+                    operation="get_collection_info",
+                    provider="weaviate",
+                    error_type=type(e).__name__,
+                )
 
             result = {
                 "name": name,
@@ -375,7 +422,14 @@ class WeaviateConnection(VectorDBConnection):
             return result
 
         except Exception as e:
-            log_error("Failed to get collection info: %s", e)
+            log_tracked_error(
+                "Failed to get collection info: %s",
+                e,
+                category="connection",
+                operation="get_collection_info",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return None
 
     def create_collection(self, name: str, vector_size: int, distance: str = "Cosine") -> bool:
@@ -437,7 +491,14 @@ class WeaviateConnection(VectorDBConnection):
             return True
 
         except Exception as e:
-            log_error("Failed to create collection: %s", e)
+            log_tracked_error(
+                "Failed to create collection: %s",
+                e,
+                category="data",
+                operation="create_collection",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return False
 
     def add_items(
@@ -474,11 +535,24 @@ class WeaviateConnection(VectorDBConnection):
                     collection_name, documents, getattr(self, "profile_name", None)
                 )
             except Exception as e:
-                log_error("Embeddings are required for Weaviate and computing them failed: %s", e)
+                log_tracked_error(
+                    "Embeddings are required for Weaviate and computing them failed: %s",
+                    e,
+                    category="embedding",
+                    operation="add_items",
+                    provider="weaviate",
+                    error_type=type(e).__name__,
+                )
                 return False
 
         if not embeddings:
-            log_error("Embeddings are required for Weaviate but none were provided or computed")
+            log_tracked_error(
+                "Embeddings are required for Weaviate but none were provided or computed",
+                category="embedding",
+                operation="add_items",
+                provider="weaviate",
+                error_type="MissingEmbeddingsError",
+            )
             return False
 
         try:
@@ -545,7 +619,14 @@ class WeaviateConnection(VectorDBConnection):
             return True
 
         except Exception as e:
-            log_error("Failed to add items: %s", e)
+            log_tracked_error(
+                "Failed to add items: %s",
+                e,
+                category="data",
+                operation="add_items",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:
@@ -585,14 +666,29 @@ class WeaviateConnection(VectorDBConnection):
                         documents.append("")
                         metadatas.append({})
                 except Exception as e:
-                    log_error("Failed to fetch object %s: %s", obj_id, e)
+                    log_tracked_error(
+                        "Failed to fetch object %s: %s",
+                        obj_id,
+                        e,
+                        category="data",
+                        operation="get_items",
+                        provider="weaviate",
+                        error_type=type(e).__name__,
+                    )
                     documents.append("")
                     metadatas.append({})
 
             return {"documents": documents, "metadatas": metadatas}
 
         except Exception as e:
-            log_error("Failed to get items: %s", e)
+            log_tracked_error(
+                "Failed to get items: %s",
+                e,
+                category="data",
+                operation="get_items",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return {"documents": [], "metadatas": []}
 
     def delete_collection(self, name: str) -> bool:
@@ -613,7 +709,14 @@ class WeaviateConnection(VectorDBConnection):
             log_info("Deleted collection '%s'", name)
             return True
         except Exception as e:
-            log_error("Failed to delete collection: %s", e)
+            log_tracked_error(
+                "Failed to delete collection: %s",
+                e,
+                category="data",
+                operation="delete_collection",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return False
 
     def count_collection(self, name: str) -> int:
@@ -663,7 +766,13 @@ class WeaviateConnection(VectorDBConnection):
             return None
 
         if not query_texts and not query_embeddings:
-            log_error("Either query_texts or query_embeddings required")
+            log_tracked_error(
+                "Either query_texts or query_embeddings required",
+                category="query",
+                operation="query",
+                provider="weaviate",
+                error_type="MissingInputError",
+            )
             return None
 
         try:
@@ -676,11 +785,24 @@ class WeaviateConnection(VectorDBConnection):
                         collection_name, query_texts, getattr(self, "profile_name", None)
                     )
                 except Exception as e:
-                    log_error("Failed to embed query texts: %s", e)
+                    log_tracked_error(
+                        "Failed to embed query texts: %s",
+                        e,
+                        category="embedding",
+                        operation="query",
+                        provider="weaviate",
+                        error_type=type(e).__name__,
+                    )
                     return None
 
             if not query_embeddings:
-                log_error("Query embeddings are required but none were provided or computed")
+                log_tracked_error(
+                    "Query embeddings are required but none were provided or computed",
+                    category="embedding",
+                    operation="query",
+                    provider="weaviate",
+                    error_type="MissingEmbeddingsError",
+                )
                 return None
 
             # Build filter if provided
@@ -746,7 +868,14 @@ class WeaviateConnection(VectorDBConnection):
             return all_results
 
         except Exception as e:
-            log_error("Query failed: %s", e)
+            log_tracked_error(
+                "Query failed: %s",
+                e,
+                category="query",
+                operation="query",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return None
 
     def _build_filter(self, where: Optional[dict[str, Any]]) -> Optional[Any]:
@@ -807,7 +936,14 @@ class WeaviateConnection(VectorDBConnection):
             return combined_filter
 
         except Exception as e:
-            log_error("Failed to build filter: %s", e)
+            log_tracked_error(
+                "Failed to build filter: %s",
+                e,
+                category="query",
+                operation="_build_filter",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return None
 
     def get_all_items(
@@ -879,7 +1015,14 @@ class WeaviateConnection(VectorDBConnection):
             }
 
         except Exception as e:
-            log_error("Failed to get all items: %s", e)
+            log_tracked_error(
+                "Failed to get all items: %s",
+                e,
+                category="data",
+                operation="get_all_items",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return None
 
     def update_items(
@@ -936,7 +1079,14 @@ class WeaviateConnection(VectorDBConnection):
                                 if computed:
                                     vector = computed[0]
                             except Exception as e:
-                                log_error("Failed to compute embedding for update: %s", e)
+                                log_tracked_error(
+                                    "Failed to compute embedding for update: %s",
+                                    e,
+                                    category="embedding",
+                                    operation="update_items",
+                                    provider="weaviate",
+                                    error_type=type(e).__name__,
+                                )
 
                     # Update metadata if provided
                     if metadatas and i < len(metadatas):
@@ -957,13 +1107,28 @@ class WeaviateConnection(VectorDBConnection):
                     )
 
                 except Exception as e:
-                    log_error("Failed to update object %s: %s", obj_id, e)
+                    log_tracked_error(
+                        "Failed to update object %s: %s",
+                        obj_id,
+                        e,
+                        category="data",
+                        operation="update_items",
+                        provider="weaviate",
+                        error_type=type(e).__name__,
+                    )
                     continue
 
             return True
 
         except Exception as e:
-            log_error("Failed to update items: %s", e)
+            log_tracked_error(
+                "Failed to update items: %s",
+                e,
+                category="data",
+                operation="update_items",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return False
 
     def delete_items(
@@ -995,7 +1160,15 @@ class WeaviateConnection(VectorDBConnection):
                     try:
                         collection.data.delete_by_id(uuid.UUID(obj_id))
                     except Exception as e:
-                        log_error("Failed to delete object %s: %s", obj_id, e)
+                        log_tracked_error(
+                            "Failed to delete object %s: %s",
+                            obj_id,
+                            e,
+                            category="data",
+                            operation="delete_items",
+                            provider="weaviate",
+                            error_type=type(e).__name__,
+                        )
             elif where:
                 # Delete by filter
                 weaviate_filter = self._build_filter(where)
@@ -1005,7 +1178,14 @@ class WeaviateConnection(VectorDBConnection):
             return True
 
         except Exception as e:
-            log_error("Failed to delete items: %s", e)
+            log_tracked_error(
+                "Failed to delete items: %s",
+                e,
+                category="data",
+                operation="delete_items",
+                provider="weaviate",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_connection_info(self) -> dict[str, Any]:

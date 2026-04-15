@@ -59,9 +59,15 @@ class TableContextMenuHook:
                 handler(menu, table, row, data)
             except Exception as e:
                 # Log but don't break if a handler fails
-                from vector_inspector.core.logging import log_error
+                from vector_inspector.core.logging import log_tracked_error
 
-                log_error("Context menu handler error: %s", e)
+                log_tracked_error(
+                    "Context menu handler error: %s",
+                    e,
+                    category="infra",
+                    operation="context_menu",
+                    error_type=type(e).__name__,
+                )
 
     @classmethod
     def clear(cls):
@@ -102,9 +108,15 @@ class SettingsPanelHook:
             try:
                 handler(parent_layout, settings_service, dialog)
             except Exception as e:
-                from vector_inspector.core.logging import log_error
+                from vector_inspector.core.logging import log_tracked_error
 
-                log_error("Settings panel handler error: %s", e)
+                log_tracked_error(
+                    "Settings panel handler error: %s",
+                    e,
+                    category="infra",
+                    operation="settings_panel",
+                    error_type=type(e).__name__,
+                )
 
     @classmethod
     def clear(cls):

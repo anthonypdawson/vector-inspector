@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 from vector_inspector.services.telemetry_service import TelemetryService
 from vector_inspector.utils.file_preview_utils import IMAGE_EXTENSIONS, is_text_file
 
@@ -224,7 +224,14 @@ def _delete_chunks_by_parent(connection: Any, collection_name: str, parent_id: s
         if ids:
             connection.delete_items(collection_name=collection_name, ids=ids)
     except Exception as exc:
-        log_error("Best-effort chunk cleanup failed for parent_id=%s: %s", parent_id, exc)
+        log_tracked_error(
+            "Best-effort chunk cleanup failed for parent_id=%s: %s",
+            parent_id,
+            exc,
+            category="data",
+            operation="delete_chunks",
+            error_type=type(exc).__name__,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -507,7 +514,15 @@ class FileIngestionService:
             except Exception as exc:
                 result.failed += 1
                 result.errors.append(f"{os.path.basename(path)}: {str(exc)[:300]}")
-                log_error("Image ingestion failed for %s: %.300s", path, str(exc), exc_info=True)
+                log_tracked_error(
+                    "Image ingestion failed for %s: %.300s",
+                    path,
+                    str(exc),
+                    exc_info=True,
+                    category="data",
+                    operation="ingest_image",
+                    error_type=type(exc).__name__,
+                )
 
         _flush()
 
@@ -654,8 +669,14 @@ class FileIngestionService:
                             chunk_upsert_failed = True
                             result.failed += 1
                             result.errors.append(f"{filename}: upsert failed at chunk {chunk_index}: {str(exc)[:200]}")
-                            log_error(
-                                "Document chunk upsert failed (%s chunk %d): %.300s", filename, chunk_index, str(exc)
+                            log_tracked_error(
+                                "Document chunk upsert failed (%s chunk %d): %.300s",
+                                filename,
+                                chunk_index,
+                                str(exc),
+                                category="data",
+                                operation="ingest_document",
+                                error_type=type(exc).__name__,
                             )
                             # Clear pending batch and clean up already-flushed chunks
                             batch_ids.clear()
@@ -676,13 +697,28 @@ class FileIngestionService:
                 except Exception as exc:
                     result.failed += 1
                     result.errors.append(f"{filename}: final upsert failed: {str(exc)[:200]}")
-                    log_error("Document final flush failed (%s): %.300s", filename, str(exc))
+                    log_tracked_error(
+                        "Document final flush failed (%s): %.300s",
+                        filename,
+                        str(exc),
+                        category="data",
+                        operation="ingest_document",
+                        error_type=type(exc).__name__,
+                    )
                     _delete_chunks_by_parent(connection, collection_name, file_hash)
 
             except Exception as exc:
                 result.failed += 1
                 result.errors.append(f"{os.path.basename(path)}: {exc}")
-                log_error("Document ingestion failed for %s: %s", path, exc, exc_info=True)
+                log_tracked_error(
+                    "Document ingestion failed for %s: %s",
+                    path,
+                    exc,
+                    exc_info=True,
+                    category="data",
+                    operation="ingest_document",
+                    error_type=type(exc).__name__,
+                )
                 if file_hash:
                     _delete_chunks_by_parent(connection, collection_name, file_hash)
 

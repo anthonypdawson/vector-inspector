@@ -13,7 +13,7 @@ import urllib.request
 from collections.abc import Generator
 from typing import Any
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 from .base_provider import LLMProvider
 from .errors import ProviderError
@@ -103,7 +103,16 @@ class OpenAICompatibleProvider(LLMProvider):
                 return data["choices"][0]["message"]["content"].strip()
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
-            log_error("OpenAI-compatible chat HTTP %s: %s", exc.code, body[:500])
+            log_tracked_error(
+                "OpenAI-compatible chat HTTP %s: %s",
+                exc.code,
+                body[:500],
+                category="llm",
+                operation="generate_messages",
+                provider="openai-compatible",
+                error_type="HTTPError",
+                error_code=str(exc.code),
+            )
             raise ProviderError(
                 f"API returned HTTP {exc.code}: {body[:200]}",
                 provider_name="openai-compatible",
@@ -173,7 +182,14 @@ class OpenAICompatibleProvider(LLMProvider):
                         )
                         index += 1
         except Exception as exc:
-            log_error("OpenAI-compatible stream failed: %s", exc)
+            log_tracked_error(
+                "OpenAI-compatible stream failed: %s",
+                exc,
+                category="llm",
+                operation="stream_messages",
+                provider="openai-compatible",
+                error_type=type(exc).__name__,
+            )
             raise ProviderError(
                 str(exc),
                 provider_name="openai-compatible",
@@ -202,7 +218,15 @@ class OpenAICompatibleProvider(LLMProvider):
             # treat it as "model list unavailable" so validation is skipped and
             # the real connectivity/auth error can surface on request. Log the
             # full error for diagnostics.
-            log_error("Failed to fetch model list from %s: %s", self._base_url, exc)
+            log_tracked_error(
+                "Failed to fetch model list from %s: %s",
+                self._base_url,
+                exc,
+                category="llm",
+                operation="list_models",
+                provider="openai-compatible",
+                error_type=type(exc).__name__,
+            )
             return []
 
     def get_capabilities(self) -> ProviderCapabilities:

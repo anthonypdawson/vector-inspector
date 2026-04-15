@@ -51,7 +51,7 @@ class CollectionCreationWorker(QThread):
 
     def run(self):
         """Execute the collection creation workflow."""
-        from vector_inspector.core.logging import log_error, log_info
+        from vector_inspector.core.logging import log_info, log_tracked_error
 
         # Generate correlation ID and start timing
         correlation_id = str(uuid.uuid4())
@@ -93,7 +93,12 @@ class CollectionCreationWorker(QThread):
 
             if not success:
                 error_msg = "Failed to create collection"
-                log_error(error_msg)
+                log_tracked_error(
+                    error_msg,
+                    category="data",
+                    operation="create_collection",
+                    error_type="CreateCollectionError",
+                )
                 self.creation_complete.emit(False, error_msg)
                 return
 
@@ -138,7 +143,12 @@ class CollectionCreationWorker(QThread):
 
                 if not success:
                     error_msg = f"Collection created but sample data failed: {message}"
-                    log_error(error_msg)
+                    log_tracked_error(
+                        error_msg,
+                        category="data",
+                        operation="populate_sample_data",
+                        error_type="SampleDataError",
+                    )
                     self.creation_complete.emit(False, error_msg)
                     return
 
@@ -153,5 +163,11 @@ class CollectionCreationWorker(QThread):
             import traceback
 
             error_msg = f"{e!s}\n{traceback.format_exc()}"
-            log_error(f"Collection creation exception: {error_msg}")
+            log_tracked_error(
+                "Collection creation exception: %s",
+                error_msg,
+                category="data",
+                operation="create_collection",
+                error_type=type(e).__name__,
+            )
             self.error_occurred.emit(str(e) if str(e) else "Unknown error occurred")

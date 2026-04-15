@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import lancedb
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 from .base_connection import VectorDBConnection
 
@@ -37,7 +37,14 @@ class LanceDBConnection(VectorDBConnection):
             self._connected = True
             return True
         except Exception as e:
-            log_error("LanceDB connection failed: %s", e)
+            log_tracked_error(
+                "LanceDB connection failed: %s",
+                e,
+                category="connection",
+                operation="connect",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             self._connected = False
             return False
 
@@ -135,7 +142,14 @@ class LanceDBConnection(VectorDBConnection):
                 "distance_metric": distance_metric,
             }
         except Exception as e:
-            log_error("LanceDB get_collection_info failed: %s", e)
+            log_tracked_error(
+                "LanceDB get_collection_info failed: %s",
+                e,
+                category="connection",
+                operation="get_collection_info",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return None
 
     def create_collection(self, name: str, vector_size: int, distance: str = "Cosine") -> bool:
@@ -199,7 +213,13 @@ class LanceDBConnection(VectorDBConnection):
 
                 if not vec_len or vec_len == "Unknown":
                     # Cannot safely generate fixed-size vectors without a known dimension
-                    log_error("LanceDB add_items failed: unknown vector dimension for %s", collection_name)
+                    log_tracked_error(
+                        "LanceDB add_items failed: unknown vector dimension for %s",
+                        collection_name,
+                        category="data",
+                        operation="add_items",
+                        provider="lancedb",
+                    )
                     return False
 
                 vectors = [[0.0] * int(vec_len) for _ in range(len(documents))]
@@ -218,7 +238,14 @@ class LanceDBConnection(VectorDBConnection):
             tbl.add(arr)
             return True
         except Exception as e:
-            log_error("LanceDB add_items failed: %s", e)
+            log_tracked_error(
+                "LanceDB add_items failed: %s",
+                e,
+                category="data",
+                operation="add_items",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return False
 
     def get_items(self, name: str, ids: list[str]) -> dict[str, Any]:
@@ -253,7 +280,14 @@ class LanceDBConnection(VectorDBConnection):
                 "metadatas": metadatas,
             }
         except Exception as e:
-            log_error("LanceDB get_items failed: %s", e)
+            log_tracked_error(
+                "LanceDB get_items failed: %s",
+                e,
+                category="data",
+                operation="get_items",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return {}
 
     def _parse_metadata_list(self, raw_list: list) -> list[dict[str, Any]]:
@@ -284,7 +318,14 @@ class LanceDBConnection(VectorDBConnection):
             self._db.drop_table(name)
             return True
         except Exception as e:
-            log_error("LanceDB delete_collection failed: %s", e)
+            log_tracked_error(
+                "LanceDB delete_collection failed: %s",
+                e,
+                category="data",
+                operation="delete_collection",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return False
 
     def count_collection(self, name: str) -> int:
@@ -310,7 +351,14 @@ class LanceDBConnection(VectorDBConnection):
                         pass
                 return 0
         except Exception as e:
-            log_error("LanceDB count_collection failed: %s", e)
+            log_tracked_error(
+                "LanceDB count_collection failed: %s",
+                e,
+                category="data",
+                operation="count_collection",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return 0
 
     def query_collection(
@@ -341,7 +389,14 @@ class LanceDBConnection(VectorDBConnection):
                 try:
                     query_embeddings = self.compute_embeddings_for_documents(collection_name, query_texts)
                 except Exception as e:
-                    log_error("Failed to compute embeddings for query_texts: %s", e)
+                    log_tracked_error(
+                        "Failed to compute embeddings for query_texts: %s",
+                        e,
+                        category="embedding",
+                        operation="query",
+                        provider="lancedb",
+                        error_type=type(e).__name__,
+                    )
                     return None
 
             if query_embeddings:
@@ -353,13 +408,23 @@ class LanceDBConnection(VectorDBConnection):
                             query_embeddings = self.compute_embeddings_for_documents(collection_name, query_texts)
                             emb = query_embeddings[0]
                         except Exception as e:
-                            log_error("Embedding dim mismatch and recompute failed: %s", e)
+                            log_tracked_error(
+                                "Embedding dim mismatch and recompute failed: %s",
+                                e,
+                                category="embedding",
+                                operation="query",
+                                provider="lancedb",
+                                error_type=type(e).__name__,
+                            )
                             return None
                     else:
-                        log_error(
+                        log_tracked_error(
                             "Embedding dim mismatch: query dim(%d) != collection dim(%s)",
                             len(emb),
                             str(coll_dim),
+                            category="embedding",
+                            operation="query",
+                            provider="lancedb",
                         )
                         return None
 
@@ -414,15 +479,26 @@ class LanceDBConnection(VectorDBConnection):
                                 results = None
 
                         if results is None:
-                            log_error(
+                            log_tracked_error(
                                 "LanceDB search failed: no vector column found. Tried: %s. Schema names: %s. Error: %s",
                                 tried,
                                 schema_names,
                                 e_search,
+                                category="query",
+                                operation="search",
+                                provider="lancedb",
+                                error_type=type(e_search).__name__,
                             )
                             return None
                     else:
-                        log_error("LanceDB search failed: %s", e_search)
+                        log_tracked_error(
+                            "LanceDB search failed: %s",
+                            e_search,
+                            category="query",
+                            operation="search",
+                            provider="lancedb",
+                            error_type=type(e_search).__name__,
+                        )
                         return None
                 raw_meta = results["metadata"].tolist() if "metadata" in results.columns else []
                 metadatas = self._parse_metadata_list(raw_meta)
@@ -453,7 +529,14 @@ class LanceDBConnection(VectorDBConnection):
                 }
             return None
         except Exception as e:
-            log_error("LanceDB query_collection failed: %s", e)
+            log_tracked_error(
+                "LanceDB query_collection failed: %s",
+                e,
+                category="query",
+                operation="query",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return None
 
     def get_all_items(
@@ -495,7 +578,14 @@ class LanceDBConnection(VectorDBConnection):
                 "embeddings": df["vector"].tolist() if "vector" in df.columns else [],
             }
         except Exception as e:
-            log_error("LanceDB get_all_items failed: %s", e)
+            log_tracked_error(
+                "LanceDB get_all_items failed: %s",
+                e,
+                category="data",
+                operation="get_all_items",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return None
 
     def update_items(
@@ -513,7 +603,14 @@ class LanceDBConnection(VectorDBConnection):
             self.delete_items(collection_name, ids=ids)
             return self.add_items(collection_name, documents or [], metadatas, ids, embeddings)
         except Exception as e:
-            log_error("LanceDB update_items failed: %s", e)
+            log_tracked_error(
+                "LanceDB update_items failed: %s",
+                e,
+                category="data",
+                operation="update_items",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return False
 
     def delete_items(
@@ -535,7 +632,14 @@ class LanceDBConnection(VectorDBConnection):
                     tbl.delete(f"id IN ({id_csv})")
                     return True
                 except Exception as native_err:
-                    log_error("LanceDB native delete failed, falling back to rewrite: %s", native_err)
+                    log_tracked_error(
+                        "LanceDB native delete failed, falling back to rewrite: %s",
+                        native_err,
+                        category="data",
+                        operation="delete_items",
+                        provider="lancedb",
+                        error_type=type(native_err).__name__,
+                    )
                     # Fall through to atomic rewrite below
 
             # Atomic rewrite fallback: read → filter → drop → recreate (single create_table call).
@@ -556,5 +660,12 @@ class LanceDBConnection(VectorDBConnection):
             self._db.create_table(collection_name, data=arr)
             return True
         except Exception as e:
-            log_error("LanceDB delete_items failed: %s", e)
+            log_tracked_error(
+                "LanceDB delete_items failed: %s",
+                e,
+                category="data",
+                operation="delete_items",
+                provider="lancedb",
+                error_type=type(e).__name__,
+            )
             return False
