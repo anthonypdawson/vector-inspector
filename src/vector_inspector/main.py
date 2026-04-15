@@ -9,7 +9,7 @@ import sys
 import time
 import uuid
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 # Run early telemetry before importing any Qt/PySide modules. Keep this
 # minimal and tolerant of failure so missing GUI requirements don't prevent
@@ -174,7 +174,13 @@ def main():
             global_qss = build_global_qss(highlight, highlight_bg)
             app.setStyleSheet(global_qss)
     except Exception as _err:
-        log_error(f"[Startup] Failed to apply global stylesheet: {_err}")
+        log_tracked_error(
+            f"[Startup] Failed to apply global stylesheet: {_err}",
+            category="infra",
+            operation="startup",
+            error_type=type(_err).__name__,
+            exc_info=True,
+        )
         pass
 
     # Set up Qt-specific exception handler for slots/signals
@@ -229,9 +235,22 @@ def main():
                 _console_win = LLMConsoleWindow(_console_provider)
                 _console_win.show()
             else:
-                log_error("LLM console: no provider available; console window skipped.")
+                log_tracked_error(
+                    "LLM console: no provider available; console window skipped.",
+                    category="llm",
+                    operation="startup",
+                    error_type="NoProviderError",
+                    exc_info=True,
+                )
         except Exception as _console_err:
-            log_error("LLM console failed to open: %s", _console_err)
+            log_tracked_error(
+                "LLM console failed to open: %s",
+                _console_err,
+                category="llm",
+                operation="startup",
+                error_type=type(_console_err).__name__,
+                exc_info=True,
+            )
 
     # Always fade out loading screen automatically
     if loading:

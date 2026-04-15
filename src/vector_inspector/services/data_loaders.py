@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional
 if TYPE_CHECKING:
     from vector_inspector.core.connection_manager import ConnectionInstance
 
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 from vector_inspector.utils import has_embedding
 
 
@@ -47,22 +47,38 @@ class CollectionLoader:
             Dictionary with 'ids', 'embeddings', 'metadatas', 'documents'
         """
         if not self.connection:
-            log_error("No connection available")
+            log_tracked_error(
+                "No connection available",
+                category="connection",
+                operation="load_collection_data",
+                error_type="NoConnectionError",
+                exc_info=True,
+            )
             return None
 
         try:
             # Use get_all_items if available
             if hasattr(self.connection, "get_all_items"):
-                data = self.connection.get_all_items(
-                    collection_name=collection, limit=limit, offset=offset
-                )
+                data = self.connection.get_all_items(collection_name=collection, limit=limit, offset=offset)
                 return data
 
-            log_error("Connection does not support get_all_items")
+            log_tracked_error(
+                "Connection does not support get_all_items",
+                category="connection",
+                operation="load_collection_data",
+                error_type="UnsupportedOperationError",
+                exc_info=True,
+            )
             return None
 
         except Exception as e:
-            log_error(f"Failed to load collection data: {e}")
+            log_tracked_error(
+                f"Failed to load collection data: {e}",
+                category="data",
+                operation="load_collection_data",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def load_page(
@@ -103,7 +119,13 @@ class CollectionLoader:
                 return self.connection.get_collection_count(collection)
             return 0
         except Exception as e:
-            log_error(f"Failed to get collection count: {e}")
+            log_tracked_error(
+                f"Failed to get collection count: {e}",
+                category="data",
+                operation="get_collection_count",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return 0
 
 
@@ -125,9 +147,7 @@ class VectorLoader:
         """Set the active connection."""
         self.connection = connection
 
-    def load_vectors(
-        self, collection: str, sample_size: Optional[int] = None
-    ) -> Optional[dict[str, Any]]:
+    def load_vectors(self, collection: str, sample_size: Optional[int] = None) -> Optional[dict[str, Any]]:
         """
         Load vector embeddings from collection.
 
@@ -139,7 +159,13 @@ class VectorLoader:
             Dictionary with 'ids', 'embeddings', 'metadatas'
         """
         if not self.connection:
-            log_error("No connection available")
+            log_tracked_error(
+                "No connection available",
+                category="connection",
+                operation="load_vectors",
+                error_type="NoConnectionError",
+                exc_info=True,
+            )
             return None
 
         try:
@@ -153,11 +179,23 @@ class VectorLoader:
 
                 return data
 
-            log_error("Connection does not support get_all_items")
+            log_tracked_error(
+                "Connection does not support get_all_items",
+                category="connection",
+                operation="load_vectors",
+                error_type="UnsupportedOperationError",
+                exc_info=True,
+            )
             return None
 
         except Exception as e:
-            log_error(f"Failed to load vectors: {e}")
+            log_tracked_error(
+                f"Failed to load vectors: {e}",
+                category="data",
+                operation="load_vectors",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def _filter_valid_embeddings(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -217,9 +255,7 @@ class MetadataLoader:
         """Set the active connection."""
         self.connection = connection
 
-    def load_metadata(
-        self, collection: str, item_ids: Optional[list[str]] = None
-    ) -> Optional[dict[str, Any]]:
+    def load_metadata(self, collection: str, item_ids: Optional[list[str]] = None) -> Optional[dict[str, Any]]:
         """
         Load metadata for items.
 
@@ -231,7 +267,13 @@ class MetadataLoader:
             Dictionary with 'ids', 'metadatas', 'documents'
         """
         if not self.connection:
-            log_error("No connection available")
+            log_tracked_error(
+                "No connection available",
+                category="connection",
+                operation="load_metadata",
+                error_type="NoConnectionError",
+                exc_info=True,
+            )
             return None
 
         try:
@@ -254,7 +296,13 @@ class MetadataLoader:
             return None
 
         except Exception as e:
-            log_error(f"Failed to load metadata: {e}")
+            log_tracked_error(
+                f"Failed to load metadata: {e}",
+                category="data",
+                operation="load_metadata",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def get_metadata_fields(self, data: dict[str, Any]) -> list[str]:

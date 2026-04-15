@@ -5,7 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Any
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 from vector_inspector.services.telemetry_service import TelemetryService
 
 
@@ -285,7 +285,15 @@ class VectorDBConnection(ABC):
 
             return None
         except Exception as e:
-            log_error("Failed to get embedding model: %s", e)
+            log_tracked_error(
+                "Failed to get embedding model: %s",
+                e,
+                category="embedding",
+                operation="get_embedding_model",
+                provider=type(self).__name__.replace("Connection", "").lower(),
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def load_embedding_model_for_collection(self, collection_name: str, profile_name_override: str | None = None):
@@ -346,7 +354,16 @@ class VectorDBConnection(ABC):
             model = load_embedding_model(model_name, model_type)
             return (model, model_name, model_type)
         except Exception as e:
-            log_error("Failed to load embedding model for collection %s: %s", collection_name, e)
+            log_tracked_error(
+                "Failed to load embedding model for collection %s: %s",
+                collection_name,
+                e,
+                category="embedding",
+                operation="load_embedding_model",
+                provider=type(self).__name__.replace("Connection", "").lower(),
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             raise
 
     def compute_embeddings_for_documents(

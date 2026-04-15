@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 import numpy as np
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 
 class ClusterRunner:
@@ -48,7 +48,13 @@ class ClusterRunner:
             return labels, algo_name
 
         except Exception as e:
-            log_error(f"Clustering failed: {e}")
+            log_tracked_error(
+                f"Clustering failed: {e}",
+                category="infra",
+                operation="run_clustering",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             raise
 
     def get_cluster_stats(self, labels: np.ndarray) -> dict[str, Any]:
@@ -101,9 +107,7 @@ class ClusterRunner:
             return f"Found {n_clusters} clusters, {n_noise} noise points ({algorithm})"
         return f"Found {n_clusters} clusters ({algorithm})"
 
-    def get_cluster_centers(
-        self, embeddings: np.ndarray, labels: np.ndarray
-    ) -> dict[int, np.ndarray]:
+    def get_cluster_centers(self, embeddings: np.ndarray, labels: np.ndarray) -> dict[int, np.ndarray]:
         """
         Calculate cluster centroids.
 
@@ -124,9 +128,7 @@ class ClusterRunner:
 
         return centers
 
-    def assign_to_nearest_cluster(
-        self, embedding: np.ndarray, cluster_centers: dict[int, np.ndarray]
-    ) -> int:
+    def assign_to_nearest_cluster(self, embedding: np.ndarray, cluster_centers: dict[int, np.ndarray]) -> int:
         """
         Assign a single embedding to nearest cluster.
 

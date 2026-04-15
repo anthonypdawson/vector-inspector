@@ -43,23 +43,60 @@ def log_debug(msg: str, *args: Any, **kwargs: Any) -> None:
 
 
 def log_tracked_error(msg: str, *args: Any, category: str = "general", **kwargs: Any) -> None:
-    """Log an error and emit an opt-in telemetry event for important failures.
+    """
+    Log an error and emit an opt-in telemetry event for important failures.
 
     Use this instead of ``log_error`` for caught exceptions worth tracking in
-    telemetry (e.g. ingestion failures, connection errors).  For routine
+    telemetry (e.g. ingestion failures, connection errors). For routine
     expected errors (e.g. "no collection selected") use ``log_error`` only.
 
-    The telemetry payload contains only the *category* tag — never the raw
-    message or arguments — to avoid accumulating PII or file paths.
+    Telemetry payload includes:
+      - category: High-level error category (required)
+      - error_type: Exception class name (optional, e.g. "ValueError")
+      - operation: Operation or function name (optional, e.g. "add_items")
+      - provider: Provider/connection type (optional, e.g. "weaviate")
+      - error_code: Error code or enum (optional)
+      - summary: Short sanitized error summary (optional, truncated to 100 chars)
+
+    Standard logging kwargs (exc_info, stack_info, stacklevel) are forwarded to the
+    logger so the full traceback is captured in console/log-file output. They are NOT
+    sent to telemetry.
+
+    Do NOT include raw exception messages, file paths, or user data in telemetry fields.
+    Pass extra fields as keyword arguments, e.g.:
+
+        log_tracked_error(
+            "Failed to add items: %s", err,
+            exc_info=True,
+            category="provider",
+            error_type=type(err).__name__,
+            operation="add_items",
+            provider="weaviate",
+            summary=str(err),
+        )
     """
-    _logger.error(msg, *args, **kwargs)
+    # Telemetry-only keys must be stripped before passing kwargs to the logger.
+    _TELEMETRY_KEYS = {"category", "error_type", "operation", "provider", "error_code", "summary"}
+    logger_kwargs = {k: v for k, v in kwargs.items() if k not in _TELEMETRY_KEYS}
+    _logger.error(msg, *args, **logger_kwargs)
     try:
         # Lazy import avoids a circular dependency (telemetry_service imports logging).
         from vector_inspector.services.telemetry_service import TelemetryService
 
+        # Build safe metadata for telemetry
+        metadata = {"category": category}
+        # Allowlist of extra fields to include if present in kwargs
+        for key in ("error_type", "operation", "provider", "error_code", "summary"):
+            value = kwargs.get(key)
+            if value is not None:
+                # Optionally truncate summary to 100 chars to avoid accidental PII
+                if key == "summary" and isinstance(value, str):
+                    value = value[:100]
+                metadata[key] = value
+
         TelemetryService.send_event(
             "tracked_error",
-            {"metadata": {"category": category}},
+            {"metadata": metadata},
         )
     except Exception:
         pass

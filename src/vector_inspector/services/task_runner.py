@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from PySide6.QtCore import QObject, QThread, Signal
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 
 class TaskRunner(QThread):
@@ -50,7 +50,13 @@ class TaskRunner(QThread):
                 self.result_ready.emit(result)
         except Exception as e:
             if not self._cancelled:
-                log_error("TaskRunner encountered an exception", exc_info=True)
+                log_tracked_error(
+                    "TaskRunner encountered an exception",
+                    exc_info=True,
+                    category="infra",
+                    operation="task_run",
+                    error_type=type(e).__name__,
+                )
                 self.error.emit(str(e))
 
     def cancel(self) -> None:

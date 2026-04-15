@@ -22,7 +22,7 @@ import time
 import uuid
 from typing import Any
 
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 from .base_provider import LLMProvider
 from .types import HealthResult
@@ -118,7 +118,14 @@ class LLMRuntimeManager:
                 try:
                     self.done.emit(manager._select_provider())
                 except Exception as exc:
-                    log_error("LLM provider selection failed: %s", exc)
+                    log_tracked_error(
+                        "LLM provider selection failed: %s",
+                        exc,
+                        category="llm",
+                        operation="select_provider",
+                        error_type=type(exc).__name__,
+                        exc_info=True,
+                    )
                     from .provider_factory import LLMProviderFactory
 
                     self.done.emit(LLMProviderFactory._make_ollama(manager._settings))

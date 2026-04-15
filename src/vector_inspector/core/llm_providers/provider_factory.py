@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 from .base_provider import LLMProvider
 
@@ -58,7 +58,14 @@ class LLMProviderFactory:
             return cls._make_openai_compatible(settings)
         if provider_type == AUTO:
             return cls._auto_detect(settings)
-        log_error("Unknown LLM provider type '%s'; falling back to auto.", provider_type)
+        log_tracked_error(
+            "Unknown LLM provider type '%s'; falling back to auto.",
+            provider_type,
+            category="llm",
+            operation="create_provider",
+            error_type="UnknownProviderError",
+            exc_info=True,
+        )
         return cls._auto_detect(settings)
 
     # ------------------------------------------------------------------

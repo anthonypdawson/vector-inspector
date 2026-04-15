@@ -8,7 +8,7 @@ import urllib.request
 from collections.abc import Generator
 from typing import Any
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 from .base_provider import LLMProvider
 from .errors import ProviderError
@@ -97,7 +97,15 @@ class OllamaProvider(LLMProvider):
                 data = json.loads(resp.read())
                 return data["message"]["content"].strip()
         except Exception as exc:
-            log_error("Ollama chat failed: %s", exc)
+            log_tracked_error(
+                "Ollama chat failed: %s",
+                exc,
+                category="llm",
+                operation="generate_messages",
+                provider="ollama",
+                error_type=type(exc).__name__,
+                exc_info=True,
+            )
             raise ProviderError(
                 str(exc),
                 provider_name="ollama",
@@ -159,7 +167,15 @@ class OllamaProvider(LLMProvider):
                         )
                         return
         except Exception as exc:
-            log_error("Ollama stream failed: %s", exc)
+            log_tracked_error(
+                "Ollama stream failed: %s",
+                exc,
+                category="llm",
+                operation="stream_messages",
+                provider="ollama",
+                error_type=type(exc).__name__,
+                exc_info=True,
+            )
             raise ProviderError(
                 str(exc),
                 provider_name="ollama",
@@ -187,7 +203,15 @@ class OllamaProvider(LLMProvider):
             # model exists. This allows subsequent requests to surface a
             # retryable connectivity error instead of a non-retryable
             # "model not available" error for non-default models.
-            log_error("Ollama list_models failed: %s", exc)
+            log_tracked_error(
+                "Ollama list_models failed: %s",
+                exc,
+                category="llm",
+                operation="list_models",
+                provider="ollama",
+                error_type=type(exc).__name__,
+                exc_info=True,
+            )
             return []
 
     def get_capabilities(self) -> ProviderCapabilities:

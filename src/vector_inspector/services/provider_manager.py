@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from vector_inspector.core.connection_manager import ConnectionInstance
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 
 class ProviderManager:
@@ -52,7 +52,13 @@ class ProviderManager:
                 return self.connection.list_databases()
             return []
         except Exception as e:
-            log_error(f"Failed to list databases: {e}")
+            log_tracked_error(
+                f"Failed to list databases: {e}",
+                category="connection",
+                operation="list_databases",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return []
 
     def get_collections(self, database: Optional[str] = None) -> list[str]:
@@ -73,7 +79,13 @@ class ProviderManager:
                 return self.connection.list_collections()
             return []
         except Exception as e:
-            log_error(f"Failed to list collections: {e}")
+            log_tracked_error(
+                f"Failed to list collections: {e}",
+                category="connection",
+                operation="list_collections",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return []
 
     def get_collection_info(self, collection: str) -> Optional[dict]:
@@ -94,7 +106,13 @@ class ProviderManager:
                 return self.connection.get_collection_info(collection)
             return None
         except Exception as e:
-            log_error(f"Failed to get collection info: {e}")
+            log_tracked_error(
+                f"Failed to get collection info: {e}",
+                category="connection",
+                operation="get_collection_info",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def normalize_item(self, item: dict, provider_type: str) -> dict:

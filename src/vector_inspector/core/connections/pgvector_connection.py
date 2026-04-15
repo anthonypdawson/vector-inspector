@@ -8,7 +8,7 @@ from psycopg2 import sql
 
 ## No need to import register_vector; pgvector extension is enabled at table creation
 from vector_inspector.core.connections.base_connection import VectorDBConnection
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 
 class PgVectorConnection(VectorDBConnection):
@@ -80,7 +80,15 @@ class PgVectorConnection(VectorDBConnection):
                 pass
             return True
         except Exception as e:
-            log_error("Connection failed: %s", e)
+            log_tracked_error(
+                "Connection failed: %s",
+                e,
+                category="connection",
+                operation="connect",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             self._client = None
             return False
 
@@ -115,7 +123,15 @@ class PgVectorConnection(VectorDBConnection):
                 tables = [row[0] for row in cur.fetchall()]
             return tables
         except Exception as e:
-            log_error("Failed to list collections: %s", e)
+            log_tracked_error(
+                "Failed to list collections: %s",
+                e,
+                category="connection",
+                operation="list_collections",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return []
 
     def list_databases(self) -> list[str]:
@@ -145,7 +161,15 @@ class PgVectorConnection(VectorDBConnection):
                 rows = cur.fetchall()
                 return [r[0] for r in rows]
         except Exception as e:
-            log_error("Failed to list databases: %s", e)
+            log_tracked_error(
+                "Failed to list databases: %s",
+                e,
+                category="connection",
+                operation="list_databases",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return []
         finally:
             if tmp_conn:
@@ -225,7 +249,15 @@ class PgVectorConnection(VectorDBConnection):
 
             return result
         except Exception as e:
-            log_error("Failed to get collection info: %s", e)
+            log_tracked_error(
+                "Failed to get collection info: %s",
+                e,
+                category="connection",
+                operation="get_collection_info",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def create_collection(self, name: str, vector_size: int, distance: str = "cosine") -> bool:
@@ -276,7 +308,15 @@ class PgVectorConnection(VectorDBConnection):
                 self._client.commit()
             return True
         except Exception as e:
-            log_error("Failed to create collection: %s", e)
+            log_tracked_error(
+                "Failed to create collection: %s",
+                e,
+                category="data",
+                operation="create_collection",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             if self._client:
                 self._client.rollback()
             return False
@@ -310,7 +350,15 @@ class PgVectorConnection(VectorDBConnection):
             try:
                 embeddings = self.compute_embeddings_for_documents(collection_name, documents)
             except Exception as e:
-                log_error("Failed to compute embeddings on add: %s", e)
+                log_tracked_error(
+                    "Failed to compute embeddings on add: %s",
+                    e,
+                    category="embedding",
+                    operation="add_items",
+                    provider="pgvector",
+                    error_type=type(e).__name__,
+                    exc_info=True,
+                )
                 return False
             if embeddings is None:
                 return False
@@ -366,7 +414,15 @@ class PgVectorConnection(VectorDBConnection):
                 self._client.commit()
             return True
         except Exception as e:
-            log_error("Failed to add items: %s", e)
+            log_tracked_error(
+                "Failed to add items: %s",
+                e,
+                category="data",
+                operation="add_items",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             if self._client:
                 self._client.rollback()
             return False
@@ -436,7 +492,15 @@ class PgVectorConnection(VectorDBConnection):
                 "embeddings": result_embeds,
             }
         except Exception as e:
-            log_error("Failed to get items: %s", e)
+            log_tracked_error(
+                "Failed to get items: %s",
+                e,
+                category="data",
+                operation="get_items",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return {}
 
     def delete_collection(self, name: str) -> bool:
@@ -457,7 +521,15 @@ class PgVectorConnection(VectorDBConnection):
                 self._client.commit()
             return True
         except Exception as e:
-            log_error("Failed to delete collection: %s", e)
+            log_tracked_error(
+                "Failed to delete collection: %s",
+                e,
+                category="data",
+                operation="delete_collection",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             if self._client:
                 self._client.rollback()
             return False
@@ -481,7 +553,15 @@ class PgVectorConnection(VectorDBConnection):
                 count = result[0] if result else 0
             return count
         except Exception as e:
-            log_error("Failed to count collection: %s", e)
+            log_tracked_error(
+                "Failed to count collection: %s",
+                e,
+                category="data",
+                operation="count_collection",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return 0
 
     def query_collection(
@@ -527,7 +607,15 @@ class PgVectorConnection(VectorDBConnection):
                 query_embeddings = computed
                 _query_embedding_model = model_name
             except Exception as e:
-                log_error("Failed to compute query embeddings: %s", e)
+                log_tracked_error(
+                    "Failed to compute query embeddings: %s",
+                    e,
+                    category="embedding",
+                    operation="query",
+                    provider="pgvector",
+                    error_type=type(e).__name__,
+                    exc_info=True,
+                )
                 return None
         try:
             schema = self._get_table_schema(collection_name)
@@ -628,7 +716,15 @@ class PgVectorConnection(VectorDBConnection):
                 "query_embedding_model": _query_embedding_model,
             }
         except Exception as e:
-            log_error("Query failed: %s", e)
+            log_tracked_error(
+                "Query failed: %s",
+                e,
+                category="query",
+                operation="query",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def get_all_items(
@@ -728,7 +824,15 @@ class PgVectorConnection(VectorDBConnection):
                 "embeddings": result_embeds,
             }
         except Exception as e:
-            log_error("Failed to get items: %s", e)
+            log_tracked_error(
+                "Failed to get items: %s",
+                e,
+                category="data",
+                operation="get_all_items",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def update_items(
@@ -785,7 +889,15 @@ class PgVectorConnection(VectorDBConnection):
                         except Exception:
                             pass
                 except Exception as e:
-                    log_error("Failed to compute embeddings on update: %s", e)
+                    log_tracked_error(
+                        "Failed to compute embeddings on update: %s",
+                        e,
+                        category="embedding",
+                        operation="add_items",
+                        provider="pgvector",
+                        error_type=type(e).__name__,
+                        exc_info=True,
+                    )
                     embeddings_local = [None] * len(ids)
                     self._last_regenerated_count = 0
 
@@ -835,7 +947,15 @@ class PgVectorConnection(VectorDBConnection):
                 self._client.commit()
             return True
         except Exception as e:
-            log_error("Failed to update items: %s", e)
+            log_tracked_error(
+                "Failed to update items: %s",
+                e,
+                category="data",
+                operation="update_items",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             if self._client:
                 self._client.rollback()
             return False
@@ -896,7 +1016,15 @@ class PgVectorConnection(VectorDBConnection):
                 self._client.commit()
             return True
         except Exception as e:
-            log_error("Failed to delete items: %s", e)
+            log_tracked_error(
+                "Failed to delete items: %s",
+                e,
+                category="data",
+                operation="delete_items",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             if self._client:
                 try:
                     self._client.rollback()
@@ -948,7 +1076,15 @@ class PgVectorConnection(VectorDBConnection):
                     schema[col_name] = udt_name if data_type == "USER-DEFINED" else data_type
                 return schema
         except Exception as e:
-            log_error("Failed to get table schema: %s", e)
+            log_tracked_error(
+                "Failed to get table schema: %s",
+                e,
+                category="connection",
+                operation="get_table_schema",
+                provider="pgvector",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return {}
 
     def _parse_vector(self, vector_str: Any) -> list[float]:

@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 
 def _make_provider():
@@ -38,7 +38,13 @@ def _make_provider():
         settings = SettingsService()
         provider = LLMProviderFactory.create_from_settings(settings)
         if provider is None:
-            log_error("LLM console: provider factory returned None — could not create provider from settings")
+            log_tracked_error(
+                "LLM console: provider factory returned None — could not create provider from settings",
+                category="llm",
+                operation="create_provider",
+                error_type="NoProviderError",
+                exc_info=True,
+            )
             return None
 
         log_info(
@@ -48,7 +54,14 @@ def _make_provider():
         )
         return provider
     except Exception as exc:
-        log_error("LLM console: could not create provider — %s", exc)
+        log_tracked_error(
+            "LLM console: could not create provider — %s",
+            exc,
+            category="llm",
+            operation="create_provider",
+            error_type=type(exc).__name__,
+            exc_info=True,
+        )
         return None
 
 
@@ -87,7 +100,14 @@ class _GenerateWorker(QThread):
                 result = self._provider.generate_messages(self._messages, model=self._model)
                 self.chunk.emit(str(result))
         except Exception as exc:
-            log_error("LLM console request failed: %s", exc)
+            log_tracked_error(
+                "LLM console request failed: %s",
+                exc,
+                category="llm",
+                operation="generate",
+                error_type=type(exc).__name__,
+                exc_info=True,
+            )
             self.error.emit(str(exc))
         finally:
             self.done.emit()

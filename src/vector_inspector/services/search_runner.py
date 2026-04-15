@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional
 if TYPE_CHECKING:
     from vector_inspector.core.connection_manager import ConnectionInstance
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 
 class SearchRunner:
@@ -48,7 +48,13 @@ class SearchRunner:
             Search results dictionary with 'ids', 'distances', 'metadatas', 'documents'
         """
         if not self.connection:
-            log_error("No connection available")
+            log_tracked_error(
+                "No connection available",
+                category="connection",
+                operation="search",
+                error_type="NoConnectionError",
+                exc_info=True,
+            )
             return None
 
         try:
@@ -63,11 +69,23 @@ class SearchRunner:
                 )
                 return self._normalize_results(results)
 
-            log_error("Connection does not support query operation")
+            log_tracked_error(
+                "Connection does not support query operation",
+                category="connection",
+                operation="search",
+                error_type="UnsupportedOperationError",
+                exc_info=True,
+            )
             return None
 
         except Exception as e:
-            log_error(f"Search failed: {e}")
+            log_tracked_error(
+                f"Search failed: {e}",
+                category="query",
+                operation="search",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def search_by_id(
@@ -86,7 +104,13 @@ class SearchRunner:
             Search results dictionary
         """
         if not self.connection:
-            log_error("No connection available")
+            log_tracked_error(
+                "No connection available",
+                category="connection",
+                operation="search_by_id",
+                error_type="NoConnectionError",
+                exc_info=True,
+            )
             return None
 
         try:
@@ -94,19 +118,35 @@ class SearchRunner:
             if hasattr(self.connection, "get_by_ids"):
                 data = self.connection.get_by_ids(collection, [item_id])
                 if not data or not data.get("embeddings"):
-                    log_error(f"Item {item_id} not found or has no embedding")
+                    log_tracked_error(
+                        f"Item {item_id} not found or has no embedding",
+                        category="data",
+                        operation="search_by_id",
+                        error_type="ItemNotFoundError",
+                        exc_info=True,
+                    )
                     return None
 
                 embedding = data["embeddings"][0]
-                return self.search(
-                    collection, embedding, n_results=n_results, filters=filters, use_embeddings=True
-                )
+                return self.search(collection, embedding, n_results=n_results, filters=filters, use_embeddings=True)
 
-            log_error("Connection does not support get_by_ids operation")
+            log_tracked_error(
+                "Connection does not support get_by_ids operation",
+                category="connection",
+                operation="search_by_id",
+                error_type="UnsupportedOperationError",
+                exc_info=True,
+            )
             return None
 
         except Exception as e:
-            log_error(f"Search by ID failed: {e}")
+            log_tracked_error(
+                f"Search by ID failed: {e}",
+                category="query",
+                operation="search_by_id",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def _normalize_results(self, results: dict[str, Any]) -> dict[str, Any]:

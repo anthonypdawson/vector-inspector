@@ -6,7 +6,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
-from vector_inspector.core.logging import log_error
+from vector_inspector.core.logging import log_tracked_error
 
 
 class ImportExportService:
@@ -53,13 +53,18 @@ class ImportExportService:
 
             return True
         except Exception as e:
-            log_error("Export to JSON failed: %s", e)
+            log_tracked_error(
+                "Export to JSON failed: %s",
+                e,
+                category="data",
+                operation="export_to_json",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return False
 
     @staticmethod
-    def export_to_csv(
-        data: dict[str, Any], file_path: str, include_embeddings: bool = False
-    ) -> bool:
+    def export_to_csv(data: dict[str, Any], file_path: str, include_embeddings: bool = False) -> bool:
         """
         Export collection data to CSV format.
 
@@ -106,7 +111,14 @@ class ImportExportService:
 
             return True
         except Exception as e:
-            log_error("Export to CSV failed: %s", e)
+            log_tracked_error(
+                "Export to CSV failed: %s",
+                e,
+                category="data",
+                operation="export_to_csv",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return False
 
     @staticmethod
@@ -155,7 +167,14 @@ class ImportExportService:
 
             return True
         except Exception as e:
-            log_error("Export to Parquet failed: %s", e)
+            log_tracked_error(
+                "Export to Parquet failed: %s",
+                e,
+                category="data",
+                operation="export_to_parquet",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return False
 
     @staticmethod
@@ -198,7 +217,14 @@ class ImportExportService:
             return result
 
         except Exception as e:
-            log_error("Import from JSON failed: %s", e)
+            log_tracked_error(
+                "Import from JSON failed: %s",
+                e,
+                category="data",
+                operation="import_from_json",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     @staticmethod
@@ -252,7 +278,14 @@ class ImportExportService:
             return result
 
         except Exception as e:
-            log_error("Import from CSV failed: %s", e)
+            log_tracked_error(
+                "Import from CSV failed: %s",
+                e,
+                category="data",
+                operation="import_from_csv",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     @staticmethod
@@ -302,5 +335,12 @@ class ImportExportService:
             return result
 
         except Exception as e:
-            log_error("Import from Parquet failed: %s", e)
+            log_tracked_error(
+                "Import from Parquet failed: %s",
+                e,
+                category="data",
+                operation="import_from_parquet",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None

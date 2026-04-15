@@ -6,7 +6,7 @@ from PySide6.QtCore import QObject, Signal
 
 from vector_inspector.core.connections.base_connection import VectorDBConnection
 from vector_inspector.core.embedding_providers import ProviderFactory
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 from vector_inspector.core.sample_data import SampleDataType, generate_sample_data
 
 
@@ -52,12 +52,24 @@ class CollectionService(QObject):
             if success:
                 log_info(f"Collection '{collection_name}' created successfully")
             else:
-                log_error(f"Failed to create collection '{collection_name}'")
+                log_tracked_error(
+                    f"Failed to create collection '{collection_name}'",
+                    category="data",
+                    operation="create_collection",
+                    error_type="CreateCollectionError",
+                    exc_info=True,
+                )
 
             return success
 
         except Exception as e:
-            log_error(f"Error creating collection: {e}")
+            log_tracked_error(
+                f"Error creating collection: {e}",
+                category="data",
+                operation="create_collection",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return False
 
     def populate_with_sample_data(
@@ -103,7 +115,13 @@ class CollectionService(QObject):
                 log_info(f"Model loaded, dimension: {dimension}")
             except Exception as e:
                 error_msg = f"Failed to load embedding model: {e}"
-                log_error(error_msg)
+                log_tracked_error(
+                    error_msg,
+                    category="embedding",
+                    operation="populate_with_sample_data",
+                    error_type=type(e).__name__,
+                    exc_info=True,
+                )
                 self.operation_completed.emit("populate_sample_data", False, error_msg)
                 return False, error_msg
 
@@ -117,7 +135,13 @@ class CollectionService(QObject):
                 log_info(f"Generated {len(embeddings)} embeddings")
             except Exception as e:
                 error_msg = f"Failed to generate embeddings: {e}"
-                log_error(error_msg)
+                log_tracked_error(
+                    error_msg,
+                    category="embedding",
+                    operation="populate_with_sample_data",
+                    error_type=type(e).__name__,
+                    exc_info=True,
+                )
                 self.operation_completed.emit("populate_sample_data", False, error_msg)
                 return False, error_msg
 
@@ -142,7 +166,13 @@ class CollectionService(QObject):
 
                 if not success:
                     error_msg = "Failed to insert data into collection"
-                    log_error(error_msg)
+                    log_tracked_error(
+                        error_msg,
+                        category="data",
+                        operation="populate_with_sample_data",
+                        error_type="InsertFailedError",
+                        exc_info=True,
+                    )
                     self.operation_completed.emit("populate_sample_data", False, error_msg)
                     return False, error_msg
 
@@ -162,7 +192,13 @@ class CollectionService(QObject):
                         log_info(f"Saved embedding model '{embedder_name}' for collection '{collection_name}'")
                 except Exception as e:
                     # Don't fail the operation if saving settings fails
-                    log_error(f"Failed to save embedding model to settings: {e}")
+                    log_tracked_error(
+                        f"Failed to save embedding model to settings: {e}",
+                        category="infra",
+                        operation="populate_with_sample_data",
+                        error_type=type(e).__name__,
+                        exc_info=True,
+                    )
 
                 success_msg = f"Successfully added {count} sample items to '{collection_name}'"
                 log_info(success_msg)
@@ -171,12 +207,24 @@ class CollectionService(QObject):
 
             except Exception as e:
                 error_msg = f"Failed to insert data: {e}"
-                log_error(error_msg)
+                log_tracked_error(
+                    error_msg,
+                    category="data",
+                    operation="populate_with_sample_data",
+                    error_type=type(e).__name__,
+                    exc_info=True,
+                )
                 self.operation_completed.emit("populate_sample_data", False, error_msg)
                 return False, error_msg
 
         except Exception as e:
             error_msg = f"Unexpected error during sample data population: {e}"
-            log_error(error_msg)
+            log_tracked_error(
+                error_msg,
+                category="data",
+                operation="populate_with_sample_data",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             self.operation_completed.emit("populate_sample_data", False, error_msg)
             return False, error_msg

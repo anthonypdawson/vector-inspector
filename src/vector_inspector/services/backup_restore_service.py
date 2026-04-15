@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Optional
 
-from vector_inspector.core.logging import log_debug, log_error, log_info
+from vector_inspector.core.logging import log_debug, log_error, log_info, log_tracked_error
 
 from .backup_helpers import normalize_embeddings, read_backup_zip, write_backup_zip
 
@@ -38,7 +38,14 @@ class BackupRestoreService:
 
             collection_info = connection.get_collection_info(collection_name)
             if not collection_info:
-                log_error("Failed to get collection info for %s", collection_name)
+                log_tracked_error(
+                    "Failed to get collection info for %s",
+                    collection_name,
+                    category="data",
+                    operation="backup",
+                    error_type="CollectionInfoError",
+                    exc_info=True,
+                )
                 return None
 
             all_data = connection.get_all_items(collection_name)
@@ -106,7 +113,14 @@ class BackupRestoreService:
             log_info("Backup created: %s", backup_path)
             return str(backup_path)
         except Exception as e:
-            log_error("Backup failed: %s", e)
+            log_tracked_error(
+                "Backup failed: %s",
+                e,
+                category="data",
+                operation="backup",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return None
 
     def restore_collection(
@@ -172,32 +186,54 @@ class BackupRestoreService:
 
                     # Final fallback: common default
                     if inferred_size is None:
-                        log_error(
+                        log_tracked_error(
                             "Unable to infer vector dimension for collection %s from metadata or backup data; restore aborted.",
                             restore_collection_name,
+                            category="data",
+                            operation="restore",
+                            error_type="DimensionInferenceError",
+                            exc_info=True,
                         )
                         return False
 
                     created = True
                     if hasattr(connection, "create_collection"):
-                        created = connection.create_collection(
-                            restore_collection_name, inferred_size
-                        )
+                        created = connection.create_collection(restore_collection_name, inferred_size)
 
                     if not created:
-                        log_error(
-                            "Failed to create collection %s before restore", restore_collection_name
+                        log_tracked_error(
+                            "Failed to create collection %s before restore",
+                            restore_collection_name,
+                            category="data",
+                            operation="restore",
+                            error_type="CreateCollectionError",
+                            exc_info=True,
                         )
                         return False
                 except Exception as e:
-                    log_error("Error while creating collection %s: %s", restore_collection_name, e)
+                    log_tracked_error(
+                        "Error while creating collection %s: %s",
+                        restore_collection_name,
+                        e,
+                        category="data",
+                        operation="restore",
+                        error_type=type(e).__name__,
+                        exc_info=True,
+                    )
                     return False
 
             # Provider-specific preparation hook
             if hasattr(connection, "prepare_restore"):
                 ok = connection.prepare_restore(metadata, data)
                 if not ok:
-                    log_error("Provider prepare_restore failed for %s", restore_collection_name)
+                    log_tracked_error(
+                        "Provider prepare_restore failed for %s",
+                        restore_collection_name,
+                        category="data",
+                        operation="restore",
+                        error_type="PrepareRestoreError",
+                        exc_info=True,
+                    )
                     return False
 
             # Ensure embeddings normalized
@@ -225,12 +261,22 @@ class BackupRestoreService:
                     docs = data.get("documents", [])
 
                     if not model_name:
-                        log_error(
-                            "Cannot recompute: No embedding model available in backup metadata"
+                        log_tracked_error(
+                            "Cannot recompute: No embedding model available in backup metadata",
+                            category="embedding",
+                            operation="restore",
+                            error_type="MissingEmbeddingModelError",
+                            exc_info=True,
                         )
                         embeddings_to_use = None
                     elif not docs:
-                        log_error("Cannot recompute: No documents available in backup")
+                        log_tracked_error(
+                            "Cannot recompute: No documents available in backup",
+                            category="embedding",
+                            operation="restore",
+                            error_type="MissingDocumentsError",
+                            exc_info=True,
+                        )
                         embeddings_to_use = None
                     else:
                         model_type = metadata.get("embedding_model_type", "sentence-transformer")
@@ -248,7 +294,14 @@ class BackupRestoreService:
                         embeddings_to_use = new_embeddings
                         log_info("Successfully recomputed %d embeddings", len(new_embeddings))
                 except Exception as e:
-                    log_error("Failed to recompute embeddings: %s", e)
+                    log_tracked_error(
+                        "Failed to recompute embeddings: %s",
+                        e,
+                        category="embedding",
+                        operation="restore",
+                        error_type=type(e).__name__,
+                        exc_info=True,
+                    )
                     embeddings_to_use = None
 
             else:
@@ -267,16 +320,27 @@ class BackupRestoreService:
                                 )
                                 embeddings_to_use = stored_embeddings
                             else:
-                                log_error(
+                                log_tracked_error(
                                     "Dimension mismatch: backup has %d, target needs %d. Omitting embeddings.",
                                     stored_dim,
                                     target_dim,
+                                    category="embedding",
+                                    operation="restore",
+                                    error_type="DimensionMismatchError",
+                                    exc_info=True,
                                 )
                                 embeddings_to_use = None
                         else:
                             embeddings_to_use = stored_embeddings
                     except Exception as e:
-                        log_error("Error checking embedding dimensions: %s", e)
+                        log_tracked_error(
+                            "Error checking embedding dimensions: %s",
+                            e,
+                            category="embedding",
+                            operation="restore",
+                            error_type=type(e).__name__,
+                            exc_info=True,
+                        )
                         # Try to use them anyway
                         embeddings_to_use = stored_embeddings
                 else:
@@ -299,9 +363,7 @@ class BackupRestoreService:
                 if profile_name and restore_collection_name and metadata:
                     try:
                         embed_model = metadata.get("embedding_model")
-                        embed_model_type = metadata.get(
-                            "embedding_model_type", "sentence-transformer"
-                        )
+                        embed_model_type = metadata.get("embedding_model_type", "sentence-transformer")
                         if embed_model:
                             from vector_inspector.services.settings_service import SettingsService
 
@@ -318,7 +380,14 @@ class BackupRestoreService:
                                 embed_model_type,
                             )
                     except Exception as e:
-                        log_error("Failed to save model config to settings: %s", e)
+                        log_tracked_error(
+                            "Failed to save model config to settings: %s",
+                            e,
+                            category="infra",
+                            operation="restore",
+                            error_type=type(e).__name__,
+                            exc_info=True,
+                        )
 
                 # Clear the cache for this collection so the info panel gets fresh data
                 if profile_name and restore_collection_name:
@@ -333,12 +402,26 @@ class BackupRestoreService:
                             restore_collection_name,
                         )
                     except Exception as e:
-                        log_error("Failed to clear cache after restore: %s", e)
+                        log_tracked_error(
+                            "Failed to clear cache after restore: %s",
+                            e,
+                            category="infra",
+                            operation="restore",
+                            error_type=type(e).__name__,
+                            exc_info=True,
+                        )
 
                 return True
 
             # Failure: attempt cleanup
-            log_error("Failed to restore collection %s", restore_collection_name)
+            log_tracked_error(
+                "Failed to restore collection %s",
+                restore_collection_name,
+                category="data",
+                operation="restore",
+                error_type="RestoreFailedError",
+                exc_info=True,
+            )
             try:
                 if restore_collection_name in connection.list_collections():
                     log_info(
@@ -351,12 +434,16 @@ class BackupRestoreService:
             return False
 
         except Exception as e:
-            log_error("Restore failed: %s", e)
+            log_tracked_error(
+                "Restore failed: %s",
+                e,
+                category="data",
+                operation="restore",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             try:
-                if (
-                    restore_collection_name
-                    and restore_collection_name in connection.list_collections()
-                ):
+                if restore_collection_name and restore_collection_name in connection.list_collections():
                     log_info(
                         "Cleaning up failed restore: deleting collection '%s'",
                         restore_collection_name,
@@ -416,5 +503,12 @@ class BackupRestoreService:
             Path(backup_file).unlink()
             return True
         except Exception as e:
-            log_error("Failed to delete backup: %s", e)
+            log_tracked_error(
+                "Failed to delete backup: %s",
+                e,
+                category="data",
+                operation="delete_backup",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
             return False

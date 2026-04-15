@@ -6,7 +6,7 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
-from vector_inspector.core.logging import log_error, log_info
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 from .base_provider import LLMProvider
 
@@ -141,7 +141,15 @@ class LlamaCppProvider(LLMProvider):
             )
             log_info("llama-cpp model loaded.")
         except Exception as exc:
-            log_error("Failed to load llama-cpp model: %s", exc)
+            log_tracked_error(
+                "Failed to load llama-cpp model: %s",
+                exc,
+                category="llm",
+                operation="load_model",
+                provider="llama-cpp",
+                error_type=type(exc).__name__,
+                exc_info=True,
+            )
             raise
 
     def is_available(self) -> bool:
@@ -169,6 +177,8 @@ class LlamaCppProvider(LLMProvider):
         if stream:
             return self.stream_messages(messages, model, **kwargs)
         self._load_model()
+        if self._llm is None:
+            raise RuntimeError("llama-cpp model failed to load for unknown reasons")
         try:
             output = self._llm.create_chat_completion(
                 messages=messages,
@@ -177,7 +187,15 @@ class LlamaCppProvider(LLMProvider):
             )
             return output["choices"][0]["message"]["content"].strip()
         except Exception as exc:
-            log_error("llama-cpp generate_messages failed: %s", exc)
+            log_tracked_error(
+                "llama-cpp generate_messages failed: %s",
+                exc,
+                category="llm",
+                operation="generate_messages",
+                provider="llama-cpp",
+                error_type=type(exc).__name__,
+                exc_info=True,
+            )
             from .errors import ProviderError
 
             raise ProviderError(
