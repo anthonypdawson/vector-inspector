@@ -58,11 +58,16 @@ def log_tracked_error(msg: str, *args: Any, category: str = "general", **kwargs:
       - error_code: Error code or enum (optional)
       - summary: Short sanitized error summary (optional, truncated to 100 chars)
 
+    Standard logging kwargs (exc_info, stack_info, stacklevel) are forwarded to the
+    logger so the full traceback is captured in console/log-file output. They are NOT
+    sent to telemetry.
+
     Do NOT include raw exception messages, file paths, or user data in telemetry fields.
     Pass extra fields as keyword arguments, e.g.:
 
         log_tracked_error(
             "Failed to add items: %s", err,
+            exc_info=True,
             category="provider",
             error_type=type(err).__name__,
             operation="add_items",
@@ -70,7 +75,10 @@ def log_tracked_error(msg: str, *args: Any, category: str = "general", **kwargs:
             summary=str(err),
         )
     """
-    _logger.error(msg, *args)
+    # Telemetry-only keys must be stripped before passing kwargs to the logger.
+    _TELEMETRY_KEYS = {"category", "error_type", "operation", "provider", "error_code", "summary"}
+    logger_kwargs = {k: v for k, v in kwargs.items() if k not in _TELEMETRY_KEYS}
+    _logger.error(msg, *args, **logger_kwargs)
     try:
         # Lazy import avoids a circular dependency (telemetry_service imports logging).
         from vector_inspector.services.telemetry_service import TelemetryService
