@@ -144,19 +144,6 @@ After installing a provider via the CLI, click the **🔄 Refresh button** in th
 - Detects installed vs. available providers
 - Generates installation instructions
 
-### Files Modified
-
-```
-pyproject.toml                              (dependencies refactored)
-src/vector_inspector/core/provider_detection.py  (NEW)
-src/vector_inspector/core/connections/__init__.py (lazy loading)
-src/vector_inspector/core/connections/base_connection.py (provider_type)
-src/vector_inspector/core/provider_factory.py    (lazy imports)
-src/vector_inspector/ui/views/connection_view.py (UI updates)
-src/vector_inspector/ui/views/info_panel.py      (use provider_type)
-README.md                                   (docs updates)
-```
-
 ---
 
 ## Migration Guide
