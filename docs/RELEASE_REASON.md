@@ -1,4 +1,4 @@
-# Release Notes (0.7.3) — April 17, 2026
+# Release Notes (0.8.0) — April 19, 2026
 
 ## 🚀 Progressive Enhancement: 10x Faster Installation
 
@@ -62,21 +62,37 @@ The connection dialog now **shows you what's installed**:
 - **Qdrant (not installed)** (grayed out)
 - **Pinecone (not installed)**
 
-Click an unavailable provider → **Dialog shows exact install command:**
+Click an unavailable provider → **Install dialog with one click:**
 
+- An **Install Now** dialog opens, showing the exact command
+- Click **Install Now** to run pip inside the app with live streaming output
+- On success: provider list refreshes automatically; on failure: shows error log with a Retry button
+
+### 🖥️ CLI Install Wizard
+
+Install providers without opening the GUI:
+
+```bash
+# Interactive wizard — lists unavailable providers, pick a number
+vector-inspector --install
+
+# Direct install — skip the wizard
+vector-inspector --install qdrant
+vector-inspector --install chromadb
 ```
-Qdrant is not currently installed.
 
-To use Qdrant, install it with:
-    pip install vector-inspector[qdrant]
+### ⚙️ Manage Everything from Preferences
 
-Or install the recommended bundle:
-    pip install vector-inspector[recommended]
-```
+**Settings → Features** and **Settings → Providers** tabs let you install or uninstall optional packages without touching the terminal:
+
+- **Features tab** — manage optional feature groups: Visualization (UMAP/t-SNE/HDBSCAN), Embeddings, CLIP, and Documents.
+- **Providers tab** — manage database provider packages (ChromaDB, Qdrant, Pinecone, etc.).
+- Each row shows current availability (✔ / ✘), the exact versioned packages required (shown as a tooltip), and an Install or Uninstall button.
+- Availability is checked in the background so the dialog opens instantly; rows update as each result arrives.
 
 ### 🔄 Refresh Without Restart
 
-After installing a provider, click the **🔄 Refresh button** in the connection dialog to detect it without restarting the app. Works ~70% of the time; otherwise just restart.
+After installing a provider via the CLI, click the **🔄 Refresh button** in the connection dialog to detect it without restarting the app.
 
 ---
 
@@ -212,19 +228,27 @@ pip install vector-inspector[documents]   # PDF, DOCX support
 
 ---
 
-## Testing Checklist
+**This release removes the biggest barrier to trying Vector Inspector. Let's see adoption grow! 📈**
 
-- [x] Fresh install with core only → app launches
-- [x] Provider dropdown shows availability status
-- [x] Click unavailable provider → shows install dialog
-- [x] Install provider → refresh button detects it
-- [x] Connect to installed provider → works normally
-- [x] `[recommended]` bundle installs correctly
-- [x] `[all]` bundle matches v0.7 behavior
-- [x] PDM developers can use `-G` groups
 
 ---
 
+## Feature Group Install-on-Demand
+
+Optional feature groups (visualization, embeddings, CLIP, document import) now surface the same install dialog as database providers when they are first accessed and not installed.
+
+### How It Works
+
+- **`FeatureDependencyMissingError`** — a new structured exception in `lazy_imports.py` that all lazy loaders raise (instead of a raw `ImportError`) when a required dep is absent. Carries `feature_id` and `import_name` so the UI can open the exact install dialog without parsing strings.
+- **Feature-group mapping** — `_IMPORT_TO_FEATURE` in `lazy_imports.py` maps Python import names (`sklearn`, `umap`, `sentence_transformers`, `transformers`, `torch`, `pypdf`, `docx`) to feature group IDs (`viz`, `embeddings`, `clip`, `documents`).
+- **Visualization gate** — `_generate_visualization()` checks `get_feature_info("viz")` before starting the data-load thread. `VisualizationThread` also catches `FeatureDependencyMissingError` from deep inside `VisualizationService` and emits `feature_missing(feature_id)` so the UI can show the dialog even if the check was bypassed.
+- **Embeddings gate** — toggling "Add sample data" in the Create Collection dialog checks `get_feature_info("embeddings")` and opens the install dialog if not installed; the checkbox reverts automatically if the user cancels.
+- **Document import gate** — `get_pypdf()` and `get_python_docx()` in `lazy_imports.py` now raise `FeatureDependencyMissingError("documents", ...)` so any caller gets the structured error.
+- **Generalized install dialog** — `ProviderInstallDialog` now accepts both `ProviderInfo` and `FeatureInfo` (same duck-typed shape). `_InstallThread` dispatches to `install_provider` or `install_feature` based on type.
+- **`install_feature()`** — new function in `provider_install_service.py` validated against `_VALID_FEATURE_IDS = {"viz", "embeddings", "clip", "documents"}`.
+- **`documents` feature** — added `check_documents_available()` and `get_feature_info("documents")` to `provider_detection.py`.
+
+---
 ## What's Next
 
 With faster installation out of the way, we can focus on:
@@ -233,17 +257,6 @@ With faster installation out of the way, we can focus on:
 - Embedding comparison workflows
 - Migration assistants
 
-**This release removes the biggest barrier to trying Vector Inspector. Let's see adoption grow! 📈**
-
----
-
-## Links
-
-- **Migration Guide**: [MIGRATION_V0.8.md](../MIGRATION_V0.8.md)
-- **Implementation Details**: [LAZY_LOADING_FIX.md](../LAZY_LOADING_FIX.md)  
-- **Code Examples**: [IMPLEMENTATION_EXAMPLE.md](../IMPLEMENTATION_EXAMPLE.md)
-- **Full Changelog**: [CHANGELOG.md](../CHANGELOG.md)
-
----
-
 **Questions or issues?** Open an issue: https://github.com/anthonypdawson/vector-inspector/issues
+
+---
