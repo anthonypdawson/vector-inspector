@@ -77,7 +77,7 @@ def install_provider(
                 on_output(line)
         process.wait()
         return process.returncode, "".join(output_lines)
-    except Exception as exc:
+    except OSError as exc:
         error_msg = f"Failed to launch pip: {exc}"
         if on_output:
             on_output(error_msg + "\n")
@@ -160,7 +160,7 @@ def install_feature(
                 on_output(line)
         process.wait()
         return process.returncode, "".join(output_lines)
-    except Exception as exc:
+    except OSError as exc:
         error_msg = f"Failed to launch pip: {exc}"
         if on_output:
             on_output(error_msg + "\n")
@@ -187,7 +187,7 @@ def get_feature_uninstall_command(feature_id: str) -> list[str]:
     if feature_id not in _VALID_FEATURE_IDS:
         raise ValueError(f"Unknown feature: {feature_id!r}")
     packages = _FEATURE_PACKAGES.get(feature_id, [])
-    return [sys.executable, "-m", "pip", "uninstall", "-y"] + packages
+    return [sys.executable, "-m", "pip", "uninstall", "-y", *packages]
 
 
 def uninstall_feature(
@@ -228,7 +228,7 @@ def uninstall_feature(
                 on_output(line)
         process.wait()
         return process.returncode, "".join(output_lines)
-    except Exception as exc:
+    except OSError as exc:
         error_msg = f"Failed to launch pip: {exc}"
         if on_output:
             on_output(error_msg + "\n")
@@ -312,7 +312,7 @@ def uninstall_provider(
                 on_output(line)
         process.wait()
         return process.returncode, "".join(output_lines)
-    except Exception as exc:
+    except OSError as exc:
         error_msg = f"Failed to launch pip: {exc}"
         if on_output:
             on_output(error_msg + "\n")

@@ -4,6 +4,8 @@ Detects which vector database providers are available (installed) and provides
 installation instructions for missing ones.
 """
 
+import importlib.util
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Optional
@@ -78,16 +80,23 @@ PROVIDERS = [
 def check_provider_available(import_name: str) -> bool:
     """Check if a provider's package is importable.
 
+    Uses ``importlib.util.find_spec`` rather than importing the package so that
+    availability checks are fast, side-effect-free, and safe to call frequently.
+    ``importlib.invalidate_caches()`` should be called by the caller before
+    checking for packages that may have been installed at runtime.
+
     Args:
-        import_name: The Python package name to try importing
+        import_name: The Python package name to check
 
     Returns:
-        True if the package can be imported, False otherwise
+        True if the package can be found, False otherwise
     """
+    # A None entry in sys.modules is Python's "blocked import" marker.
+    if import_name in sys.modules and sys.modules[import_name] is None:
+        return False
     try:
-        __import__(import_name)
-        return True
-    except ImportError:
+        return importlib.util.find_spec(import_name) is not None
+    except (ValueError, ModuleNotFoundError):
         return False
 
 
@@ -184,45 +193,22 @@ class FeatureInfo:
 
 def check_embeddings_available() -> bool:
     """Check if embedding providers are available."""
-    try:
-        import sentence_transformers  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
+    return check_provider_available("sentence_transformers")
 
 
 def check_clip_available() -> bool:
     """Check if CLIP (multimodal embeddings) is available."""
-    try:
-        import torch  # noqa: F401
-        import transformers  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
+    return check_provider_available("torch") and check_provider_available("transformers")
 
 
 def check_viz_available() -> bool:
     """Check if advanced visualization (UMAP, t-SNE) is available."""
-    try:
-        import sklearn  # noqa: F401
-        import umap  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
+    return check_provider_available("sklearn") and check_provider_available("umap")
 
 
 def check_documents_available() -> bool:
     """Check if document import dependencies (pypdf, python-docx) are available."""
-    try:
-        import docx  # noqa: F401
-        import pypdf  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
+    return check_provider_available("pypdf") and check_provider_available("docx")
 
 
 def get_all_feature_info() -> list[FeatureInfo]:

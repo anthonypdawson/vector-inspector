@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import tempfile
 import time
-import traceback
 import webbrowser
 from datetime import UTC
 from typing import Any, Optional
@@ -65,7 +64,7 @@ class VisualizationThread(QThread):
         except FeatureDependencyMissingError as exc:
             self.feature_missing.emit(exc.feature_id)
         except Exception as e:
-            traceback.print_exc()
+            log_error("Dimensionality reduction failed: %s", e, exc_info=True)
             self.error.emit(str(e))
 
 
@@ -89,7 +88,7 @@ class ClusteringThread(QThread):
             labels, algorithm = run_clustering(self.embeddings, self.algorithm, self.params)
             self.finished.emit((labels, algorithm))
         except Exception as e:
-            traceback.print_exc()
+            log_error("Clustering failed: %s", e, exc_info=True)
             self.error.emit(str(e))
 
 
@@ -122,7 +121,7 @@ class VisualizationDataLoadThread(QThread):
             else:
                 self.error.emit("Failed to load data")
         except Exception as e:
-            traceback.print_exc()
+            log_error("Visualization data load failed: %s", e, exc_info=True)
             self.error.emit(str(e))
 
 
@@ -333,8 +332,12 @@ class VisualizationView(QWidget):
             from vector_inspector.ui.dialogs.provider_install_dialog import ProviderInstallDialog
 
             dlg = ProviderInstallDialog(viz_feature, parent=self)
-            dlg.provider_installed.connect(lambda _: self._generate_visualization())
             dlg.exec()
+
+            viz_feature = get_feature_info("viz")
+            if viz_feature and not viz_feature.available:
+                return
+            self._generate_visualization()
             return
 
         if self.use_all_checkbox.isChecked():
@@ -459,8 +462,17 @@ class VisualizationView(QWidget):
         feature = get_feature_info(feature_id)
         if feature:
             dlg = ProviderInstallDialog(feature, parent=self)
-            dlg.provider_installed.connect(lambda _: self._generate_visualization())
+            provider_was_installed = False
+
+            def _mark_provider_installed(_: str) -> None:
+                nonlocal provider_was_installed
+                provider_was_installed = True
+
+            dlg.provider_installed.connect(_mark_provider_installed)
             dlg.exec()
+
+            if provider_was_installed:
+                self._generate_visualization()
 
     def _save_temp_html(self):
         """Save current plot HTML to temp file for browser viewing."""

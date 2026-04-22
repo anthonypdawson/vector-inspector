@@ -200,6 +200,13 @@ class ProviderInstallDialog(QDialog):
         self._output_edit.appendPlainText(line.rstrip())
         self._output_edit.ensureCursorVisible()
 
+    def closeEvent(self, event) -> None:
+        """Prevent closing while an install thread is running to avoid dangling signals."""
+        if self._thread is not None and self._thread.isRunning():
+            event.ignore()
+        else:
+            super().closeEvent(event)
+
     def _on_install_finished(self, returncode: int, _combined: str) -> None:
         self._progress_bar.hide()
         self._close_btn.setEnabled(True)

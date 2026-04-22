@@ -251,20 +251,15 @@ class ConnectionDialog(QDialog):
 
     def _refresh_providers(self, silent: bool = False):
         """Refresh the provider list to detect newly installed packages."""
-        import sys
+        import importlib
 
         from PySide6.QtWidgets import QMessageBox
 
         current_provider = self.provider_combo.currentData()
 
-        # Clear import cache to detect newly installed packages
-        # This allows detecting packages installed while the app is running
-        provider_prefixes = ["chromadb", "qdrant", "pinecone", "lancedb", "psycopg2", "weaviate", "pymilvus"]
-        modules_to_remove = [
-            name for name in sys.modules.keys() if any(name.startswith(prefix) for prefix in provider_prefixes)
-        ]
-        for module_name in modules_to_remove:
-            sys.modules.pop(module_name, None)
+        # Invalidate import caches so newly installed packages can be discovered
+        # without unloading modules that may already be in use elsewhere.
+        importlib.invalidate_caches()
 
         # Repopulate combo
         self._populate_providers()
@@ -301,21 +296,21 @@ class ConnectionDialog(QDialog):
 
     def _update_help_text(self):
         """Update help text based on available providers."""
-        available_providers = [p for p in get_all_providers() if p.available]
+        providers = get_all_providers()
+        available_providers = [p for p in providers if p.available]
+        unavailable_count = len(providers) - len(available_providers)
 
         if not available_providers:
             self.provider_help_label.setText(
                 "💡 No providers installed. Install with: pip install vector-inspector[recommended]"
             )
+        elif unavailable_count > 0:
+            self.provider_help_label.setText(
+                f"💡 {len(available_providers)} provider(s) available. "
+                f"To install more: pip install vector-inspector[all]"
+            )
         else:
-            unavailable_count = len([p for p in get_all_providers() if not p.available])
-            if unavailable_count > 0:
-                self.provider_help_label.setText(
-                    f"💡 {len(available_providers)} provider(s) available. "
-                    f"To install more: pip install vector-inspector[all]"
-                )
-            else:
-                self.provider_help_label.setText(f"✓ All providers installed ({len(available_providers)} available)")
+            self.provider_help_label.setText(f"✓ All providers installed ({len(available_providers)} available)")
 
     def _on_provider_changed(self):
         """Handle provider selection change."""

@@ -80,9 +80,14 @@ class VectorDBConnection(ABC):
         Returns a lowercase provider identifier (chromadb, qdrant, pinecone, etc.)
         Derived from class name by default, but can be overridden.
         """
-        # Default: extract from class name, e.g. ChromaDBConnection -> chromadb
-        class_name = type(self).__name__.replace("Connection", "")
-        return class_name.lower().replace("db", "")  # Handle ChromaDB -> chroma
+        # Default: derive from class name, e.g. ChromaDBConnection -> chromadb
+        # removesuffix avoids the blanket .replace("db", "") which would corrupt
+        # names like "LanceDBConnection" (would become "lance" instead of "lancedb").
+        class_name = type(self).__name__.removesuffix("Connection")
+        provider_name = class_name.lower()
+        if provider_name == "chromadb":
+            return "chroma"
+        return provider_name
 
     @property
     def supports_configurable_vector_size(self) -> bool:
