@@ -149,10 +149,10 @@ def _handle_install(provider_arg: str) -> None:
     ``provider_arg`` is treated as a provider ID and installed directly.
     """
     from vector_inspector.core.provider_detection import get_all_providers
-    from vector_inspector.services.provider_install_service import (
+    from vector_inspector.services.install_service import (
         _VALID_PROVIDER_IDS,
         get_install_command,
-        install_provider,
+        install,
     )
 
     _DIVIDER = "=" * 54
@@ -229,7 +229,7 @@ def _handle_install(provider_arg: str) -> None:
     print(f"Running: {' '.join(cmd)}")  # noqa: T201
     print(_DIVIDER)  # noqa: T201
 
-    returncode, _combined = install_provider(
+    returncode, _combined = install(
         selected_provider.id,
         on_output=lambda line: print(line, end="", flush=True),  # noqa: T201
     )

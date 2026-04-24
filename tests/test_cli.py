@@ -265,7 +265,7 @@ def _patch_install(monkeypatch, returncode: int = 0, output: str = "Successfully
         lambda: unavailable,
     )
     monkeypatch.setattr(
-        "vector_inspector.services.provider_install_service.install_provider",
+        "vector_inspector.services.install_service.install",
         lambda pid, on_output=None: (returncode, output),
     )
 
@@ -403,7 +403,7 @@ def test_install_wizard_by_number_installs_correct_provider(monkeypatch, capsys)
     installed: list[str] = []
     # install_provider is also a local import — patch the source module.
     monkeypatch.setattr(
-        "vector_inspector.services.provider_install_service.install_provider",
+        "vector_inspector.services.install_service.install",
         lambda pid, on_output=None: installed.append(pid) or (0, "ok"),
     )
     with pytest.raises(SystemExit) as exc_info:

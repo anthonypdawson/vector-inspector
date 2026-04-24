@@ -481,22 +481,22 @@ def test_features_tab_has_all_four_feature_rows(monkeypatch, qtbot):
 
 def test_feature_row_action_btn_tooltip_contains_package_spec(monkeypatch, qtbot):
     """The Install/Uninstall button on a feature row has a tooltip listing package specs."""
-    from vector_inspector.services.provider_install_service import _FEATURE_PACKAGE_SPECS
+    from vector_inspector.services.install_service import _PACKAGE_SPECS
 
     dlg = _make_settings_with_features_tab(monkeypatch, qtbot)
     tip = dlg._feature_rows["viz"]["action_btn"].toolTip()
     # All viz package specs should appear in the tooltip
-    for spec in _FEATURE_PACKAGE_SPECS["viz"]:
+    for spec in _PACKAGE_SPECS["viz"]:
         assert spec in tip, f"Expected {spec!r} in tooltip, got: {tip!r}"
 
 
 def test_provider_row_action_btn_tooltip_contains_package_spec(monkeypatch, qtbot):
     """The Install/Uninstall button on a provider row has a tooltip listing package specs."""
-    from vector_inspector.services.provider_install_service import _PROVIDER_PACKAGE_SPECS
+    from vector_inspector.services.install_service import _PACKAGE_SPECS
 
     dlg = _make_settings_with_features_tab(monkeypatch, qtbot)
     tip = dlg._provider_rows["lancedb"]["action_btn"].toolTip()
-    for spec in _PROVIDER_PACKAGE_SPECS["lancedb"]:
+    for spec in _PACKAGE_SPECS["lancedb"]:
         assert spec in tip, f"Expected {spec!r} in tooltip, got: {tip!r}"
 
 
@@ -768,6 +768,40 @@ def test_on_provider_uninstall_clicked_cancelled_does_not_start_thread(monkeypat
     initial_threads = len(dlg._provider_uninstall_threads)
     dlg._on_provider_uninstall_clicked("chromadb")
     assert len(dlg._provider_uninstall_threads) == initial_threads
+
+
+def test_on_provider_uninstall_clicked_yes_starts_thread(monkeypatch, qtbot):
+    """Confirming the uninstall dialog starts a _ProviderUninstallThread."""
+    from unittest.mock import patch
+
+    dlg = _make_settings_with_providers_patched(monkeypatch, qtbot, chromadb_available=True)
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.Yes)
+
+    with patch("vector_inspector.ui.dialogs.settings_dialog._ProviderUninstallThread.start"):
+        initial_threads = len(dlg._provider_uninstall_threads)
+        dlg._on_provider_uninstall_clicked("chromadb")
+        assert len(dlg._provider_uninstall_threads) == initial_threads + 1
+        assert dlg._provider_rows["chromadb"]["action_btn"].isEnabled() is False
+        assert "Uninstalling" in dlg._provider_rows["chromadb"]["status_msg"].text()
+
+
+def test_uninstall_button_click_emits_with_bool_arg(monkeypatch, qtbot):
+    """Clicking the Uninstall button must reach _on_provider_uninstall_clicked.
+
+    QPushButton.clicked emits (checked: bool). A lambda with a default-value
+    parameter (``lambda pid=x:``) would receive the bool as its arg, replacing
+    the provider ID. This test simulates the signal emission to catch that.
+    """
+    from unittest.mock import patch
+
+    dlg = _make_settings_with_providers_patched(monkeypatch, qtbot, chromadb_available=True)
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.Yes)
+
+    with patch("vector_inspector.ui.dialogs.settings_dialog._ProviderUninstallThread.start"):
+        initial_threads = len(dlg._provider_uninstall_threads)
+        # Simulate the exact signal emission: clicked with no checked arg
+        dlg._provider_rows["chromadb"]["action_btn"].click()
+        assert len(dlg._provider_uninstall_threads) == initial_threads + 1
 
 
 def test_on_provider_uninstall_done_success_updates_status_message(monkeypatch, qtbot):

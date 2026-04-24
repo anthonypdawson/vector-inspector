@@ -33,9 +33,15 @@ class _FeatureUninstallThread(QThread):
         self._feature_id = feature_id
 
     def run(self):
-        from vector_inspector.services.provider_install_service import uninstall_feature
+        from vector_inspector.core.logging import log_error
+        from vector_inspector.services.install_service import uninstall
 
-        returncode, output = uninstall_feature(self._feature_id)
+        try:
+            returncode, output = uninstall(self._feature_id)
+        except Exception as exc:  # pragma: no cover
+            log_error("Feature uninstall thread error for '%s': %s", self._feature_id, exc, exc_info=True)
+            self.done.emit(-1, str(exc))
+            return
         self.done.emit(returncode, output)
 
 
@@ -49,9 +55,15 @@ class _ProviderUninstallThread(QThread):
         self._provider_id = provider_id
 
     def run(self):
-        from vector_inspector.services.provider_install_service import uninstall_provider
+        from vector_inspector.core.logging import log_error
+        from vector_inspector.services.install_service import uninstall
 
-        returncode, output = uninstall_provider(self._provider_id)
+        try:
+            returncode, output = uninstall(self._provider_id)
+        except Exception as exc:  # pragma: no cover
+            log_error("Provider uninstall thread error for '%s': %s", self._provider_id, exc, exc_info=True)
+            self.done.emit(-1, str(exc))
+            return
         self.done.emit(returncode, output)
 
 
@@ -71,6 +83,12 @@ class _StatusCheckThread(QThread):
         self._checks: dict = checks
 
     def run(self):
+        import importlib
+
+        try:
+            importlib.invalidate_caches()
+        except Exception:
+            pass  # some path finders raise on invalidate_caches; safe to ignore
         for item_id, check in self._checks.items():
             try:
                 available = check()
@@ -279,7 +297,7 @@ class SettingsDialog(QDialog):
         """Build the 'Features' tab — rows are populated immediately from static
         metadata, availability is checked in the background."""
         from vector_inspector.core.provider_detection import get_all_feature_metadata
-        from vector_inspector.services.provider_install_service import _FEATURE_PACKAGE_SPECS
+        from vector_inspector.services.install_service import _PACKAGE_SPECS
 
         layout = self.get_tab_layout("Features")
 
@@ -300,7 +318,7 @@ class SettingsDialog(QDialog):
         self._feature_check_thread: _StatusCheckThread | None = None
 
         for info in get_all_feature_metadata():
-            tooltip = _deps_tooltip(_FEATURE_PACKAGE_SPECS.get(info.id, []))
+            tooltip = _deps_tooltip(_PACKAGE_SPECS.get(info.id, []))
 
             row_widget = QWidget()
             row_widget.setToolTip(tooltip)
@@ -357,7 +375,7 @@ class SettingsDialog(QDialog):
         """Build the 'Providers' tab — rows are populated immediately from static
         metadata, availability is checked in the background."""
         from vector_inspector.core.provider_detection import get_all_provider_metadata
-        from vector_inspector.services.provider_install_service import _PROVIDER_PACKAGE_SPECS
+        from vector_inspector.services.install_service import _PACKAGE_SPECS
 
         layout = self.get_tab_layout("Providers")
 
@@ -378,7 +396,7 @@ class SettingsDialog(QDialog):
         self._provider_check_thread: _StatusCheckThread | None = None
 
         for pinfo in get_all_provider_metadata():
-            tooltip = _deps_tooltip(_PROVIDER_PACKAGE_SPECS.get(pinfo.id, []))
+            tooltip = _deps_tooltip(_PACKAGE_SPECS.get(pinfo.id, []))
 
             row_widget = QWidget()
             row_widget.setToolTip(tooltip)
@@ -500,8 +518,8 @@ class SettingsDialog(QDialog):
         self._apply_row_result(
             widgets,
             available,
-            on_install=lambda fid=feature_id: self._on_install_clicked(fid),
-            on_uninstall=lambda fid=feature_id: self._on_uninstall_clicked(fid),
+            on_install=lambda: self._on_install_clicked(feature_id),
+            on_uninstall=lambda: self._on_uninstall_clicked(feature_id),
         )
 
     def _on_feature_checks_done(self) -> None:
@@ -537,8 +555,8 @@ class SettingsDialog(QDialog):
         self._apply_row_result(
             widgets,
             available,
-            on_install=lambda pid=provider_id: self._on_provider_install_clicked(pid),
-            on_uninstall=lambda pid=provider_id: self._on_provider_uninstall_clicked(pid),
+            on_install=lambda: self._on_provider_install_clicked(provider_id),
+            on_uninstall=lambda: self._on_provider_uninstall_clicked(provider_id),
         )
 
     def _on_provider_checks_done(self) -> None:
@@ -604,8 +622,8 @@ class SettingsDialog(QDialog):
             self._apply_row_result(
                 row,
                 available=False,
-                on_install=lambda fid=feature_id: self._on_install_clicked(fid),
-                on_uninstall=lambda fid=feature_id: self._on_uninstall_clicked(fid),
+                on_install=lambda: self._on_install_clicked(feature_id),
+                on_uninstall=lambda: self._on_uninstall_clicked(feature_id),
             )
             row["status_msg"].setText("Removed")
         else:
@@ -659,8 +677,8 @@ class SettingsDialog(QDialog):
             self._apply_row_result(
                 row,
                 available=False,
-                on_install=lambda pid=provider_id: self._on_provider_install_clicked(pid),
-                on_uninstall=lambda pid=provider_id: self._on_provider_uninstall_clicked(pid),
+                on_install=lambda: self._on_provider_install_clicked(provider_id),
+                on_uninstall=lambda: self._on_provider_uninstall_clicked(provider_id),
             )
             row["status_msg"].setText("Removed")
         else:

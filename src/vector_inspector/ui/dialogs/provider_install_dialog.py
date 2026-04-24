@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from vector_inspector.core.provider_detection import FeatureInfo, ProviderInfo
-from vector_inspector.services.provider_install_service import install_feature, install_provider
+from vector_inspector.services.install_service import install
 
 
 class _InstallThread(QThread):
@@ -35,16 +35,10 @@ class _InstallThread(QThread):
         self._thing = thing
 
     def run(self) -> None:
-        if isinstance(self._thing, FeatureInfo):
-            returncode, combined = install_feature(
-                self._thing.id,
-                on_output=lambda line: self.output_line.emit(line),
-            )
-        else:
-            returncode, combined = install_provider(
-                self._thing.id,
-                on_output=lambda line: self.output_line.emit(line),
-            )
+        returncode, combined = install(
+            self._thing.id,
+            on_output=lambda line: self.output_line.emit(line),
+        )
         self.finished.emit(returncode, combined)
 
 
