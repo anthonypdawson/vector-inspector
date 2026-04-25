@@ -578,7 +578,9 @@ class ProfileEditorDialog(QDialog):
                         self.provider_combo.blockSignals(True)
                         self.provider_combo.setCurrentIndex(i)
                         self.provider_combo.blockSignals(False)
-                        provider = check_id
+                        # Force visual update and re-read the provider value
+                        self.provider_combo.update()
+                        provider = self.provider_combo.currentData()
                         break
                 else:
                     return
