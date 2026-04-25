@@ -5,7 +5,7 @@
 groups = ["default", "all", "chromadb", "clip", "cloud", "dev", "documents", "embeddings", "lancedb", "llm", "local", "milvus", "pgvector", "pinecone", "qdrant", "recommended", "starter", "viz", "weaviate"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:9a72f12b4c8fce16b87bba9690151b4511a6a63c01191604dfa70550279fd914"
+content_hash = "sha256:f0e9b85e2f19cdcc2b1377f3d46c38332acd627036514e9198afbf9729993fbf"
 
 [[metadata.targets]]
 requires_python = ">=3.11,<3.14"

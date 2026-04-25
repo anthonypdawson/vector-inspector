@@ -148,17 +148,17 @@ cd vector-inspector
 pdm install
 
 # OR install with recommended providers
-pdm install -G recommended
+pdm install -x recommended
 
 # OR install everything (all providers and features)
-pdm install -G all
+pdm install -x all
 
 # Launch application
 scripts/run.sh     # Linux/macOS
 scripts/run.bat    # Windows
 ```
 
-**Note for developers**: The optional dependency groups in `pyproject.toml` can be installed with PDM using `-G <group>` flag. Available groups: `chromadb`, `qdrant`, `pinecone`, `lancedb`, `pgvector`, `weaviate`, `milvus`, `embeddings`, `clip`, `viz`, `documents`, `recommended`, `all`.
+**Note for developers**: The optional dependency extras in `pyproject.toml` can be installed with PDM using `-x <extra>` or `--extras <extra>`. Available extras: `chromadb`, `qdrant`, `pinecone`, `lancedb`, `pgvector`, `weaviate`, `milvus`, `embeddings`, `clip`, `viz`, `documents`, `recommended`, `all`.
 ---
 
 # 🟩 Running Vector Inspector
@@ -172,10 +172,10 @@ vector-inspector
 ### Optional LLM runtime (llama-cpp-python)
 llama-cpp-python is optional and only needed for the in-process LLM provider (`llama-cpp`).
 
-- Install via PDM optional-dependency group (developer / recommended):
+- Install via PDM optional-dependency extra (developer / recommended):
 
 ```bash
-pdm install -G llm
+pdm install -x llm
 ```
 
 - Platform-specific pip install (end users / PyPI):
