@@ -144,6 +144,12 @@ After installing a provider via the CLI, click the **🔄 Refresh button** in th
 - Detects installed vs. available providers
 - Generates installation instructions
 
+**Configuration-Driven Profile Manager:**
+- Profile editor now uses declarative field configuration via `PROVIDER_FIELD_CONFIG`
+- Each provider/connection-type combination specifies which fields are visible
+- Simplified maintenance and improved testability (37 new comprehensive tests)
+- Graceful handling of unavailable providers in connection setup
+
 ---
 
 ## Migration Guide
