@@ -150,8 +150,8 @@ def _handle_install(provider_arg: str) -> None:
     """
     from vector_inspector.core.provider_detection import get_all_providers
     from vector_inspector.services.install_service import (
-        get_valid_provider_ids,
         get_install_command,
+        get_valid_provider_ids,
         install,
     )
 
