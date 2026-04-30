@@ -1,10 +1,17 @@
 """Tests for ImportExportService using FakeProvider."""
 
+import importlib.util
 import json
 
 import pandas as pd
+import pytest
 
 from vector_inspector.services.import_export_service import ImportExportService
+
+
+# Helper to check if pyarrow is available
+def _has_pyarrow() -> bool:
+    return importlib.util.find_spec("pyarrow") is not None
 
 
 def test_export_to_json(tmp_path, fake_provider_with_name):
@@ -75,6 +82,7 @@ def test_export_to_csv_with_embeddings(tmp_path, fake_provider_with_name):
     assert isinstance(emb, list)
 
 
+@pytest.mark.skipif(not _has_pyarrow(), reason="pyarrow not installed")
 def test_export_to_parquet(tmp_path, fake_provider_with_name):
     """Test exporting collection data to Parquet format."""
     conn, collection_name = fake_provider_with_name
@@ -148,6 +156,7 @@ def test_import_from_csv(tmp_path):
     assert result["embeddings"][0] == [0.1, 0.2]
 
 
+@pytest.mark.skipif(not _has_pyarrow(), reason="pyarrow not installed")
 def test_import_from_parquet(tmp_path):
     """Test importing collection data from Parquet format."""
     svc = ImportExportService()
@@ -193,6 +202,7 @@ def test_export_import_roundtrip_json(tmp_path, fake_provider_with_name):
     assert len(imported["embeddings"]) == len(original_data["embeddings"])
 
 
+@pytest.mark.skipif(not _has_pyarrow(), reason="pyarrow not installed")
 def test_export_import_roundtrip_parquet(tmp_path, fake_provider_with_name):
     """Test that export then import preserves data (Parquet)."""
     conn, collection_name = fake_provider_with_name
@@ -300,6 +310,7 @@ def test_export_to_csv_with_numpy_embeddings(tmp_path):
     assert isinstance(emb, list)
 
 
+@pytest.mark.skipif(not _has_pyarrow(), reason="pyarrow not installed")
 def test_export_to_parquet_with_numpy_embeddings(tmp_path):
     """export_to_parquet converts numpy array embeddings."""
     import numpy as np

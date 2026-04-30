@@ -1,6 +1,7 @@
 """Tests for VisualizationService using FakeProvider with deterministic embeddings."""
 
 import numpy as np
+import pytest
 
 from vector_inspector.services.visualization_service import VisualizationService
 
@@ -37,6 +38,7 @@ def test_reduce_dimensions_tsne(fake_provider_with_name):
     assert reduced.shape == (3, 2)
 
 
+@pytest.mark.slow
 def test_reduce_dimensions_umap():
     """Test UMAP dimensionality reduction with sufficient data points."""
     from tests.fakes.fake_provider import FakeProvider

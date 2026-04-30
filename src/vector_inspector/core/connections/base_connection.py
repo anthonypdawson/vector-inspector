@@ -74,6 +74,22 @@ class VectorDBConnection(ABC):
         pass
 
     @property
+    def provider_type(self) -> str:
+        """Get the provider type string for this connection.
+
+        Returns a lowercase provider identifier (chromadb, qdrant, pinecone, etc.)
+        Derived from class name by default, but can be overridden.
+        """
+        # Default: derive from class name, e.g. ChromaDBConnection -> chromadb
+        # removesuffix avoids the blanket .replace("db", "") which would corrupt
+        # names like "LanceDBConnection" (would become "lance" instead of "lancedb").
+        class_name = type(self).__name__.removesuffix("Connection")
+        provider_name = class_name.lower()
+        # Return the canonical registry ID (e.g. "chromadb") so that
+        # provider_type can be matched directly against ProviderInfo.id.
+        return provider_name
+
+    @property
     def supports_configurable_vector_size(self) -> bool:
         """Return True if this backend requires/supports an explicit vector size at collection creation.
 
