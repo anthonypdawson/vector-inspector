@@ -150,7 +150,7 @@ def _handle_install(provider_arg: str) -> None:
     """
     from vector_inspector.core.provider_detection import get_all_providers
     from vector_inspector.services.install_service import (
-        _VALID_PROVIDER_IDS,
+        get_valid_provider_ids,
         get_install_command,
         install,
     )
@@ -206,9 +206,9 @@ def _handle_install(provider_arg: str) -> None:
             sys.exit(1)
     else:
         # Direct mode — the user passed a provider ID on the command line.
-        if provider_arg not in _VALID_PROVIDER_IDS:
+        if provider_arg not in get_valid_provider_ids():
             print(  # noqa: T201
-                f"Unknown provider: {provider_arg!r}\nValid providers: {', '.join(sorted(_VALID_PROVIDER_IDS))}",
+                f"Unknown provider: {provider_arg!r}\nValid providers: {', '.join(sorted(get_valid_provider_ids()))}",
                 file=sys.stderr,
             )
             sys.exit(1)

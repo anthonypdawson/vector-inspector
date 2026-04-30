@@ -337,6 +337,9 @@ class VisualizationView(QWidget):
             viz_feature = get_feature_info("viz")
             if viz_feature and not viz_feature.available:
                 return
+            # Re-enter _generate_visualization() now that the dependency is
+            # installed.  This is intentional: the user confirmed the install
+            # and expects the visualization to proceed without another click.
             self._generate_visualization()
             return
 
@@ -472,6 +475,9 @@ class VisualizationView(QWidget):
             dlg.exec()
 
             if provider_was_installed:
+                # Re-enter _generate_visualization() now that the missing
+                # feature is installed.  Intentional recursion: saves the
+                # user from having to click Generate a second time.
                 self._generate_visualization()
 
     def _save_temp_html(self):

@@ -386,7 +386,7 @@ class InfoPanel(QWidget):
         self._update_label(self.provider_label, provider_name or "Unknown")
 
         # Get connection details
-        if getattr(backend, "provider_type", "") == "chroma":
+        if getattr(backend, "provider_type", "") == "chromadb":
             if getattr(backend, "path", None):
                 self._update_label(self.connection_type_label, "Persistent (Local)")
                 self._update_label(self.endpoint_label, backend.path)
@@ -658,7 +658,7 @@ class InfoPanel(QWidget):
         # Extract the underlying database connection from ConnectionInstance wrapper
         backend = getattr(self.connection, "database", self.connection)
 
-        if getattr(backend, "provider_type", "") == "chroma":
+        if getattr(backend, "provider_type", "") == "chromadb":
             details_list.append("• Provider: ChromaDB")
             details_list.append("• Supports: Documents, Metadata, Embeddings")
             details_list.append("• Default embedding: all-MiniLM-L6-v2")

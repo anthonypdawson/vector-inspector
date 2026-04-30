@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import warnings
-
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
@@ -23,45 +21,23 @@ from vector_inspector.extensions import settings_panel_hook
 from vector_inspector.services.settings_service import SettingsService
 
 
-class _FeatureUninstallThread(QThread):
-    """Background thread that runs pip uninstall for a feature group."""
+class _UninstallThread(QThread):
+    """Background thread that runs pip uninstall for a provider or feature group."""
 
     done = Signal(int, str)  # returncode, combined_output
 
-    def __init__(self, feature_id: str, parent=None):
+    def __init__(self, item_id: str, parent=None):
         super().__init__(parent)
-        self._feature_id = feature_id
+        self._item_id = item_id
 
     def run(self):
         from vector_inspector.core.logging import log_error
         from vector_inspector.services.install_service import uninstall
 
         try:
-            returncode, output = uninstall(self._feature_id)
+            returncode, output = uninstall(self._item_id)
         except Exception as exc:  # pragma: no cover
-            log_error("Feature uninstall thread error for '%s': %s", self._feature_id, exc, exc_info=True)
-            self.done.emit(-1, str(exc))
-            return
-        self.done.emit(returncode, output)
-
-
-class _ProviderUninstallThread(QThread):
-    """Background thread that runs pip uninstall for a database provider."""
-
-    done = Signal(int, str)  # returncode, combined_output
-
-    def __init__(self, provider_id: str, parent=None):
-        super().__init__(parent)
-        self._provider_id = provider_id
-
-    def run(self):
-        from vector_inspector.core.logging import log_error
-        from vector_inspector.services.install_service import uninstall
-
-        try:
-            returncode, output = uninstall(self._provider_id)
-        except Exception as exc:  # pragma: no cover
-            log_error("Provider uninstall thread error for '%s': %s", self._provider_id, exc, exc_info=True)
+            log_error("Uninstall thread error for '%s': %s", self._item_id, exc, exc_info=True)
             self.done.emit(-1, str(exc))
             return
         self.done.emit(returncode, output)
@@ -87,8 +63,10 @@ class _StatusCheckThread(QThread):
 
         try:
             importlib.invalidate_caches()
-        except Exception:
-            pass  # some path finders raise on invalidate_caches; safe to ignore
+        except Exception as exc:  # some path finders raise on invalidate_caches; safe to ignore
+            from vector_inspector.core.logging import log_debug
+
+            log_debug("importlib.invalidate_caches() raised (ignored): %s", exc)
         for item_id, check in self._checks.items():
             try:
                 available = check()
@@ -297,7 +275,7 @@ class SettingsDialog(QDialog):
         """Build the 'Features' tab — rows are populated immediately from static
         metadata, availability is checked in the background."""
         from vector_inspector.core.provider_detection import get_all_feature_metadata
-        from vector_inspector.services.install_service import _PACKAGE_SPECS
+        from vector_inspector.services.install_service import get_package_specs
 
         layout = self.get_tab_layout("Features")
 
@@ -313,12 +291,12 @@ class SettingsDialog(QDialog):
         group_layout.addWidget(intro)
 
         self._feature_rows: dict[str, dict] = {}
-        self._uninstall_threads: list[_FeatureUninstallThread] = []
+        self._uninstall_threads: list[_UninstallThread] = []
         self._features_checked: bool = False
         self._feature_check_thread: _StatusCheckThread | None = None
 
         for info in get_all_feature_metadata():
-            tooltip = _deps_tooltip(_PACKAGE_SPECS.get(info.id, []))
+            tooltip = _deps_tooltip(get_package_specs(info.id))
 
             row_widget = QWidget()
             row_widget.setToolTip(tooltip)
@@ -375,7 +353,7 @@ class SettingsDialog(QDialog):
         """Build the 'Providers' tab — rows are populated immediately from static
         metadata, availability is checked in the background."""
         from vector_inspector.core.provider_detection import get_all_provider_metadata
-        from vector_inspector.services.install_service import _PACKAGE_SPECS
+        from vector_inspector.services.install_service import get_package_specs
 
         layout = self.get_tab_layout("Providers")
 
@@ -391,12 +369,12 @@ class SettingsDialog(QDialog):
         group_layout.addWidget(intro)
 
         self._provider_rows: dict[str, dict] = {}
-        self._provider_uninstall_threads: list[_ProviderUninstallThread] = []
+        self._provider_uninstall_threads: list[_UninstallThread] = []
         self._providers_checked: bool = False
         self._provider_check_thread: _StatusCheckThread | None = None
 
         for pinfo in get_all_provider_metadata():
-            tooltip = _deps_tooltip(_PACKAGE_SPECS.get(pinfo.id, []))
+            tooltip = _deps_tooltip(get_package_specs(pinfo.id))
 
             row_widget = QWidget()
             row_widget.setToolTip(tooltip)
@@ -607,7 +585,7 @@ class SettingsDialog(QDialog):
         row["action_btn"].setEnabled(False)
         row["status_msg"].setText("Uninstalling\u2026")
 
-        thread = _FeatureUninstallThread(feature_id, parent=self)
+        thread = _UninstallThread(feature_id, parent=self)
         thread.done.connect(lambda rc, out, fid=feature_id: self._on_uninstall_done(fid, rc, out))
         thread.done.connect(thread.deleteLater)
         thread.start()
@@ -663,7 +641,7 @@ class SettingsDialog(QDialog):
         row["action_btn"].setEnabled(False)
         row["status_msg"].setText("Uninstalling\u2026")
 
-        thread = _ProviderUninstallThread(provider_id, parent=self)
+        thread = _UninstallThread(provider_id, parent=self)
         thread.done.connect(lambda rc, out, pid=provider_id: self._on_provider_uninstall_done(pid, rc, out))
         thread.done.connect(thread.deleteLater)
         thread.start()

@@ -55,6 +55,36 @@ _PACKAGES: dict[str, list[str]] = {
 
 
 # ---------------------------------------------------------------------------
+# Public registry helpers
+# ---------------------------------------------------------------------------
+
+
+def get_valid_provider_ids() -> frozenset[str]:
+    """Return the set of all known provider identifiers (e.g. ``"chromadb"``).
+
+    Prefer this over importing ``_VALID_PROVIDER_IDS`` directly.
+    """
+    return _VALID_PROVIDER_IDS
+
+
+def is_valid_provider_id(item_id: str) -> bool:
+    """Return ``True`` if ``item_id`` is a known provider identifier."""
+    return item_id in _VALID_PROVIDER_IDS
+
+
+def get_package_specs(item_id: str) -> list[str]:
+    """Return the versioned pip requirement specs for a provider or feature.
+
+    Args:
+        item_id: A known provider or feature identifier (e.g. ``"chromadb"``).
+
+    Returns:
+        List of pip requirement strings, or an empty list if unknown.
+    """
+    return list(_PACKAGE_SPECS.get(item_id, []))
+
+
+# ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 

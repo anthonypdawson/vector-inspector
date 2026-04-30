@@ -85,8 +85,8 @@ class VectorDBConnection(ABC):
         # names like "LanceDBConnection" (would become "lance" instead of "lancedb").
         class_name = type(self).__name__.removesuffix("Connection")
         provider_name = class_name.lower()
-        if provider_name == "chromadb":
-            return "chroma"
+        # Return the canonical registry ID (e.g. "chromadb") so that
+        # provider_type can be matched directly against ProviderInfo.id.
         return provider_name
 
     @property
