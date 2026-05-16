@@ -73,6 +73,53 @@ known-first-party = ["vector_inspector"]
 
 If you update these settings in `pyproject.toml`, please mirror the change here.
 
+## Code Cleanup & Refactoring Practice
+
+**After solving a problem or completing a refactor, always do a cleanup pass to remove or update redundant code.**
+
+When debugging or implementing features, it's common to:
+- Try multiple approaches before finding the solution
+- Add temporary workarounds or debugging code
+- Create helper methods that become obsolete when a better solution is found
+- Leave behind commented-out code or unused imports
+
+**Before considering the work complete:**
+
+1. **Search for related code** that may now be redundant:
+   - Old helper methods that the new solution replaces
+   - Temporary workarounds that are no longer needed
+   - Duplicate logic that could be consolidated
+   - Commented-out debugging code or failed attempts
+
+2. **Remove or update:**
+   - Unused methods and functions
+   - Dead code paths (if statements that can never be true)
+   - Redundant error handling after centralizing it
+   - Overly complex logic that can now be simplified
+   - Debugging print statements or temporary logging
+
+3. **Update documentation:**
+   - Remove comments explaining workarounds that no longer exist
+   - Update docstrings if method signatures or behavior changed
+   - Remove TODOs that were addressed during the refactor
+
+4. **Check for consistency:**
+   - Ensure naming conventions are consistent
+   - Verify similar patterns are handled the same way
+   - Look for opportunities to use the new pattern elsewhere
+
+**Example:** When fixing the provider connection type field visibility issue:
+- Original attempt: complex `_set_field_and_label_visible()` method with 80+ lines
+- Solution: configuration-driven approach with simpler `_set_form_row_visible()` method
+- Cleanup pass: removed the old 80-line method and redundant field-hiding code
+
+**Why this matters:**
+- Keeps the codebase maintainable and easy to understand
+- Reduces confusion for future developers (including yourself)
+- Prevents bugs from old code paths being accidentally invoked
+- Makes code reviews faster and clearer
+- Improves performance by removing unnecessary operations
+
 ## Error Handling Convention
 
 Follow these layer-specific rules so errors surface cleanly without leaking implementation details into the UI or swallowing failures silently.

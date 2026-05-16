@@ -210,14 +210,14 @@ def test_normalize_item_qdrant_no_metadata_key():
 def test_normalize_item_chroma_renames_metadatas():
     pm = ProviderManager()
     item = {"id": "1", "metadatas": {"a": 1}}
-    result = pm.normalize_item(item, "chroma")
+    result = pm.normalize_item(item, "chromadb")
     assert result["metadata"] == {"a": 1}
 
 
 def test_normalize_item_chroma_keeps_metadata_if_present():
     pm = ProviderManager()
     item = {"id": "1", "metadata": {"a": 1}}
-    result = pm.normalize_item(item, "chroma")
+    result = pm.normalize_item(item, "chromadb")
     # already has metadata; metadatas not present so nothing changes
     assert result["metadata"] == {"a": 1}
 

@@ -146,8 +146,8 @@ class ProviderManager:
                         except (ValueError, TypeError):
                             pass
 
-        elif provider_type == "chroma":
-            # Chroma has different metadata structure
+        elif provider_type == "chromadb":
+            # ChromaDB has different metadata structure
             if "metadata" not in normalized and "metadatas" in normalized:
                 normalized["metadata"] = normalized["metadatas"]
 
