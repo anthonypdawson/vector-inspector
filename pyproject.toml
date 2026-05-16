@@ -55,6 +55,10 @@ dev = [
 
 # Provider and feature groups for PDM (mirrors project.optional-dependencies)
 # These are needed for `pdm install -G <group>` to work
+# NOTE: These lists must be kept in sync with [project.optional-dependencies] below.
+# PDM uses [tool.pdm.dev-dependencies] for `pdm install -G`, while pip uses
+# [project.optional-dependencies] for `pip install vector-inspector[<group>]`.
+# Updating one requires updating the other.
 chromadb = ["chromadb>=0.4.22"]
 qdrant = ["qdrant-client>=1.7.0"]
 pinecone = ["pinecone>=8.0.0"]
@@ -76,6 +80,9 @@ recommended = [
     "hf-xet>=1.2.0",
     "scikit-learn>=1.3.0",
     "umap-learn>=0.5.5",
+    # hdbscan is intentionally excluded from this bundle: it requires a C compiler
+    # on some platforms and adds significant install time.  Users who need full
+    # clustering support should install the [viz] extra or [all] instead.
 ]
 
 all = [
@@ -139,6 +146,9 @@ recommended = [
     "hf-xet>=1.2.0",
     "scikit-learn>=1.3.0",
     "umap-learn>=0.5.5",
+    # hdbscan is intentionally excluded from this bundle: it requires a C compiler
+    # on some platforms and adds significant install time.  Users who need full
+    # clustering support should install the [viz] extra or [all] instead.
 ]
 
 # Everything (backward compatibility - same as old behavior)
