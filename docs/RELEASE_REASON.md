@@ -1,8 +1,8 @@
-# Release Notes (0.8.0) — April 19, 2026
+# Release Notes (0.8.0) — May 16, 2026
 
-## 🚀 Progressive Enhancement: 10x Faster Installation
+## 🚀 Progressive Enhancement: Significantly Faster Installation
 
-**TL;DR:** Vector Inspector now installs in **30 seconds** instead of 10 minutes. Install only the database providers you actually use, or install everything like before with `[all]`.
+**TL;DR:** Vector Inspector now installs in **30 seconds** instead of up to 10 minutes. Install only the database providers you actually use, or install everything like before with `[all]`.
 
 ---
 
@@ -10,19 +10,21 @@
 
 ### ⚡ Lightning-Fast Core Install
 
-The default installation is now **10x faster**:
+The default installation is now **significantly faster**:
 
 | Metric | v0.7 | v0.8 (minimal) | v0.8 (recommended) |
 |--------|------|----------------|---------------------|
-| **Packages** | 171 | 12 | ~60 |
-| **Download size** | ~2GB | ~200MB | ~500MB |
-| **Install time** | 1-10 min | 8-30 sec | 1-3 min |
-| **Failure rate** | High | Very low | Low |
+| **Packages** | 171* | 12* | ~60* |
+| **Download size** | ~2GB* | ~200MB* | ~500MB* |
+| **Install time** | 1-10 min* | 8-30 sec* | 1-3 min* |
+| **Failure rate** | High* | Very low | Low |
+
+*Approximate; varies by platform, Python version, and pip cache state.
 
 ```bash
 # Before (v0.7)
 pip install vector-inspector
-# [10 minutes of waiting, "building wheels", potential failures...]
+# [up to 10 minutes of waiting, "building wheels", potential failures...]
 
 # Now (v0.8) - launches in 30 seconds!
 pip install vector-inspector
@@ -101,27 +103,20 @@ After installing a provider via the CLI, click the **🔄 Refresh button** in th
 ### Problem We Solved
 
 **Before v0.8:**
-- New users hit "install" and wait 5-10 minutes
+- New users hit "install" and wait several minutes (sometimes up to 10)
 - See scary "building wheels" messages
-- High failure rate on Windows/older systems
-- Many quit before installation completes
+- Wheel compilation can fail on Windows or older systems
 - Forced to install ALL database clients even if using only one
 
 **After v0.8:**
-- Install completes in 30 seconds → confidence boost
-- No compilation errors (most deps are pure Python)
+- Core install completes in seconds
+- Fewer compilation errors (most deps are pure Python)
 - Progressive installation as needed
 - Clear guidance when you need something
-- Much lower abandonment rate
 
 ### Real User Impact
 
-**Conversion rate improvements (estimated):**
-- Download → Install Success: 20% → 70%
-- Install → First Launch: 60% → 90%
-- Launch → First Connection: 50% → 80%
-
-**Overall: 3-4x more users actually trying the app**
+By reducing install weight and moving heavy deps to opt-in groups, new users encounter fewer failures and reach first launch faster.
 
 ---
 
