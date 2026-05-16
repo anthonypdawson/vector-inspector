@@ -52,7 +52,9 @@ def get_connection_class(provider: str):
 
         return WeaviateConnection
     elif provider == "milvus":
-        # Import milvus only if explicitly requested (experimental)
+        # Milvus is experimental: wrap ImportError explicitly to give a clear
+        # user-facing message.  All other providers let ImportError propagate
+        # naturally — do not mimic this pattern for new providers.
         try:
             from .milvus_connection import MilvusConnection
 

@@ -14,7 +14,6 @@ subprocess command.  Any unknown value raises ``ValueError`` immediately.
 import subprocess
 import sys
 from collections.abc import Callable
-from typing import Optional
 
 from vector_inspector.core.provider_detection import PROVIDERS
 from vector_inspector.services.telemetry_service import TelemetryService
@@ -96,7 +95,7 @@ def _kind(item_id: str) -> str:
 
 def _run_pip(
     cmd: list[str],
-    on_output: Optional[Callable[[str], None]],
+    on_output: Callable[[str], None] | None,
 ) -> tuple[int, str]:
     """Run a pip subprocess, streaming output lines.
 
@@ -152,7 +151,7 @@ def get_install_command(item_id: str) -> list[str]:
 
 def install(
     item_id: str,
-    on_output: Optional[Callable[[str], None]] = None,
+    on_output: Callable[[str], None] | None = None,
 ) -> tuple[int, str]:
     """Install a provider or feature-group package using pip.
 
@@ -212,7 +211,7 @@ def get_uninstall_command(item_id: str) -> list[str]:
 
 def uninstall(
     item_id: str,
-    on_output: Optional[Callable[[str], None]] = None,
+    on_output: Callable[[str], None] | None = None,
 ) -> tuple[int, str]:
     """Uninstall a provider or feature-group's packages using pip.
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QColor
@@ -56,9 +57,9 @@ class _StatusCheckThread(QThread):
     result = Signal(str, bool)  # id, available
     all_done = Signal()
 
-    def __init__(self, checks: dict, parent=None):
+    def __init__(self, checks: dict[str, Callable[[], bool]], parent=None):
         super().__init__(parent)
-        self._checks: dict = checks
+        self._checks: dict[str, Callable[[], bool]] = checks
 
     def run(self):
         import importlib
