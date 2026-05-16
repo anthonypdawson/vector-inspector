@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
