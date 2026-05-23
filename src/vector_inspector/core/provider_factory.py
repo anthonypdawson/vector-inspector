@@ -144,16 +144,15 @@ class ProviderFactory:
     @staticmethod
     def _create_milvus(config: dict[str, Any], credentials: dict[str, Any]) -> VectorDBConnection:
         """Create a Milvus connection."""
-        from vector_inspector.core.connections.milvus_connection import MilvusConnection
-
+        connection_class = get_connection_class("milvus")
         conn_type = config.get("type")
 
         if conn_type == "persistent":
             # Milvus Lite (file-based local database)
-            return MilvusConnection(path=config.get("path"))
+            return connection_class(path=config.get("path"))
         if conn_type == "http":
             # Remote Milvus server (HTTP)
-            return MilvusConnection(
+            return connection_class(
                 host=config.get("host"),
                 port=int(config.get("port", 19530)),
             )
