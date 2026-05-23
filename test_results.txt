@@ -1,0 +1,166 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.9, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\ayd\src\vector-inspector\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+PySide6 6.10.2 -- Qt runtime 6.10.2 -- Qt compiled 6.10.2
+rootdir: C:\Users\ayd\src\vector-inspector
+configfile: pytest.ini
+plugins: anyio-4.12.1, cov-7.0.0, env-1.5.0, qt-4.5.0, testmon-2.2.0, timeout-2.4.0, xdist-3.8.0
+timeout: 60.0s
+timeout method: thread
+timeout func_only: False
+collecting ... collected 87 items / 1 deselected / 86 selected
+
+tests/services/test_provider_install_service.py::test_get_install_command_known_provider PASSED [  1%]
+tests/services/test_provider_install_service.py::test_get_install_command_all_known_providers PASSED [  2%]
+tests/services/test_provider_install_service.py::test_get_install_command_unknown_provider_raises PASSED [  3%]
+tests/services/test_provider_install_service.py::test_get_install_command_empty_string_raises PASSED [  4%]
+tests/services/test_provider_install_service.py::test_get_install_command_injection_attempt_raises PASSED [  5%]
+tests/services/test_provider_install_service.py::test_install_provider_success PASSED [  6%]
+tests/services/test_provider_install_service.py::test_install_provider_failure PASSED [  8%]
+tests/services/test_provider_install_service.py::test_install_provider_calls_on_output_callback PASSED [  9%]
+tests/services/test_provider_install_service.py::test_install_provider_unknown_raises PASSED [ 10%]
+tests/services/test_provider_install_service.py::test_install_provider_popen_exception_returns_minus_one PASSED [ 11%]
+tests/services/test_provider_install_service.py::test_install_provider_popen_exception_calls_on_output PASSED [ 12%]
+tests/test_cli.py::test_version_flag_exits_zero_and_prints_version PASSED [ 13%]
+tests/test_cli.py::test_help_flag_exits_zero PASSED                      [ 15%]
+tests/test_cli.py::test_help_lists_version_option PASSED                 [ 16%]
+tests/test_cli.py::test_help_mentions_starting_app_without_args PASSED   [ 17%]
+tests/test_cli.py::test_help_epilog_contains_github_url PASSED           [ 18%]
+tests/test_cli.py::test_no_args_returns_without_exiting PASSED           [ 19%]
+tests/test_cli.py::test_first_run_telemetry_queued_when_enabled PASSED   [ 20%]
+tests/test_cli.py::test_first_run_telemetry_skipped_when_disabled PASSED [ 22%]
+tests/test_cli.py::test_first_run_telemetry_skipped_when_already_done PASSED [ 23%]
+tests/test_cli.py::test_no_telemetry_flag_sets_env_var PASSED            [ 24%]
+tests/test_cli.py::test_no_telemetry_prevents_first_run_event PASSED     [ 25%]
+tests/test_cli.py::test_no_telemetry_skips_event_when_env_set PASSED     [ 26%]
+tests/test_cli.py::test_log_level_flag_sets_env_var PASSED               [ 27%]
+tests/test_cli.py::test_log_level_flag_case_insensitive PASSED           [ 29%]
+tests/test_cli.py::test_no_splash_flag_sets_env_var PASSED               [ 30%]
+tests/test_cli.py::test_config_flag_sets_env_var PASSED                  [ 31%]
+tests/test_cli.py::test_dump_settings_prints_json_and_exits_zero PASSED  [ 32%]
+tests/test_cli.py::test_dump_settings_empty_dict_when_file_missing PASSED [ 33%]
+tests/test_cli.py::test_dump_settings_via_parse_cli_args PASSED          [ 34%]
+tests/test_cli.py::test_install_known_provider_exits_zero FAILED         [ 36%]
+tests/test_cli.py::test_install_known_provider_success_message FAILED    [ 37%]
+tests/test_cli.py::test_install_failure_exits_nonzero FAILED             [ 38%]
+tests/test_cli.py::test_install_unknown_provider_exits_nonzero PASSED    [ 39%]
+tests/test_cli.py::test_install_already_installed_exits_zero FAILED      [ 40%]
+tests/test_cli.py::test_install_flag_in_parse_cli_args_triggers_handler PASSED [ 41%]
+tests/test_cli.py::test_install_flag_no_value_uses_wizard_sentinel PASSED [ 43%]
+tests/test_cli.py::test_install_wizard_cancel_on_empty_input FAILED      [ 44%]
+tests/test_cli.py::test_install_wizard_invalid_selection_exits_nonzero FAILED [ 45%]
+tests/test_cli.py::test_install_wizard_by_number_installs_correct_provider FAILED [ 46%]
+tests/test_cli.py::test_install_wizard_all_already_installed_exits_zero FAILED [ 47%]
+tests/views/test_connection_view.py::test_connection_thread_success PASSED [ 48%]
+tests/views/test_connection_view.py::test_connection_thread_exception PASSED [ 50%]
+tests/views/test_connection_view.py::test_get_connection_config_and_browse PASSED [ 51%]
+tests/views/test_connection_view.py::test_provider_changes_enable_fields PASSED [ 52%]
+tests/views/test_connection_view.py::test_connect_with_config_success FAILED [ 53%]
+tests/views/test_connection_view.py::test_connect_with_config_missing_api_key PASSED [ 54%]
+tests/views/test_connection_view.py::test_connection_thread_connect_returns_false PASSED [ 55%]
+tests/views/test_connection_view.py::test_on_provider_changed_port_updates PASSED [ 56%]
+tests/views/test_connection_view.py::test_on_provider_changed_pinecone_branch PASSED [ 58%]
+tests/views/test_connection_view.py::test_on_provider_changed_qdrant_else_branch PASSED [ 59%]
+tests/views/test_connection_view.py::test_on_type_changed_pinecone PASSED [ 60%]
+tests/views/test_connection_view.py::test_on_type_changed_pgvector PASSED [ 61%]
+tests/views/test_connection_view.py::test_on_type_changed_http_and_ephemeral PASSED [ 62%]
+tests/views/test_connection_view.py::test_get_connection_config_pgvector PASSED [ 63%]
+tests/views/test_connection_view.py::test_get_connection_config_http_and_ephemeral PASSED [ 65%]
+tests/views/test_connection_view.py::test_load_last_connection_cloud PASSED [ 66%]
+tests/views/test_connection_view.py::test_load_last_connection_pgvector PASSED [ 67%]
+tests/views/test_connection_view.py::test_load_last_connection_http PASSED [ 68%]
+tests/views/test_connection_view.py::test_load_last_connection_ephemeral PASSED [ 69%]
+tests/views/test_connection_view.py::test_connect_with_config_qdrant_persistent FAILED [ 70%]
+tests/views/test_connection_view.py::test_connect_with_config_qdrant_http FAILED [ 72%]
+tests/views/test_connection_view.py::test_connect_with_config_qdrant_ephemeral FAILED [ 73%]
+tests/views/test_connection_view.py::test_connect_with_config_pgvector FAILED [ 74%]
+tests/views/test_connection_view.py::test_on_connection_finished_failure FAILED [ 75%]
+tests/views/test_connection_view.py::test_disconnect FAILED              [ 76%]
+tests/views/test_connection_view.py::test_try_auto_connect FAILED        [ 77%]
+tests/views/test_connection_view.py::test_show_connection_dialog_accepted FAILED [ 79%]
+tests/views/test_connection_view.py::test_on_provider_changed_unavailable_falls_back_after_cancel +++++++++++++++++++++++++++++++++++ Timeout +++++++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~ Stack of LanceDBBackgroundEventLoop (22188) ~~~~~~~~~~~~~~~~~
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\threading.py", line 1032, in _bootstrap
+    self._bootstrap_inner()
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\asyncio\windows_events.py", line 322, in run_forever
+    super().run_forever()
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\asyncio\base_events.py", line 645, in run_forever
+    self._run_once()
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\asyncio\base_events.py", line 1961, in _run_once
+    event_list = self._selector.select(timeout)
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\asyncio\windows_events.py", line 445, in select
+    self._poll(timeout)
+  File "C:\Users\ayd\AppData\Roaming\uv\python\cpython-3.12.9-windows-x86_64-none\Lib\asyncio\windows_events.py", line 774, in _poll
+    status = _overlapped.GetQueuedCompletionStatus(self._iocp, ms)
+~~~~~~~~~~~~~~~~~~~~~~~~~ Stack of MainThread (26132) ~~~~~~~~~~~~~~~~~~~~~~~~~
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\ayd\src\vector-inspector\.venv\Scripts\pytest.EXE\__main__.py", line 7, in <module>
+    sys.exit(console_main())
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\config\__init__.py", line 223, in console_main
+    code = main()
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\config\__init__.py", line 199, in main
+    ret: ExitCode | int = config.hook.pytest_cmdline_main(config=config)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\main.py", line 365, in pytest_cmdline_main
+    return wrap_session(config, _main)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\main.py", line 318, in wrap_session
+    session.exitstatus = doit(config, session) or 0
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\main.py", line 372, in _main
+    config.hook.pytest_runtestloop(session=session)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\main.py", line 396, in pytest_runtestloop
+    item.config.hook.pytest_runtest_protocol(item=item, nextitem=nextitem)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\runner.py", line 118, in pytest_runtest_protocol
+    runtestprotocol(item, nextitem=nextitem)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\runner.py", line 137, in runtestprotocol
+    reports.append(call_and_report(item, "call", log))
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\runner.py", line 244, in call_and_report
+    call = CallInfo.from_call(
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\runner.py", line 353, in from_call
+    result: TResult | None = func()
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\runner.py", line 245, in <lambda>
+    lambda: runtest_hook(item=item, **kwds),
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\runner.py", line 179, in pytest_runtest_call
+    item.runtest()
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\python.py", line 1720, in runtest
+    self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "C:\Users\ayd\src\vector-inspector\.venv\Lib\site-packages\_pytest\python.py", line 166, in pytest_pyfunc_call
+    result = testfunction(**testargs)
+  File "C:\Users\ayd\src\vector-inspector\tests\views\test_connection_view.py", line 707, in test_on_provider_changed_unavailable_falls_back_after_cancel
+    conn_dialog.provider_combo.setCurrentIndex(idx)
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\connection_view.py", line 337, in _on_provider_changed
+    dlg.exec()
++++++++++++++++++++++++++++++++++++ Timeout +++++++++++++++++++++++++++++++++++

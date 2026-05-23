@@ -1,0 +1,109 @@
+Adding packages to default dependencies: pymilvus
+  0:00:54   Lock successful.  
+Changes are written to pyproject.toml.
+Synchronizing working set with resolved packages: 9 to add, 25 to update, 0 to remove
+
+  v Update certifi 2026.2.25 -> 2026.5.20 successful
+  v Update cachetools 7.0.6 -> 7.1.4 successful
+  v Update idna 3.12 -> 3.16 successful
+  v Update pytest-env 1.5.0 -> 1.6.0 successful
+  v Update pytest-cov 7.0.0 -> 7.1.0 successful
+  v Update cookiecutter 2.6.0 -> 2.7.1 successful
+  v Update platformdirs 4.5.1 -> 4.9.6 successful
+  v Update briefcase 0.3.26 -> 0.4.1 successful
+  v Update requests 2.33.1 -> 2.34.2 successful
+  v Install diskcache 5.6.3 successful
+  v Update pytest 9.0.2 -> 9.0.3 successful
+  v Install pgvector 0.4.2 successful
+  v Update smmap 5.0.2 -> 5.0.3 successful
+  v Update urllib3 2.6.3 -> 2.7.0 successful
+  v Update ipython 9.10.0 -> 9.10.1 successful
+  v Update pyarmor 9.2.3 -> 9.2.4 successful
+  v Install qdrant-client 1.17.1 successful
+  v Update black 26.1.0 -> 26.3.1 successful
+  v Install pinecone 8.1.2 successful
+  v Install weaviate-client 4.20.5 successful
+  v Update tzdata 2026.1 -> 2026.2 successful
+  v Update librt 0.7.8 -> 0.9.0 successful
+  v Install psycopg2-binary 2.9.12 successful
+  v Update pyarmor-cli-core 8.1.0 -> 8.1.1 successful
+  v Update orjson 3.11.8 -> 3.11.9 successful
+  v Update coverage 7.13.4 -> 7.13.5 successful
+  v Update chromadb 1.5.9 -> 1.5.8 successful
+  v Update ruff 0.15.0 -> 0.15.11 successful
+  v Update pandas 3.0.2 -> 3.0.3 successful
+  v Update numpy 2.4.4 -> 2.4.6 successful
+  v Install pyarrow 24.0.0 successful
+  v Install lancedb 0.30.2 successful
+  v Update mypy 1.19.1 -> 1.20.1 successful
+  x Install llama-cpp-python 0.3.20 failed
+  x Install llama-cpp-python 0.3.20 failed
+
+ERRORS:
+add llama-cpp-python failed:
+Traceback (most recent call last):
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\concurrent\futures\thread.p
+y", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\site-packages\pdm\installer
+s\synchronizers.py", line 29, in install_candidate
+    self.manager.install(can)
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\site-packages\pdm\installer
+s\manager.py", line 33, in install
+    prepared.build(),
+    ^^^^^^^^^^^^^^^^
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\site-packages\pdm\models\ca
+ndidates.py", line 426, in build
+    self._cached = Path(builder.build(build_dir, 
+metadata_directory=self._metadata_dir))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\site-packages\pdm\builders\
+base.py", line 84, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\site-packages\pdm\builders\
+wheel.py", line 26, in build
+    filename = self._hook.build_wheel(out_dir, self.config_settings, 
+metadata_directory)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^
+  File 
+"C:\Users\ayd\AppData\Roaming\Python\Python312\site-packages\pyproject_hooks\_i
+mpl.py", line 256, in build_wheel
+    return self._call_hook(
+           ^^^^^^^^^^^^^^^^
+  File 
+"C:\Users\ayd\AppData\Roaming\Python\Python312\site-packages\pyproject_hooks\_i
+mpl.py", line 392, in _call_hook
+    self._subprocess_runner(
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\site-packages\pdm\builders\
+base.py", line 281, in subprocess_runner
+    return log_subprocessor(cmd, cwd, extra_environ=env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File 
+"C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.10\Lib\site-packages\pdm\builders\
+base.py", line 128, in log_subprocessor
+    raise build_error(e) from None
+pdm.exceptions.BuildError: Build backend raised error: Showing the last 10 
+lines of the build output:
+
+
+CMake Error at CMakeLists.txt:3 (project):
+  No CMAKE_CXX_COMPILER could be found.
+
+
+
+-- Configuring incomplete, errors occurred!
+
+*** CMake configuration failed
+
+  0:01:06 x Some package operations failed. 1/1

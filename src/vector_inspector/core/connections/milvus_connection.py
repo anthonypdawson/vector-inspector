@@ -547,7 +547,6 @@ class MilvusConnection(VectorDBConnection):
                 operation="get_all_items",
                 provider="milvus",
                 error_type=type(e).__name__,
-
                 exc_info=True,
             )
             return None
@@ -580,7 +579,7 @@ class MilvusConnection(VectorDBConnection):
                     int_id = int(item_id)
                 except ValueError:
                     int_id = abs(hash(item_id)) % (2**63)
-                
+
                 item: dict[str, Any] = {"id": int_id}
 
                 if documents and i < len(documents):

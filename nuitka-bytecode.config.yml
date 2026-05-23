@@ -1,0 +1,13 @@
+# Nuitka bytecode configuration file
+# This file specifies modules that should be forced to use bytecode mode
+# These are less likely to have complex internal Nuitka rules
+- module-name: qdrant_client
+  force-bytecode: yes
+- module-name: umap_learn
+  force-bytecode: yes
+- module-name: fastembed
+  force-bytecode: yes
+- module-name: pinecone
+  force-bytecode: yes
+- module-name: hf_xet
+  force-bytecode: yes

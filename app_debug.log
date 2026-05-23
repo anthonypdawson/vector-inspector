@@ -1,0 +1,51 @@
+2026-02-15 10:07:07,954 ERROR vector_inspector: [Uncaught Exception] File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\visualization\plot_panel.py", line 30
+    """Called from JavaScript when a point is selected."""        print(f"[PlotEventBridge] onPointSelected called: index={point_index}, id={point_id}")        self.point_selected.emit(point_index, point_id)
+                                                                  ^^^^^
+SyntaxError: invalid syntax
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\__main__.py", line 4, in <module>
+    main()
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\main.py", line 123, in main
+    window = MainWindow()
+             ^^^^^^^^^^^^
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\main_window.py", line 68, in __init__
+    self._setup_ui()
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\main_window.py", line 125, in _setup_ui
+    tab_defs = InspectorTabs.get_standard_tabs()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\tabs.py", line 49, in get_standard_tabs
+    from vector_inspector.ui.views.visualization_view import VisualizationView
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\visualization_view.py", line 29, in <module>
+    from vector_inspector.ui.views.visualization import ClusteringPanel, DRPanel, PlotPanel
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\visualization\__init__.py", line 4, in <module>
+    from .plot_panel import PlotPanel
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\visualization\plot_panel.py", line 30
+    """Called from JavaScript when a point is selected."""        print(f"[PlotEventBridge] onPointSelected called: index={point_index}, id={point_id}")        self.point_selected.emit(point_index, point_id)
+                                                                  ^^^^^
+SyntaxError: invalid syntax
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\__main__.py", line 4, in <module>
+    main()
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\main.py", line 123, in main
+    window = MainWindow()
+             ^^^^^^^^^^^^
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\main_window.py", line 68, in __init__
+    self._setup_ui()
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\main_window.py", line 125, in _setup_ui
+    tab_defs = InspectorTabs.get_standard_tabs()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\tabs.py", line 49, in get_standard_tabs
+    from vector_inspector.ui.views.visualization_view import VisualizationView
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\visualization_view.py", line 29, in <module>
+    from vector_inspector.ui.views.visualization import ClusteringPanel, DRPanel, PlotPanel
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\visualization\__init__.py", line 4, in <module>
+    from .plot_panel import PlotPanel
+  File "C:\Users\ayd\src\vector-inspector\src\vector_inspector\ui\views\visualization\plot_panel.py", line 30
+    """Called from JavaScript when a point is selected."""        print(f"[PlotEventBridge] onPointSelected called: index={point_index}, id={point_id}")        self.point_selected.emit(point_index, point_id)
+                                                                  ^^^^^
+SyntaxError: invalid syntax

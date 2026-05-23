@@ -1,0 +1,770 @@
+Date/Time:       2026-02-01 16:32:57 
+Command line:    C:\ProgramData\aos\miniconda3\Scripts\briefcase create windows app
+
+OS Release:      Windows 10
+OS Version:      10.0.22621
+Architecture:    AMD64
+Platform:        Windows-10-10.0.22621-SP0
+
+Python exe:      c:\programdata\aos\miniconda3\python.exe
+Python version:  3.8.5 (default, Sep  3 2020, 21:29:08) [MSC v.1916 64 bit (AMD64)]
+Virtual env:     False
+Conda env:       True
+
+Briefcase:       0.3.19
+Target platform: windows
+Target format:   app
+
+Environment Variables:
+	ACLOCAL_PATH=C:\ProgramData\aos\miniconda3\Library\mingw64\share\aclocal;C:\ProgramData\aos\miniconda3\Library\usr\share\aclocal
+	ACSETUPSVCPORT=23210
+	ACSVCPORT=17532
+	ALLUSERSPROFILE=C:\ProgramData
+	APPDATA=C:\Users\ayd\AppData\Roaming
+	ASL.LOG=Destination=file
+	BASH_SILENCE_DEPRECATION_WARNING=1
+	BINDIR=C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.5
+	CHOCOLATEYINSTALL=C:\ProgramData\chocolatey
+	CHOCOLATEYLASTPATHUPDATE=134034932274189540
+	CHOCOLATEYTOOLSLOCATION=C:\tools
+	CMDLINE=briefcase create windows app
+	COMMANDS=rehash global local version vname version-name versions commands shims which whence help --help
+	COMMONPROGRAMFILES=C:\Program Files\Common Files
+	COMMONPROGRAMFILES(X86)=C:\Program Files (x86)\Common Files
+	COMMONPROGRAMW6432=C:\Program Files\Common Files
+	COMPUTERNAME=MERCURY
+	COMSPEC=C:\WINDOWS\system32\cmd.exe
+	CONDA_PREFIX=C:\ProgramData\aos\miniconda3
+	CONFIG_SITE=C:/ProgramData/aos/miniconda3/Library/etc/config.site
+	CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0
+	CUDA_PATH_V13_0=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0
+	DISPLAY=needs-to-be-defined
+	DOKANLIBRARY1=C:\Program Files\Dokan\Dokan Library-1.5.1\
+	DOKANLIBRARY1_LIBRARYPATH_X64=C:\Program Files\Dokan\Dokan Library-1.5.1\lib\
+	DOKANLIBRARY1_LIBRARYPATH_X86=C:\Program Files\Dokan\Dokan Library-1.5.1\x86\lib\
+	DRIVERDATA=C:\Windows\System32\Drivers\DriverData
+	ENABLELOG=INFO
+	EXEPATH=C:\ProgramData\aos\miniconda3\Library\bin
+	EXTRAPATHS=C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.5;C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.5\Scripts;C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.5\bin;C:\Users\ayd\AppData\Roaming\Python\Python312\Scripts;
+	FTSDK_DIR=C:\Program Files\Microsoft SDKs\Kinect\Developer Toolkit v1.8.0\
+	GOPATH=C:\Users\ayd\go
+	HOME=C:\Users\ayd
+	HOMEDRIVE=C:
+	HOMEPATH=\Users\ayd
+	HOSTNAME=Mercury
+	INFOPATH=C:\ProgramData\aos\miniconda3\Library\mingw64\local\info;C:\ProgramData\aos\miniconda3\Library\mingw64\share\info;C:\ProgramData\aos\miniconda3\Library\usr\local\info;C:\ProgramData\aos\miniconda3\Library\usr\share\info;C:\ProgramData\aos\miniconda3\Library\usr\info;C:\ProgramData\aos\miniconda3\Library\share\info
+	JD2_HOME=C:\Users\ayd\apps\JDownloader 2.0
+	KINECTSDK10_DIR=C:\Program Files\Microsoft SDKs\Kinect\v1.8\
+	KINECTSDK20_DIR=C:\Program Files\Microsoft SDKs\Kinect\v2.0_1409\
+	KINECT_TOOLKIT_DIR=C:\Program Files\Microsoft SDKs\Kinect\Developer Toolkit v1.8.0\
+	LANG=C.utf8
+	LOCALAPPDATA=C:\Users\ayd\AppData\Local
+	LOGONSERVER=\\MERCURY
+	MANPATH=C:\Users\ayd\.x-cmd.root\local\data\pkg\sphere\X\l\j\h\man;C:\ProgramData\aos\miniconda3\Library\mingw64\local\man;C:\ProgramData\aos\miniconda3\Library\mingw64\share\man;C:\ProgramData\aos\miniconda3\Library\usr\local\man;C:\ProgramData\aos\miniconda3\Library\usr\share\man;C:\ProgramData\aos\miniconda3\Library\usr\man;C:\ProgramData\aos\miniconda3\Library\share\man
+	MINGW_CHOST=x86_64-w64-mingw32
+	MINGW_PACKAGE_PREFIX=mingw-w64-x86_64
+	MINGW_PREFIX=C:/ProgramData/aos/miniconda3/Library/mingw64
+	MSMPI_BENCHMARKS=C:\Program Files\Microsoft MPI\Benchmarks\
+	MSMPI_BIN=C:\Program Files\Microsoft MPI\Bin\
+	MSYS2_ARG_CONV_EXCL=C:/
+	MSYSTEM=MINGW64
+	MSYSTEM_CARCH=x86_64
+	MSYSTEM_CHOST=x86_64-w64-mingw32
+	MSYSTEM_PREFIX=C:/ProgramData/aos/miniconda3/Library/mingw64
+	NUMBER_OF_PROCESSORS=16
+	NVM_HOME=C:\Users\ayd\AppData\Local\nvm
+	NVM_SYMLINK=C:\nvm4w\nodejs
+	OCULUSBASE=C:\Program Files\Oculus\
+	OLDPWD=C:/Users/ayd/Documents
+	OLLAMA_HOST=0.0.0.0
+	OLLAMA_MODELS=H:\ollama\models
+	ONEDRIVE=C:\Users\ayd\OneDrive
+	ONEDRIVECONSUMER=C:\Users\ayd\OneDrive
+	OPENSSL_IA32CAP=~0x200000200000000
+	ORIGINAL_PATH=C:\ProgramData\aos\miniconda3\Library\mingw64\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\Users\ayd\bin;C:\ProgramData\aos\miniconda3;C:\ProgramData\aos\miniconda3\Library\mingw-w64\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Scripts;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0\bin\x64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0\bin;C:\tools\ImageMagick-7.1.1-Q16-HDRI;C:\Program Files\Microsoft MPI\Bin;C:\Python312\Scripts;C:\Python312;C:\ProgramData\scoop\shims;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Python311\Scripts;C:\Python311;C:\Program Files (x86)\Razer\ChromaBroadcast\bin;C:\Program Files\Razer\ChromaBroadcast\bin;C:\Program Files\Oculus\Support\oculus-runtime;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\dotnet;C:\Program Files\PowerShell\7;C:\Users\ayd\scoop\shims;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\FreeArc\bin;C:\Program Files (x86)\Nmap;C:\Users\ayd\AppData\Local\GitHubDesktop\bin;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Windows\system32\config\systemprofile\AppData\Local\Microsoft\WindowsApps;C:\ProgramData\chocolatey\lib\mpv.install\tools;C:\Program Files\Crucial\Crucial Storage Executive;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\IVI Foundation\VISA\WinNT\Bin;C:\Program Files\DisplayMagician;C:\Program Files\Go\bin;C:\Users\ayd\apps\Apollo;C:\Users\ayd\apps\Apollo\tools;C:\tools\gs10.05.0\bin;C:\Program Files\Meld;C:\Program Files\GitHub CLI;C:\Program Files\WireGuard;C:\Program Files\LLVM\bin;C:\Program Files (x86)\LLVM\bin;C:\Users\ayd\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\RedHat\Podman;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.3.0;C:\Ruby33-x64\bin;C:\Users\ayd\.pyenv\pyenv-win\bin;C:\Users\ayd\.pyenv\pyenv-win\shims;C:\Users\ayd\scoop\shims;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\FreeArc\bin;C:\Program Files (x86)\Nmap;C:\Users\ayd\AppData\Local\GitHubDesktop\bin;C:\Users\ayd\go\bin;C:\pycharm\PyCharm Community Edition 2023.2.3\bin;C:\Users\ayd\AppData\Local\Programs\Ollama;C:\Users\ayd\AppData\Roaming\npm;C:\Program Files\MKVToolNix;C:\Program Files\Inkscape\bin;C:\tools\ImageMagick-7.1.1-Q16-HDRI;C:\Users\ayd\.dotnet\tools;C:\Users\ayd\.lmstudio\bin;C:\Users\ayd\apps\libwebp-1.5.0-windows-x64\bin;C:\Users\ayd\AppData\Local\Programs\Microsoft VS Code Insiders\bin;C:\Users\ayd\.dotnet\tools;C:\Users\ayd\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\PostgreSQL\17\bin;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps
+	ORIGINAL_TEMP=C:/Users/ayd/AppData/Local/Temp
+	ORIGINAL_TMP=C:/Users/ayd/AppData/Local/Temp
+	OS=Windows_NT
+	PATH=C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.5;C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.5\Scripts;C:\Users\ayd\.pyenv\pyenv-win\versions\3.12.5\bin;C:\Users\ayd\AppData\Roaming\Python\Python312\Scripts;C:\Users\ayd\.x-cmd.root\local\data\pkg\sphere\X\l\j\h\bin;C:\Users\ayd\.x-cmd.root\bin;C:\Users\ayd\.local\bin;C:\Users\ayd\.pyenv\pyenv-win\bin\;C:\ProgramData\aos\miniconda3\Library\bin;C:\Users\ayd\bin;C:\ProgramData\aos\miniconda3\Library\mingw64\bin;C:\ProgramData\aos\miniconda3\Library\usr\local\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Library\mingw64\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\Users\ayd\bin;C:\ProgramData\aos\miniconda3;C:\ProgramData\aos\miniconda3\Library\mingw-w64\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Scripts;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0\bin\x64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0\bin;C:\tools\ImageMagick-7.1.1-Q16-HDRI;C:\Program Files\Microsoft MPI\Bin;C:\Python312\Scripts;C:\Python312;C:\ProgramData\scoop\shims;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Python311\Scripts;C:\Python311;C:\Program Files (x86)\Razer\ChromaBroadcast\bin;C:\Program Files\Razer\ChromaBroadcast\bin;C:\Program Files\Oculus\Support\oculus-runtime;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\System32;C:\WINDOWS;C:\WINDOWS\System32\wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\dotnet;C:\Program Files\PowerShell\7;C:\Users\ayd\scoop\shims;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\FreeArc\bin;C:\Program Files (x86)\Nmap;C:\Users\ayd\AppData\Local\GitHubDesktop\bin;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\Docker\Docker\resources\bin;C:\WINDOWS\System32\config\systemprofile\AppData\Local\Microsoft\WindowsApps;C:\ProgramData\chocolatey\lib\mpv.install\tools;C:\Program Files\Crucial\Crucial Storage Executive;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\IVI Foundation\VISA\WinNT\Bin;C:\Program Files\DisplayMagician;C:\Program Files\Go\bin;C:\Users\ayd\apps\Apollo;C:\Users\ayd\apps\Apollo\tools;C:\tools\gs10.05.0\bin;C:\Program Files\Meld;C:\Program Files\GitHub CLI;C:\Program Files\WireGuard;C:\Program Files\LLVM\bin;C:\Program Files (x86)\LLVM\bin;C:\Users\ayd\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\RedHat\Podman;C:\WINDOWS\System32;C:\WINDOWS;C:\WINDOWS\System32\wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.3.0;C:\Ruby33-x64\bin;C:\Users\ayd\.pyenv\pyenv-win\bin;C:\Users\ayd\scoop\shims;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\FreeArc\bin;C:\Program Files (x86)\Nmap;C:\Users\ayd\AppData\Local\GitHubDesktop\bin;C:\Users\ayd\go\bin;C:\pycharm\PyCharm Community Edition 2023.2.3\bin;C:\Users\ayd\AppData\Local\Programs\Ollama;C:\Users\ayd\AppData\Roaming\npm;C:\Program Files\MKVToolNix;C:\Program Files\Inkscape\bin;C:\tools\ImageMagick-7.1.1-Q16-HDRI;C:\Users\ayd\.dotnet\tools;C:\Users\ayd\.lmstudio\bin;C:\Users\ayd\apps\libwebp-1.5.0-windows-x64\bin;C:\Users\ayd\AppData\Local\Programs\Microsoft VS Code Insiders\bin;C:\Users\ayd\.dotnet\tools;C:\Users\ayd\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\PostgreSQL\17\bin;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\ProgramData\aos\miniconda3\Library\usr\bin\vendor_perl;C:\ProgramData\aos\miniconda3\Library\usr\bin\core_perl;C:\Users\ayd\.x-cmd.root\local\data\triarii\bin;
+	PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW;.RB;.RBW
+	PKG_CONFIG_PATH=C:\ProgramData\aos\miniconda3\Library\mingw64\lib\pkgconfig;C:\ProgramData\aos\miniconda3\Library\mingw64\share\pkgconfig
+	PKG_CONFIG_SYSTEM_INCLUDE_PATH=C:/ProgramData/aos/miniconda3/Library/mingw64/include
+	PKG_CONFIG_SYSTEM_LIBRARY_PATH=C:/ProgramData/aos/miniconda3/Library/mingw64/lib
+	PLINK_PROTOCOL=ssh
+	POWERSHELL_DISTRIBUTION_CHANNEL=MSI:Windows 10 Pro
+	PROCESSOR_ARCHITECTURE=AMD64
+	PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 167 Stepping 1, GenuineIntel
+	PROCESSOR_LEVEL=6
+	PROCESSOR_REVISION=a701
+	PROGRAMDATA=C:\ProgramData
+	PROGRAMFILES=C:\Program Files
+	PROGRAMFILES(X86)=C:\Program Files (x86)
+	PROGRAMW6432=C:\Program Files
+	PROMPT=$P$G
+	PSMODULEPATH=C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+	PUBLIC=C:\Users\Public
+	PWD=C:/Users/ayd/src/vector-inspector
+	PYCHARM COMMUNITY EDITION=C:\pycharm\PyCharm Community Edition 2023.2.3\bin;
+	PYENV=cscript //nologo "C:\Users\ayd\.pyenv\pyenv-win\bin\..\libexec\pyenv.vbs"
+	PYENV_HOME=C:\Users\ayd\.pyenv\pyenv-win\
+	PYENV_ROOT=C:/Users/ayd/.pyenv
+	PYTHON_SHIMS=C:\Users\ayd\.pyenv\pyenv-win\shims
+	RLSSVCPORT=22112
+	SESSIONNAME=Console
+	SHELL=C:\ProgramData\aos\miniconda3\Library\usr\bin\bash.exe
+	SHLVL=2
+	SKIP=0
+	SSH_ASKPASS=********************
+	SYSTEMDRIVE=C:
+	SYSTEMROOT=C:\WINDOWS
+	TEMP=C:\Users\ayd\AppData\Local\Temp
+	TERM=xterm-256color
+	TMP=C:\Users\ayd\AppData\Local\Temp
+	TMPDIR=C:\Users\ayd\AppData\Local\Temp
+	USERDOMAIN=MERCURY
+	USERDOMAIN_ROAMINGPROFILE=MERCURY
+	USERNAME=ayd
+	USERPROFILE=C:\Users\ayd
+	VBOX_MSI_INSTALL_PATH=C:\Program Files\Oracle\VirtualBox\
+	VXIPNPPATH=C:\Program Files (x86)\IVI Foundation\VISA\
+	WINDIR=C:\WINDOWS
+	WSLENV=WT_SESSION:WT_PROFILE_ID:
+	WT_PROFILE_ID={a99a1875-ea4b-4c89-8501-3f95177ce751}
+	WT_SESSION=f6dc2782-82db-4d87-98c8-1b1e1780b775
+	WWISEROOT=C:\Users\ayd\apps\Wwise 2021.1.0.7575
+	WWISESDK=C:\Users\ayd\apps\Wwise 2021.1.0.7575\SDK
+	_=C:/Users/ayd/.pyenv/pyenv-win/bin/pyenv
+	_PATH=C:\Users\ayd\.x-cmd.root\local\data\pkg\sphere\X\l\j\h\bin;C:\Users\ayd\.x-cmd.root\bin;C:\Users\ayd\.local\bin;C:\Users\ayd\.pyenv\pyenv-win\bin\;C:\Users\ayd\.pyenv\pyenv-win\shims;C:\ProgramData\aos\miniconda3\Library\bin;C:\Users\ayd\bin;C:\ProgramData\aos\miniconda3\Library\mingw64\bin;C:\ProgramData\aos\miniconda3\Library\usr\local\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Library\mingw64\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\Users\ayd\bin;C:\ProgramData\aos\miniconda3;C:\ProgramData\aos\miniconda3\Library\mingw-w64\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Library\usr\bin;C:\ProgramData\aos\miniconda3\Scripts;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0\bin\x64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.0\bin;C:\tools\ImageMagick-7.1.1-Q16-HDRI;C:\Program Files\Microsoft MPI\Bin;C:\Python312\Scripts;C:\Python312;C:\ProgramData\scoop\shims;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Python311\Scripts;C:\Python311;C:\Program Files (x86)\Razer\ChromaBroadcast\bin;C:\Program Files\Razer\ChromaBroadcast\bin;C:\Program Files\Oculus\Support\oculus-runtime;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\dotnet;C:\Program Files\PowerShell\7;C:\Users\ayd\scoop\shims;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\FreeArc\bin;C:\Program Files (x86)\Nmap;C:\Users\ayd\AppData\Local\GitHubDesktop\bin;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Windows\system32\config\systemprofile\AppData\Local\Microsoft\WindowsApps;C:\ProgramData\chocolatey\lib\mpv.install\tools;C:\Program Files\Crucial\Crucial Storage Executive;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\IVI Foundation\VISA\WinNT\Bin;C:\Program Files\DisplayMagician;C:\Program Files\Go\bin;C:\Users\ayd\apps\Apollo;C:\Users\ayd\apps\Apollo\tools;C:\tools\gs10.05.0\bin;C:\Program Files\Meld;C:\Program Files\GitHub CLI;C:\Program Files\WireGuard;C:\Program Files\LLVM\bin;C:\Program Files (x86)\LLVM\bin;C:\Users\ayd\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\RedHat\Podman;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\Program Files\NVIDIA Corporation\Nsight Compute 2025.3.0;C:\Ruby33-x64\bin;C:\Users\ayd\.pyenv\pyenv-win\bin;C:\Users\ayd\.pyenv\pyenv-win\shims;C:\Users\ayd\scoop\shims;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\FreeArc\bin;C:\Program Files (x86)\Nmap;C:\Users\ayd\AppData\Local\GitHubDesktop\bin;C:\Users\ayd\go\bin;C:\pycharm\PyCharm Community Edition 2023.2.3\bin;C:\Users\ayd\AppData\Local\Programs\Ollama;C:\Users\ayd\AppData\Roaming\npm;C:\Program Files\MKVToolNix;C:\Program Files\Inkscape\bin;C:\tools\ImageMagick-7.1.1-Q16-HDRI;C:\Users\ayd\.dotnet\tools;C:\Users\ayd\.lmstudio\bin;C:\Users\ayd\apps\libwebp-1.5.0-windows-x64\bin;C:\Users\ayd\AppData\Local\Programs\Microsoft VS Code Insiders\bin;C:\Users\ayd\.dotnet\tools;C:\Users\ayd\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\PostgreSQL\17\bin;C:\Users\ayd\AppData\Local\Microsoft\WindowsApps;C:\ProgramData\aos\miniconda3\Library\usr\bin\vendor_perl;C:\ProgramData\aos\miniconda3\Library\usr\bin\core_perl;C:\Users\ayd\.x-cmd.root\local\data\triarii\bin
+	___X_CMD_LOG_C_DEBUG=\033[2;35m
+	___X_CMD_LOG_C_ERROR=\033[1;31m
+	___X_CMD_LOG_C_INFO=\033[32m
+	___X_CMD_LOG_C_TF=
+	___X_CMD_LOG_C_WARN=\033[1;33m
+
+pyproject.toml:
+[project]
+name = "vector-inspector"
+version = "0.3.11"
+description = "A comprehensive desktop application for visualizing, querying, and managing vector database data"
+authors = [
+    {name = "Anthony Dawson", email = "anthonypdawson+github@gmail.com"},
+]
+dependencies = [
+    "chromadb>=0.4.22",
+    "qdrant-client>=1.7.0",
+    "pyside6>=6.6.0",
+    "PySide6-Addons>=6.6.3.1",
+    "pandas>=2.1.0",
+    "numpy>=1.26.0",
+    "scikit-learn>=1.3.0",
+    "umap-learn>=0.5.5",
+    "plotly>=5.18.0",
+    "sentence-transformers>=2.2.0",
+    "fastembed>=0.7.4",
+    "pyarrow>=14.0.0",
+    "pinecone>=8.0.0",
+    "keyring>=25.7.0",
+    "hf-xet>=1.2.0",
+    "pymilvus>=2.6.6",
+    "lancedb>=0.27.0",
+    "psycopg2>=2.9.11",
+    "pgvector>=0.4.2",
+]
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.urls]
+Homepage = "https://vector-inspector.divinedevops.com"
+Source = "https://github.com/anthonypdawson/vector-inspector"
+Issues = "https://github.com/anthonypdawson/vector-inspector/issues"
+Documentation = "https://github.com/anthonypdawson/vector-inspector#readme"
+
+[project.scripts]
+vector-inspector = "vector_inspector.main:main"
+
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-qt>=4.2.0",
+    "black>=23.12.0",
+    "ruff>=0.14.14",
+    "mypy>=1.19.1",
+    "ipython>=8.18.0",
+    "briefcase>=0.3.26",
+    "pyarmor>=9.2.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["build", "dist", ".venv"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "UP",
+    "B",
+    "A",
+    "C4",
+    "DTZ",
+    "T20",
+    "RET",
+    "SIM",
+    "ARG",
+    "RUF",
+]
+ignore = ["E501", "I001", "UP045"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["vector_inspector"]
+[tool.pdm]
+distribution = true
+
+[tool.pdm.build]
+package-dir = "src"
+
+[tool.pdm.scripts]
+[tool.pdm.scripts.vector-inspector]
+cmd = "python -m vector_inspector.main"
+env = { PYTHONPATH = "src" }
+
+
+
+
+# content below this line added by briefcase convert
+# This project was generated with 0.3.26 using template: https://github.com/beeware/briefcase-template @ v0.3.26
+[tool.briefcase]
+project_name = "Vector Inspector"
+bundle = "com.divinedevops.vector-inspector"
+version = "0.3.11"
+url = "https://vector-inspector.divinedevops.com"
+license.file = "LICENSE"
+author = "Anthony Dawson"
+author_email = "anthonypdawson+github@gmail.com"
+
+[tool.briefcase.app.vector-inspector]
+formal_name = "Vector Inspector"
+description = "A comprehensive desktop application for visualizing, querying, and managing vector database data"
+long_description = """More details about the app should go here.
+"""
+sources = [
+    "src/vector_inspector",
+]
+test_sources = [
+    "tests",
+]
+
+requires = [
+    # Add your cross-platform app requirements here
+]
+test_requires = [
+    # Add your cross-platform test requirements here
+]
+
+[tool.briefcase.app.vector-inspector.macOS]
+universal_build = true
+requires = [
+    # Add your macOS-specific app requirements here
+]
+
+[tool.briefcase.app.vector-inspector.linux]
+requires = [
+    # Add your Linux-specific app requirements here
+]
+
+[tool.briefcase.app.vector-inspector.linux.system.debian]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.vector-inspector.linux.system.rhel]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.vector-inspector.linux.system.suse]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.vector-inspector.linux.system.arch]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.vector-inspector.linux.flatpak]
+flatpak_runtime = "org.freedesktop.Platform"
+flatpak_runtime_version = "25.08"
+flatpak_sdk = "org.freedesktop.Sdk"
+
+[tool.briefcase.app.vector-inspector.windows]
+requires = [
+    # Add your Windows-specific app requirements here
+]
+
+# Mobile deployments
+[tool.briefcase.app.vector-inspector.iOS]
+requires = [
+    # Add your iOS-specific app requirements here
+]
+
+[tool.briefcase.app.vector-inspector.android]
+requires = [
+    # Add your Android-specific app requirements here
+]
+
+# Web deployments
+[tool.briefcase.app.vector-inspector.web]
+requires = [
+    # Add your web-specific app requirements here
+]
+
+Briefcase Log:
+[16:32:31]                                                                                                                                                             create.py:872
+[16:32:32] Application 'vector-inspector' already exists; overwrite [y/N]?                                                                                            console.py:705
+           User input: Y                                                                                                                                              console.py:705
+                                                                                                                                                                       create.py:881
+           [vector-inspector] Removing old application bundle...                                                                                                       create.py:881
+[16:32:54]                                                                                                                                                             create.py:884
+           [vector-inspector] Generating application template...                                                                                                       create.py:884
+           Assigning vector-inspector an application GUID of 242f9553-e171-50c2-856c-d5578c91c6b1                                                                     __init__.py:91
+           Using app template: https://github.com/beeware/briefcase-windows-app-template.git, branch v0.3.19                                                            base.py:1090
+           Using existing template (sha 8f153808429f87d7df42baf69db1d1c60fd62a88, updated Tue Jun 11 21:41:21 2024)                                                      base.py:996
+                                                                                                                                                                       create.py:887
+           [vector-inspector] Installing support package...                                                                                                            create.py:887
+           Using support package https://www.python.org/ftp/python/3.8.10/python-3.8.10-embed-amd64.zip                                                                create.py:354
+           python-3.8.10-embed-amd64.zip already downloaded                                                                                                              file.py:147
+           Unpacking support package... started                                                                                                                        create.py:269
+           Unpacking support package... done                                                                                                                           create.py:271
+                                                                                                                                                                       create.py:898
+           [vector-inspector] Installing stub binary...                                                                                                                create.py:898
+           Using stub binary https://briefcase-support.s3.amazonaws.com/python/3.8/windows/GUI-Stub-3.8-b5.zip                                                         create.py:465
+[16:32:55] GUI-Stub-3.8-b5.zip already downloaded                                                                                                                        file.py:147
+           Installing stub binary... started                                                                                                                           create.py:410
+           Installing stub binary... done                                                                                                                              create.py:432
+                                                                                                                                                                       create.py:905
+           [vector-inspector] Installing application code...                                                                                                           create.py:905
+           Installing src/vector_inspector... started                                                                                                                  create.py:685
+           Installing src/vector_inspector... done                                                                                                                     create.py:695
+                                                                                                                                                                       create.py:908
+           [vector-inspector] Installing requirements...                                                                                                               create.py:908
+           Installing app requirements... started                                                                                                                      create.py:622
+                                                                                                                                                                   subprocess.py:827
+           >>> Running Command:                                                                                                                                    subprocess.py:827
+           >>>     'c:\programdata\aos\miniconda3\python.exe' -u -X utf8 -m pip install --disable-pip-version-check --no-python-version-warning --upgrade          subprocess.py:827
+           --no-user '--target=C:\Users\ayd\src\vector-inspector\build\vector-inspector\windows\app\src\app_packages' 'chromadb>=0.4.22' 'qdrant-client>=1.7.0'                     
+           'pyside6>=6.6.0' 'PySide6-Addons>=6.6.3.1' 'pandas>=2.1.0' 'numpy>=1.26.0' 'scikit-learn>=1.3.0' 'umap-learn>=0.5.5' 'plotly>=5.18.0'                                    
+           'sentence-transformers>=2.2.0' 'fastembed>=0.7.4' 'pyarrow>=14.0.0' 'pinecone>=8.0.0' 'keyring>=25.7.0' 'hf-xet>=1.2.0' 'pymilvus>=2.6.6'                                
+           'lancedb>=0.27.0' 'psycopg2>=2.9.11' 'pgvector>=0.4.2'                                                                                                                   
+           >>> Working Directory:                                                                                                                                  subprocess.py:827
+           >>>     C:\Users\ayd\src\vector-inspector                                                                                                               subprocess.py:827
+           DEPRECATION: --no-python-version-warning is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to remove the flag as    subprocess.py:195
+           it's a no-op. Discussion can be found at https://github.com/pypa/pip/issues/13154                                                                                        
+[16:32:56] Collecting chromadb>=0.4.22                                                                                                                             subprocess.py:195
+             Using cached chromadb-0.5.23-py3-none-any.whl.metadata (6.8 kB)                                                                                       subprocess.py:195
+           Collecting qdrant-client>=1.7.0                                                                                                                         subprocess.py:195
+             Using cached qdrant_client-1.12.1-py3-none-any.whl.metadata (10 kB)                                                                                   subprocess.py:195
+           Collecting pyside6>=6.6.0                                                                                                                               subprocess.py:195
+             Using cached PySide6-6.6.3.1-cp38-abi3-win_amd64.whl.metadata (5.5 kB)                                                                                subprocess.py:195
+           Collecting PySide6-Addons>=6.6.3.1                                                                                                                      subprocess.py:195
+             Downloading PySide6_Addons-6.6.3.1-cp38-abi3-win_amd64.whl.metadata (4.2 kB)                                                                          subprocess.py:195
+           ERROR: Could not find a version that satisfies the requirement pandas>=2.1.0 (from versions: 0.1, 0.2, 0.3.0, 0.4.0, 0.4.1, 0.4.2, 0.4.3, 0.5.0, 0.6.0, subprocess.py:195
+           0.6.1, 0.7.0, 0.7.1, 0.7.2, 0.7.3, 0.8.0, 0.8.1, 0.9.0, 0.9.1, 0.10.0, 0.10.1, 0.11.0, 0.12.0, 0.13.0, 0.13.1, 0.14.0, 0.14.1, 0.15.0, 0.15.1, 0.15.2,                   
+           0.16.0, 0.16.1, 0.16.2, 0.17.0, 0.17.1, 0.18.0, 0.18.1, 0.19.0, 0.19.1, 0.19.2, 0.20.0, 0.20.1, 0.20.2, 0.20.3, 0.21.0, 0.21.1, 0.22.0, 0.23.0, 0.23.1,                  
+           0.23.2, 0.23.3, 0.23.4, 0.24.0, 0.24.1, 0.24.2, 0.25.0, 0.25.1, 0.25.2, 0.25.3, 1.0.0, 1.0.1, 1.0.2, 1.0.3, 1.0.4, 1.0.5, 1.1.0, 1.1.1, 1.1.2, 1.1.3,                    
+           1.1.4, 1.1.5, 1.2.0, 1.2.1, 1.2.2, 1.2.3, 1.2.4, 1.2.5, 1.3.0, 1.3.1, 1.3.2, 1.3.3, 1.3.4, 1.3.5, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.5.0, 1.5.1,                       
+           1.5.2, 1.5.3, 2.0.0, 2.0.1, 2.0.2, 2.0.3)                                                                                                                                
+           ERROR: No matching distribution found for pandas>=2.1.0                                                                                                 subprocess.py:195
+           >>> Return code: 1                                                                                                                                      subprocess.py:827
+           Installing app requirements... errored                                                                                                                      create.py:623
+                                                                                                                                                                      __main__.py:44
+           Unable to install requirements. This may be because one of your                                                                                            __main__.py:45
+           requirements is invalid, or because pip was unable to connect                                                                                              __main__.py:45
+           to the PyPI server.                                                                                                                                        __main__.py:45
+           Saving log... started                                                                                                                                      console.py:390
+
+Main thread traceback:
+╭─────────────────────────────────────────────────────────────────────── Traceback (most recent call last) ────────────────────────────────────────────────────────────────────────╮
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\create.py:654 in install_app_requirements                                                                     │
+│                                                                                                                                                                                  │
+│   651 │   │   │   requires.extend(app.test_requires)                                                                                                                             │
+│   652 │   │                                                                                                                                                                      │
+│   653 │   │   try:                                                                                                                                                               │
+│ ❱ 654 │   │   │   requirements_path = self.app_requirements_path(app)                                                                                                            │
+│   655 │   │   │   self._write_requirements_file(app, requires, requirements_path)                                                                                                │
+│   656 │   │   except KeyError:                                                                                                                                                   │
+│   657 │   │   │   try:                                                                                                                                                           │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────────╮                                                     │
+│ │               app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                               │                                                     │
+│ │ app_packages_path = WindowsPath('C:/Users/ayd/src/vector-inspector/build/vector-inspector/windows/app/src/app_packages') │                                                     │
+│ │          requires = [                                                                                                    │                                                     │
+│ │                     │   'chromadb>=0.4.22',                                                                              │                                                     │
+│ │                     │   'qdrant-client>=1.7.0',                                                                          │                                                     │
+│ │                     │   'pyside6>=6.6.0',                                                                                │                                                     │
+│ │                     │   'PySide6-Addons>=6.6.3.1',                                                                       │                                                     │
+│ │                     │   'pandas>=2.1.0',                                                                                 │                                                     │
+│ │                     │   'numpy>=1.26.0',                                                                                 │                                                     │
+│ │                     │   'scikit-learn>=1.3.0',                                                                           │                                                     │
+│ │                     │   'umap-learn>=0.5.5',                                                                             │                                                     │
+│ │                     │   'plotly>=5.18.0',                                                                                │                                                     │
+│ │                     │   'sentence-transformers>=2.2.0',                                                                  │                                                     │
+│ │                     │   ... +9                                                                                           │                                                     │
+│ │                     ]                                                                                                    │                                                     │
+│ │              self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0>               │                                                     │
+│ │         test_mode = False                                                                                                │                                                     │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                     │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\base.py:497 in app_requirements_path                                                                          │
+│                                                                                                                                                                                  │
+│    494 │   │   :param app: The config object for the app                                                                                                                         │
+│    495 │   │   :return: The full path where the requirements.txt file should be written                                                                                          │
+│    496 │   │   """                                                                                                                                                               │
+│ ❱  497 │   │   return self.bundle_path(app) / self.path_index(app, "app_requirements_path")                                                                                      │
+│    498 │                                                                                                                                                                         │
+│    499 │   def app_packages_path(self, app: AppConfig) -> Path:                                                                                                                  │
+│    500 │   │   """Obtain the path into which requirements should be installed.                                                                                                   │
+│                                                                                                                                                                                  │
+│ ╭─────────────────────────────────────────── locals ────────────────────────────────────────────╮                                                                                │
+│ │  app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                 │                                                                                │
+│ │ self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0> │                                                                                │
+│ ╰───────────────────────────────────────────────────────────────────────────────────────────────╯                                                                                │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\base.py:439 in path_index                                                                                     │
+│                                                                                                                                                                                  │
+│    436 │   │   :param path_name: Name of the filepath to retrieve                                                                                                                │
+│    437 │   │   :return: filepath for requested path                                                                                                                              │
+│    438 │   │   """                                                                                                                                                               │
+│ ❱  439 │   │   return self.briefcase_toml(app)["paths"][path_name]                                                                                                               │
+│    440 │                                                                                                                                                                         │
+│    441 │   def template_target_version(self, app: AppConfig) -> str | None:                                                                                                      │
+│    442 │   │   """The target version of Briefcase for the app from ``briefcase.toml``.                                                                                           │
+│                                                                                                                                                                                  │
+│ ╭────────────────────────────────────────────── locals ──────────────────────────────────────────────╮                                                                           │
+│ │       app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                 │                                                                           │
+│ │ path_name = 'app_requirements_path'                                                                │                                                                           │
+│ │      self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0> │                                                                           │
+│ ╰────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+KeyError: 'app_requirements_path'
+
+During handling of the above exception, another exception occurred:
+
+╭─────────────────────────────────────────────────────────────────────── Traceback (most recent call last) ────────────────────────────────────────────────────────────────────────╮
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\create.py:572 in _pip_install                                                                                 │
+│                                                                                                                                                                                  │
+│   569 │   │   │   when invoking pip.                                                                                                                                             │
+│   570 │   │   """                                                                                                                                                                │
+│   571 │   │   try:                                                                                                                                                               │
+│ ❱ 572 │   │   │   self.tools[app].app_context.run(                                                                                                                               │
+│   573 │   │   │   │   [                                                                                                                                                          │
+│   574 │   │   │   │   │   sys.executable,                                                                                                                                        │
+│   575 │   │   │   │   │   "-u",                                                                                                                                                  │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────────╮                                                     │
+│ │               app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                               │                                                     │
+│ │ app_packages_path = WindowsPath('C:/Users/ayd/src/vector-inspector/build/vector-inspector/windows/app/src/app_packages') │                                                     │
+│ │      install_hint = ''                                                                                                   │                                                     │
+│ │          pip_args = [                                                                                                    │                                                     │
+│ │                     │   'chromadb>=0.4.22',                                                                              │                                                     │
+│ │                     │   'qdrant-client>=1.7.0',                                                                          │                                                     │
+│ │                     │   'pyside6>=6.6.0',                                                                                │                                                     │
+│ │                     │   'PySide6-Addons>=6.6.3.1',                                                                       │                                                     │
+│ │                     │   'pandas>=2.1.0',                                                                                 │                                                     │
+│ │                     │   'numpy>=1.26.0',                                                                                 │                                                     │
+│ │                     │   'scikit-learn>=1.3.0',                                                                           │                                                     │
+│ │                     │   'umap-learn>=0.5.5',                                                                             │                                                     │
+│ │                     │   'plotly>=5.18.0',                                                                                │                                                     │
+│ │                     │   'sentence-transformers>=2.2.0',                                                                  │                                                     │
+│ │                     │   ... +9                                                                                           │                                                     │
+│ │                     ]                                                                                                    │                                                     │
+│ │        pip_kwargs = {}                                                                                                   │                                                     │
+│ │              self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0>               │                                                     │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                     │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\integrations\subprocess.py:144 in inner                                                                                │
+│                                                                                                                                                                                  │
+│   141 │   │   │   with sub.tools.input.release_console_control():                                                                                                                │
+│   142 │   │   │   │   return sub_method(sub, args, *wrapped_args, **wrapped_kwargs)                                                                                              │
+│   143 │   │   else:                                                                                                                                                              │
+│ ❱ 144 │   │   │   return sub_method(sub, args, *wrapped_args, **wrapped_kwargs)                                                                                                  │
+│   145 │                                                                                                                                                                          │
+│   146 │   return inner                                                                                                                                                           │
+│   147                                                                                                                                                                            │
+│                                                                                                                                                                                  │
+│ ╭─────────────────────────────────────────────── locals ────────────────────────────────────────────────╮                                                                        │
+│ │                    args = [                                                                           │                                                                        │
+│ │                           │   'c:\\programdata\\aos\\miniconda3\\python.exe',                         │                                                                        │
+│ │                           │   '-u',                                                                   │                                                                        │
+│ │                           │   '-X',                                                                   │                                                                        │
+│ │                           │   'utf8',                                                                 │                                                                        │
+│ │                           │   '-m',                                                                   │                                                                        │
+│ │                           │   'pip',                                                                  │                                                                        │
+│ │                           │   'install',                                                              │                                                                        │
+│ │                           │   '--disable-pip-version-check',                                          │                                                                        │
+│ │                           │   '--no-python-version-warning',                                          │                                                                        │
+│ │                           │   '--upgrade',                                                            │                                                                        │
+│ │                           │   ... +21                                                                 │                                                                        │
+│ │                           ]                                                                           │                                                                        │
+│ │              executable = 'c:\\programdata\\aos\\miniconda3\\python.exe'                              │                                                                        │
+│ │ remove_dynamic_elements = False                                                                       │                                                                        │
+│ │                     sub = <briefcase.integrations.subprocess.Subprocess object at 0x0000023CCB321280> │                                                                        │
+│ │            wrapped_args = ()                                                                          │                                                                        │
+│ │          wrapped_kwargs = {'check': True, 'encoding': 'UTF-8'}                                        │                                                                        │
+│ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                        │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\integrations\subprocess.py:539 in run                                                                                  │
+│                                                                                                                                                                                  │
+│   536 │   │   # caller sets stream_output=False, then ensure_console_is_safe() will                                                                                              │
+│   537 │   │   # disable any dynamic console elements while the command runs.                                                                                                     │
+│   538 │   │   if stream_output:                                                                                                                                                  │
+│ ❱ 539 │   │   │   return self._run_and_stream_output(args, filter_func=filter_func, **kwargs)                                                                                    │
+│   540 │   │                                                                                                                                                                      │
+│   541 │   │   # Can't filter non-streamed output.                                                                                                                                │
+│   542 │   │   if filter_func:                                                                                                                                                    │
+│                                                                                                                                                                                  │
+│ ╭────────────────────────────────────────── locals ───────────────────────────────────────────╮                                                                                  │
+│ │          args = [                                                                           │                                                                                  │
+│ │                 │   'c:\\programdata\\aos\\miniconda3\\python.exe',                         │                                                                                  │
+│ │                 │   '-u',                                                                   │                                                                                  │
+│ │                 │   '-X',                                                                   │                                                                                  │
+│ │                 │   'utf8',                                                                 │                                                                                  │
+│ │                 │   '-m',                                                                   │                                                                                  │
+│ │                 │   'pip',                                                                  │                                                                                  │
+│ │                 │   'install',                                                              │                                                                                  │
+│ │                 │   '--disable-pip-version-check',                                          │                                                                                  │
+│ │                 │   '--no-python-version-warning',                                          │                                                                                  │
+│ │                 │   '--upgrade',                                                            │                                                                                  │
+│ │                 │   ... +21                                                                 │                                                                                  │
+│ │                 ]                                                                           │                                                                                  │
+│ │   filter_func = None                                                                        │                                                                                  │
+│ │        kwargs = {'check': True, 'encoding': 'UTF-8'}                                        │                                                                                  │
+│ │          self = <briefcase.integrations.subprocess.Subprocess object at 0x0000023CCB321280> │                                                                                  │
+│ │ stream_output = True                                                                        │                                                                                  │
+│ ╰─────────────────────────────────────────────────────────────────────────────────────────────╯                                                                                  │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\integrations\subprocess.py:615 in _run_and_stream_output                                                               │
+│                                                                                                                                                                                  │
+│   612 │   │   self._log_return_code(return_code)                                                                                                                                 │
+│   613 │   │                                                                                                                                                                      │
+│   614 │   │   if check and return_code:                                                                                                                                          │
+│ ❱ 615 │   │   │   raise subprocess.CalledProcessError(return_code, args, stderr=stderr)                                                                                          │
+│   616 │   │                                                                                                                                                                      │
+│   617 │   │   return subprocess.CompletedProcess(args, return_code, stderr=stderr)                                                                                               │
+│   618                                                                                                                                                                            │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────── locals ──────────────────────────────────────────╮                                                                                    │
+│ │        args = [                                                                           │                                                                                    │
+│ │               │   'c:\\programdata\\aos\\miniconda3\\python.exe',                         │                                                                                    │
+│ │               │   '-u',                                                                   │                                                                                    │
+│ │               │   '-X',                                                                   │                                                                                    │
+│ │               │   'utf8',                                                                 │                                                                                    │
+│ │               │   '-m',                                                                   │                                                                                    │
+│ │               │   'pip',                                                                  │                                                                                    │
+│ │               │   'install',                                                              │                                                                                    │
+│ │               │   '--disable-pip-version-check',                                          │                                                                                    │
+│ │               │   '--no-python-version-warning',                                          │                                                                                    │
+│ │               │   '--upgrade',                                                            │                                                                                    │
+│ │               │   ... +21                                                                 │                                                                                    │
+│ │               ]                                                                           │                                                                                    │
+│ │       check = True                                                                        │                                                                                    │
+│ │ filter_func = None                                                                        │                                                                                    │
+│ │      kwargs = {'encoding': 'UTF-8', 'stdout': -1, 'stderr': -2, 'bufsize': 1}             │                                                                                    │
+│ │     process = <subprocess.Popen object at 0x0000023CCBA876A0>                             │                                                                                    │
+│ │ return_code = 1                                                                           │                                                                                    │
+│ │        self = <briefcase.integrations.subprocess.Subprocess object at 0x0000023CCB321280> │                                                                                    │
+│ │      stderr = None                                                                        │                                                                                    │
+│ ╰───────────────────────────────────────────────────────────────────────────────────────────╯                                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+CalledProcessError: Command '['c:\\programdata\\aos\\miniconda3\\python.exe', '-u', '-X', 'utf8', '-m', 'pip', 'install', '--disable-pip-version-check', '--no-python-version-warning', '--upgrade', '--no-user', '--target=C:\\Users\\ayd\\src\\vector-inspector\\build\\vector-inspector\\windows\\app\\src\\app_packages', 'chromadb>=0.4.22', 'qdrant-client>=1.7.0', 'pyside6>=6.6.0', 'PySide6-Addons>=6.6.3.1', 'pandas>=2.1.0', 'numpy>=1.26.0', 'scikit-learn>=1.3.0', 'umap-learn>=0.5.5', 'plotly>=5.18.0', 'sentence-transformers>=2.2.0', 'fastembed>=0.7.4', 'pyarrow>=14.0.0', 'pinecone>=8.0.0', 'keyring>=25.7.0', 'hf-xet>=1.2.0', 'pymilvus>=2.6.6', 'lancedb>=0.27.0', 'psycopg2>=2.9.11', 'pgvector>=0.4.2']' returned non-zero exit status 1.
+
+The above exception was the direct cause of the following exception:
+
+╭─────────────────────────────────────────────────────────────────────── Traceback (most recent call last) ────────────────────────────────────────────────────────────────────────╮
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\__main__.py:29 in main                                                                                                 │
+│                                                                                                                                                                                  │
+│   26 │   │   │   Path.cwd() / "pyproject.toml",                                                                                                                                  │
+│   27 │   │   │   overrides=overrides,                                                                                                                                            │
+│   28 │   │   )                                                                                                                                                                   │
+│ ❱ 29 │   │   command(**options)                                                                                                                                                  │
+│   30 │   except HelpText as e:                                                                                                                                                   │
+│   31 │   │   logger.info()                                                                                                                                                       │
+│   32 │   │   logger.info(str(e))                                                                                                                                                 │
+│                                                                                                                                                                                  │
+│ ╭──────────────────────────────────────────────── locals ────────────────────────────────────────────────╮                                                                       │
+│ │       command = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0> │                                                                       │
+│ │       console = <briefcase.console.Console object at 0x0000023CCB25E310>                               │                                                                       │
+│ │             e = RequirementsInstallError()                                                             │                                                                       │
+│ │ extra_cmdline = []                                                                                     │                                                                       │
+│ │        logger = <briefcase.console.Log object at 0x0000023CCB25E520>                                   │                                                                       │
+│ │       options = {}                                                                                     │                                                                       │
+│ │     overrides = {}                                                                                     │                                                                       │
+│ │       printer = <briefcase.console.Printer object at 0x0000023CC7ACC3A0>                               │                                                                       │
+│ │        result = 200                                                                                    │                                                                       │
+│ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                       │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\create.py:949 in __call__                                                                                     │
+│                                                                                                                                                                                  │
+│   946 │   │   else:                                                                                                                                                              │
+│   947 │   │   │   state = None                                                                                                                                                   │
+│   948 │   │   │   for app_name, app in sorted(self.apps.items()):                                                                                                                │
+│ ❱ 949 │   │   │   │   state = self.create_app(app, **full_options(state, options))                                                                                               │
+│   950 │   │                                                                                                                                                                      │
+│   951 │   │   return state                                                                                                                                                       │
+│   952                                                                                                                                                                            │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────── locals ──────────────────────────────────────────────╮                                                                            │
+│ │      app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                 │                                                                            │
+│ │ app_name = 'vector-inspector'                                                                     │                                                                            │
+│ │  options = {}                                                                                     │                                                                            │
+│ │     self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0> │                                                                            │
+│ │    state = None                                                                                   │                                                                            │
+│ ╰───────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                            │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\create.py:909 in create_app                                                                                   │
+│                                                                                                                                                                                  │
+│   906 │   │   self.install_app_code(app=app, test_mode=test_mode)                                                                                                                │
+│   907 │   │                                                                                                                                                                      │
+│   908 │   │   self.logger.info("Installing requirements...", prefix=app.app_name)                                                                                                │
+│ ❱ 909 │   │   self.install_app_requirements(app=app, test_mode=test_mode)                                                                                                        │
+│   910 │   │                                                                                                                                                                      │
+│   911 │   │   self.logger.info("Installing application resources...", prefix=app.app_name)                                                                                       │
+│   912 │   │   self.install_app_resources(app=app)                                                                                                                                │
+│                                                                                                                                                                                  │
+│ ╭─────────────────────────────────────────────── locals ───────────────────────────────────────────────╮                                                                         │
+│ │         app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                 │                                                                         │
+│ │ bundle_path = WindowsPath('C:/Users/ayd/src/vector-inspector/build/vector-inspector/windows/app')    │                                                                         │
+│ │     confirm = True                                                                                   │                                                                         │
+│ │     options = {}                                                                                     │                                                                         │
+│ │        self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0> │                                                                         │
+│ │   test_mode = False                                                                                  │                                                                         │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                                         │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\create.py:659 in install_app_requirements                                                                     │
+│                                                                                                                                                                                  │
+│   656 │   │   except KeyError:                                                                                                                                                   │
+│   657 │   │   │   try:                                                                                                                                                           │
+│   658 │   │   │   │   app_packages_path = self.app_packages_path(app)                                                                                                            │
+│ ❱ 659 │   │   │   │   self._install_app_requirements(app, requires, app_packages_path)                                                                                           │
+│   660 │   │   │   except KeyError as e:                                                                                                                                          │
+│   661 │   │   │   │   raise BriefcaseCommandError(                                                                                                                               │
+│   662 │   │   │   │   │   "Application path index file does not define "                                                                                                         │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────────╮                                                     │
+│ │               app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                               │                                                     │
+│ │ app_packages_path = WindowsPath('C:/Users/ayd/src/vector-inspector/build/vector-inspector/windows/app/src/app_packages') │                                                     │
+│ │          requires = [                                                                                                    │                                                     │
+│ │                     │   'chromadb>=0.4.22',                                                                              │                                                     │
+│ │                     │   'qdrant-client>=1.7.0',                                                                          │                                                     │
+│ │                     │   'pyside6>=6.6.0',                                                                                │                                                     │
+│ │                     │   'PySide6-Addons>=6.6.3.1',                                                                       │                                                     │
+│ │                     │   'pandas>=2.1.0',                                                                                 │                                                     │
+│ │                     │   'numpy>=1.26.0',                                                                                 │                                                     │
+│ │                     │   'scikit-learn>=1.3.0',                                                                           │                                                     │
+│ │                     │   'umap-learn>=0.5.5',                                                                             │                                                     │
+│ │                     │   'plotly>=5.18.0',                                                                                │                                                     │
+│ │                     │   'sentence-transformers>=2.2.0',                                                                  │                                                     │
+│ │                     │   ... +9                                                                                           │                                                     │
+│ │                     ]                                                                                                    │                                                     │
+│ │              self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0>               │                                                     │
+│ │         test_mode = False                                                                                                │                                                     │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                     │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\create.py:623 in _install_app_requirements                                                                    │
+│                                                                                                                                                                                  │
+│   620 │   │   # Install requirements                                                                                                                                             │
+│   621 │   │   if requires:                                                                                                                                                       │
+│   622 │   │   │   with self.input.wait_bar(progress_message):                                                                                                                    │
+│ ❱ 623 │   │   │   │   self._pip_install(                                                                                                                                         │
+│   624 │   │   │   │   │   app,                                                                                                                                                   │
+│   625 │   │   │   │   │   app_packages_path=app_packages_path,                                                                                                                   │
+│   626 │   │   │   │   │   pip_args=self._pip_requires(app, requires),                                                                                                            │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────────╮                                                     │
+│ │               app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                               │                                                     │
+│ │ app_packages_path = WindowsPath('C:/Users/ayd/src/vector-inspector/build/vector-inspector/windows/app/src/app_packages') │                                                     │
+│ │        pip_kwargs = None                                                                                                 │                                                     │
+│ │  progress_message = 'Installing app requirements...'                                                                     │                                                     │
+│ │          requires = [                                                                                                    │                                                     │
+│ │                     │   'chromadb>=0.4.22',                                                                              │                                                     │
+│ │                     │   'qdrant-client>=1.7.0',                                                                          │                                                     │
+│ │                     │   'pyside6>=6.6.0',                                                                                │                                                     │
+│ │                     │   'PySide6-Addons>=6.6.3.1',                                                                       │                                                     │
+│ │                     │   'pandas>=2.1.0',                                                                                 │                                                     │
+│ │                     │   'numpy>=1.26.0',                                                                                 │                                                     │
+│ │                     │   'scikit-learn>=1.3.0',                                                                           │                                                     │
+│ │                     │   'umap-learn>=0.5.5',                                                                             │                                                     │
+│ │                     │   'plotly>=5.18.0',                                                                                │                                                     │
+│ │                     │   'sentence-transformers>=2.2.0',                                                                  │                                                     │
+│ │                     │   ... +9                                                                                           │                                                     │
+│ │                     ]                                                                                                    │                                                     │
+│ │              self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0>               │                                                     │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                     │
+│                                                                                                                                                                                  │
+│ c:\programdata\aos\miniconda3\lib\site-packages\briefcase\commands\create.py:595 in _pip_install                                                                                 │
+│                                                                                                                                                                                  │
+│   592 │   │   │   │   **pip_kwargs,                                                                                                                                              │
+│   593 │   │   │   )                                                                                                                                                              │
+│   594 │   │   except subprocess.CalledProcessError as e:                                                                                                                         │
+│ ❱ 595 │   │   │   raise RequirementsInstallError(install_hint=install_hint) from e                                                                                               │
+│   596 │                                                                                                                                                                          │
+│   597 │   def _install_app_requirements(                                                                                                                                         │
+│   598 │   │   self,                                                                                                                                                              │
+│                                                                                                                                                                                  │
+│ ╭───────────────────────────────────────────────────────── locals ─────────────────────────────────────────────────────────╮                                                     │
+│ │               app = <com.divinedevops.vector-inspector.vector-inspector v0.3.11 AppConfig>                               │                                                     │
+│ │ app_packages_path = WindowsPath('C:/Users/ayd/src/vector-inspector/build/vector-inspector/windows/app/src/app_packages') │                                                     │
+│ │      install_hint = ''                                                                                                   │                                                     │
+│ │          pip_args = [                                                                                                    │                                                     │
+│ │                     │   'chromadb>=0.4.22',                                                                              │                                                     │
+│ │                     │   'qdrant-client>=1.7.0',                                                                          │                                                     │
+│ │                     │   'pyside6>=6.6.0',                                                                                │                                                     │
+│ │                     │   'PySide6-Addons>=6.6.3.1',                                                                       │                                                     │
+│ │                     │   'pandas>=2.1.0',                                                                                 │                                                     │
+│ │                     │   'numpy>=1.26.0',                                                                                 │                                                     │
+│ │                     │   'scikit-learn>=1.3.0',                                                                           │                                                     │
+│ │                     │   'umap-learn>=0.5.5',                                                                             │                                                     │
+│ │                     │   'plotly>=5.18.0',                                                                                │                                                     │
+│ │                     │   'sentence-transformers>=2.2.0',                                                                  │                                                     │
+│ │                     │   ... +9                                                                                           │                                                     │
+│ │                     ]                                                                                                    │                                                     │
+│ │        pip_kwargs = {}                                                                                                   │                                                     │
+│ │              self = <briefcase.platforms.windows.app.WindowsAppCreateCommand object at 0x0000023CCB272CA0>               │                                                     │
+│ ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+RequirementsInstallError: Unable to install requirements. This may be because one of your
+requirements is invalid, or because pip was unable to connect
+to the PyPI server.
+

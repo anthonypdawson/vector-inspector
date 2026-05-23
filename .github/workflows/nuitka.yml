@@ -1,0 +1,171 @@
+name: Build Nuitka Binaries
+
+on:
+  workflow_dispatch:
+
+jobs:
+  nuitka-build:
+    name: Nuitka Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # ---------------------------------------------------------
+      # pip cache (using pdm.lock)
+      # ---------------------------------------------------------
+      - name: Cache pip (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-linux-${{ hashFiles('pdm.lock') }}
+          restore-keys: pip-linux-
+
+      - name: Cache pip (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: pip-macos-${{ hashFiles('pdm.lock') }}
+          restore-keys: pip-macos-
+
+      - name: Cache pip (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\\pip\\Cache
+          key: pip-windows-${{ hashFiles('pdm.lock') }}
+          restore-keys: pip-windows-
+
+      # ---------------------------------------------------------
+      # PDM cache
+      # ---------------------------------------------------------
+      - name: Cache PDM (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pdm
+          key: pdm-linux-${{ hashFiles('pdm.lock') }}
+          restore-keys: pdm-linux-
+
+      - name: Cache PDM (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pdm
+          key: pdm-macos-${{ hashFiles('pdm.lock') }}
+          restore-keys: pdm-macos-
+
+      - name: Cache PDM (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\\pdm
+          key: pdm-windows-${{ hashFiles('pdm.lock') }}
+          restore-keys: pdm-windows-
+
+      # ---------------------------------------------------------
+      # Nuitka cache
+      # ---------------------------------------------------------
+      - name: Cache Nuitka (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka
+          key: nuitka-linux-${{ hashFiles('src/**/*.py') }}
+          restore-keys: nuitka-linux-
+
+      - name: Cache Nuitka (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Nuitka
+          key: nuitka-macos-${{ hashFiles('src/**/*.py') }}
+          restore-keys: nuitka-macos-
+
+      - name: Cache Nuitka (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\\Nuitka\\Cache
+          key: nuitka-windows-${{ hashFiles('src/**/*.py') }}
+          restore-keys: nuitka-windows-
+
+      - name: Install PDM
+        run: pip install pdm
+
+      - name: Install project dependencies (includes Nuitka)
+        run: pdm install
+
+      - name: Build Nuitka binary
+        run: |
+            CMD="pdm run python -m nuitka --standalone --enable-plugin=pyside6 --output-dir=dist_nuitka --output-filename=vector-inspector --module-parameter=torch-disable-jit=yes --module-parameter=numba-disable-jit=yes --nofollow-import-to=torch --nofollow-import-to=transformers --nofollow-import-to=numba --nofollow-import-to=pandas src/vector_inspector/main.py"
+            echo "Running: $CMD"
+            if eval $CMD; then
+                SITE_PACKAGES=$(python -c "import sys, site, os; sp=site.getsitepackages()[0]; print(sp if os.path.isdir(os.path.join(sp, 'site-packages')) else os.path.join(sp, 'Lib', 'site-packages') if os.name == 'nt' else os.path.join(sp, 'lib', 'python'+sys.version[:3], 'site-packages'))")
+                DIST_DIR="dist_nuitka/main.dist"
+                NOFOLLOW_LIBS=(torch transformers numba pandas)
+                echo "Detected site-packages: $SITE_PACKAGES"
+                for lib in "${NOFOLLOW_LIBS[@]}"; do
+                    if [ -d "$SITE_PACKAGES/$lib" ]; then
+                        echo "Copying $lib from $SITE_PACKAGES to $DIST_DIR..."
+                        cp -r "$SITE_PACKAGES/$lib" "$DIST_DIR/"
+                    elif [ -d "$SITE_PACKAGES/${lib//-/_}" ]; then
+                        echo "Copying ${lib//-/_} from $SITE_PACKAGES to $DIST_DIR..."
+                        cp -r "$SITE_PACKAGES/${lib//-/_}" "$DIST_DIR/"
+                    else
+                        echo "Warning: $lib not found in $SITE_PACKAGES"
+                    fi
+                done
+            else
+                echo "Nuitka build failed, not copying libraries."
+                exit 1
+            fi
+
+      - name: Zip Nuitka output for artifact upload
+        if: success()
+        run: |
+          curr=$(grep -Po '^\s*version\s*=\s*"\K[^"]+' pyproject.toml || true)
+          cd dist_nuitka
+          zip -r vector-inspector-${curr}-artifact.zip main.dist
+
+      - name: Upload Nuitka artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-inspector-${{ runner.os }}-nuitka
+          path: dist_nuitka/vector-inspector-*-artifact.zip
+          if-no-files-found: ignore
+
+  attach:
+    name: Attach Binaries to Release
+    needs: nuitka-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Get current version
+        id: get_version
+        run: |
+          curr=$(grep -Po '^\s*version\s*=\s*"\K[^"]+' pyproject.toml || true)
+          echo "current=$curr" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.current }}
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

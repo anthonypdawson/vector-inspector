@@ -1,0 +1,21 @@
+site_name: Vector Inspector
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            docstring_style: google
+            merge_init_into_class: true
+
+nav:
+  - Home: index.md
+  - Developer Guide:
+      - Core: reference/core.md
+      - Providers: reference/providers.md
+      - Collections: reference/collections.md
+      - Items: reference/items.md

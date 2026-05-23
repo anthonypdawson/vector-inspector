@@ -6,6 +6,7 @@ Add new items below as needed. When an item is scheduled for a phase or release,
 ---
 ## Unscheduled Items
 
+- Status bar: Place a small label like “Showing X of Y rows” in the view’s status/footer — always visible and unobtrusive.
 - Add user-selectable embedding model for import/export and backup/restore
 - Track generic feature requests and improvements
 - Add defaults for each database provider in the new collection view
@@ -36,6 +37,12 @@ Add new items below as needed. When an item is scheduled for a phase or release,
     'upgrade.shown': {'trigger', 'feature_blocked'},
     'upgrade.clicked': {'plan', 'source'}
 }
+- The create new test data should have multiple changes
+    1. It should show the current connection in the dialog so the user knows where the new collection is being added
+    2. It should add a checkbox for 'random data'.  When it's unchecked the data is not randomized as it currently is and uses a  known order
+- Add histogram visualization for vector distributions in the collection view (e.g., show distribution of vector norms, or distribution of values in a specific dimension) to help users understand their data better.
+  - This could be a simple histogram or density plot that shows how the vectors are distributed in terms of their magnitudes or values in specific dimensions. It would provide insights into the structure of the data and help identify any anomalies or patterns.
+  - Allow comparison histograms between different collections or subsets of data to see how they differ in terms of vector distributions.
 - Implement cluster visualization with HDBSCAN (Premium) — moved to: ../vector-studio/docs/CLUSTER_VISUALIZATION_HDBSCAN.md
 - When catching an exception on connecting to a database, classify the error and show a more specific message to the user (e.g., authentication failure, network unreachable, timeout, problem with database etc.). Remove the loading dialog when an error occurs.
   - Example of a database failure

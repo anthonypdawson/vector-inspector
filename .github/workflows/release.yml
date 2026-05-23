@@ -1,0 +1,169 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      build_nuitka:
+        description: "Build Nuitka binaries?"
+        required: false
+        default: "false"
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # ---------------------------------------------------------
+      # pip cache
+      # ---------------------------------------------------------
+      - name: Cache pip (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-linux-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-linux-
+
+      - name: Cache pip (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: pip-macos-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-macos-
+
+      - name: Cache pip (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\\pip\\Cache
+          key: pip-windows-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-windows-
+
+      # ---------------------------------------------------------
+      # PDM cache
+      # ---------------------------------------------------------
+      - name: Cache PDM (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pdm
+          key: pdm-linux-${{ hashFiles('pdm.lock') }}
+          restore-keys: pdm-linux-
+
+      - name: Cache PDM (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pdm
+          key: pdm-macos-${{ hashFiles('pdm.lock') }}
+          restore-keys: pdm-macos-
+
+      - name: Cache PDM (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\\pdm
+          key: pdm-windows-${{ hashFiles('pdm.lock') }}
+          restore-keys: pdm-windows-
+
+      # ---------------------------------------------------------
+      # Nuitka cache
+      # ---------------------------------------------------------
+      - name: Cache Nuitka (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Nuitka
+          key: nuitka-linux-${{ hashFiles('src/**/*.py') }}
+          restore-keys: nuitka-linux-
+
+      - name: Cache Nuitka (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Nuitka
+          key: nuitka-macos-${{ hashFiles('src/**/*.py') }}
+          restore-keys: nuitka-macos-
+
+      - name: Cache Nuitka (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LOCALAPPDATA }}\\Nuitka\\Cache
+          key: nuitka-windows-${{ hashFiles('src/**/*.py') }}
+          restore-keys: nuitka-windows-
+
+      # ---------------------------------------------------------
+      # Install dependencies
+      # ---------------------------------------------------------
+      - name: Install PDM
+        run: pip install pdm
+
+      - name: Install project dependencies (includes Nuitka)
+        run: pdm install
+
+      # ---------------------------------------------------------
+      # Build wheel + sdist
+      # ---------------------------------------------------------
+      - name: Build wheel + sdist
+        run: pdm build
+
+      # ---------------------------------------------------------
+      # Optional Nuitka build
+      # ---------------------------------------------------------
+      - name: Build Nuitka binary
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_nuitka == 'true' }}
+        run: |
+          pdm run python -m nuitka \
+            --standalone \
+            --onefile \
+            --enable-plugin=pylint-warnings \
+            --enable-plugin=pyside6 \
+            --module-parameter=torch-disable-jit=yes \
+            --nofollow-import-to=torch \
+            --output-dir=dist_nuitka \
+            src/vector_inspector/main.py
+
+      # ---------------------------------------------------------
+      # Upload artifacts
+      # ---------------------------------------------------------
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-inspector-${{ runner.os }}
+          path: |
+            dist/*
+            dist_nuitka/*
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

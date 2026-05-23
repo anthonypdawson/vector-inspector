@@ -1,0 +1,44 @@
+🎙️ A clean, confident narration outline
+1. Opening (5–10 seconds)
+Something simple like:
+“I started building Vector Inspector with Chroma as the first provider, because it gave me a fast way to prototype and validate the core workflows.”
+
+This sets the tone without overselling.
+
+2. Connection flow (10–15 seconds)
+As you create the connection:
+“Here I’m connecting to a local Chroma database. File‑based workflows were the first thing I wanted to support, because they’re the most frictionless way to experiment.”
+
+This subtly highlights a pain point without criticizing them.
+
+3. Browsing a collection (10–15 seconds)
+As you click into a collection:
+“Once connected, you can browse collections, inspect metadata, and get a feel for the structure of your data.”
+
+This shows value without explaining every pixel.
+
+4. Data view (10–15 seconds)
+Scrolling the table:
+“The data view gives you IDs, metadata, and a preview of the embeddings so you can quickly understand what’s inside your vector store.”
+
+This is the “developer tool” moment.
+
+5. Search (10–15 seconds)
+Running a semantic query:
+“You can run semantic searches directly against the collection, which makes it easy to validate embeddings or debug retrieval behavior.”
+
+This is where they realize you’re solving real developer pain.
+
+6. Visualization (10–15 seconds)
+Switching to the scatterplot:
+“And there’s a built‑in visualization that lets you explore the embedding space interactively.”
+
+This is the “wow” moment.
+
+7. Closing (5 seconds)
+Something light:
+“Still early, but this should give you a sense of where I’m taking it.”
+
+Short, humble, confident.
+
+

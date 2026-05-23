@@ -1,0 +1,880 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0
+PySide6 6.11.0 -- Qt runtime 6.11.0 -- Qt compiled 6.11.0
+rootdir: C:\Users\ayd\src\vector-inspector
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.13.0, cov-7.0.0, env-1.5.0, qt-4.5.0, testmon-2.2.0, timeout-2.4.0, xdist-3.8.0
+timeout: 60.0s
+timeout method: thread
+timeout func_only: False
+collected 2227 items / 7 skipped
+
+tests\components\test_ask_ai_dialog.py ................................. [  1%]
+....................................                                     [  3%]
+tests\components\test_ask_ai_integration.py .                            [  3%]
+tests\components\test_create_collection_dialog.py ...                    [  3%]
+tests\components\test_create_collection_dialog_validations.py ..         [  3%]
+tests\components\test_filter_builder.py ...............................  [  4%]
+tests\components\test_ingestion_dialog.py ...............                [  5%]
+tests\components\test_inline_details_pane.py ........................... [  6%]
+......                                                                   [  6%]
+tests\components\test_item_details_dialog.py ..                          [  7%]
+tests\components\test_item_details_embedding.py .....                    [  7%]
+tests\components\test_item_details_preview.py ....                       [  7%]
+tests\components\test_pagination_controls.py ..............              [  8%]
+tests\components\test_profile_manager_panel.py .....................     [  8%]
+tests\components\test_profile_manager_panel_visibility.py .............. [  9%]
+...........                                                              [ 10%]
+tests\components\test_splash_window.py ......                            [ 10%]
+tests\components\test_update_details_dialog.py ....                      [ 10%]
+tests\core\embedding_providers\test_clip_provider.py ....                [ 10%]
+tests\core\embedding_providers\test_embedding_provider_factory.py ...... [ 11%]
+...                                                                      [ 11%]
+tests\core\llm_providers\test_capabilities_and_fake.py ..............    [ 11%]
+tests\core\llm_providers\test_llama_cpp.py ..............                [ 12%]
+tests\core\llm_providers\test_llm_providers.py ......................    [ 13%]
+tests\core\llm_providers\test_ollama.py ................                 [ 14%]
+tests\core\llm_providers\test_openai_compatible.py ..................... [ 15%]
+..                                                                       [ 15%]
+tests\core\llm_providers\test_providers_errors_and_factory.py ...s...... [ 15%]
+.....                                                                    [ 15%]
+tests\core\llm_providers\test_runtime_and_selection.py ................. [ 16%]
+.....                                                                    [ 16%]
+tests\core\llm_providers\test_runtime_manager_model_selection.py ..      [ 16%]
+tests\core\test_base_connection.py ................                      [ 17%]
+tests\core\test_clustering.py .........                                  [ 18%]
+tests\core\test_embedding_utils.py ........                              [ 18%]
+tests\core\test_encode_text.py ........                                  [ 18%]
+tests\core\test_feature_flags.py ........                                [ 19%]
+tests\core\test_logging.py ..........                                    [ 19%]
+tests\core\test_model_cache.py ................                          [ 20%]
+tests\core\test_model_registry.py ...............                        [ 20%]
+tests\core\test_provider_detection_features.py ..................        [ 21%]
+tests\core\test_provider_factory.py .ssssssssssssssss                    [ 22%]
+tests\core\test_sample_data_generator.py .................               [ 23%]
+tests\core\test_template_connection.py ...                               [ 23%]
+tests\core\test_text_generator.py .....................                  [ 24%]
+tests\integration\test_clustering_real_embeddings.py ..........          [ 24%]
+tests\integration\test_multimodal_ingestion.py ............              [ 25%]
+tests\integration\test_provider_manager.py ............................. [ 26%]
+..........                                                               [ 27%]
+tests\metadata\test_cache_helpers.py ......                              [ 27%]
+tests\metadata\test_cluster_saving.py .............                      [ 27%]
+tests\metadata\test_data_loading_helpers.py .....................        [ 28%]
+tests\metadata\test_data_operations.py ..........                        [ 29%]
+tests\metadata\test_import_export_helpers.py .....                       [ 29%]
+tests\metadata\test_item_update_helpers.py .........                     [ 29%]
+tests\metadata\test_metadata_context.py .....                            [ 30%]
+tests\metadata\test_metadata_filters_helper.py .....                     [ 30%]
+tests\metadata\test_metadata_navigation.py ..........                    [ 30%]
+tests\metadata\test_metadata_table.py ...........................        [ 32%]
+tests\metadata\test_metadata_threads_worker.py ......................... [ 33%]
+..                                                                       [ 33%]
+tests\metadata\test_plot_selection.py ..............                     [ 33%]
+tests\metadata\test_telemetry_settings_panel.py ..............           [ 34%]
+tests\metadata\test_timestamp_injection.py ........                      [ 34%]
+tests\providers\test_delete_where.py ..                                  [ 34%]
+tests\providers\test_query_embedding_fields.py ssssssssssss              [ 35%]
+tests\providers\weaviate\test_weaviate_connection.py ................... [ 36%]
+............                                                             [ 36%]
+tests\services\test_app_state.py .....................................   [ 38%]
+tests\services\test_backup_helpers.py ..                                 [ 38%]
+tests\services\test_backup_restore_service.py .......................... [ 39%]
+............                                                             [ 40%]
+tests\services\test_cache_manager.py ...................                 [ 41%]
+tests\services\test_cluster_runner.py .                                  [ 41%]
+tests\services\test_collection_service.py .......                        [ 41%]
+tests\services\test_collection_service_edgecases.py .......              [ 41%]
+tests\services\test_connection_manager.py .............................  [ 43%]
+tests\services\test_credential_service.py ...........                    [ 43%]
+tests\services\test_data_loaders.py ................................     [ 45%]
+tests\services\test_file_ingestion_service.py .......................... [ 46%]
+..........................                                               [ 47%]
+tests\services\test_filter_service.py ..........                         [ 47%]
+tests\services\test_highlight_settings.py .                              [ 47%]
+tests\services\test_import_export_service.py ...s..s.s...s               [ 48%]
+tests\services\test_install_service.py ................................. [ 50%]
+........................................................................ [ 53%]
+..                                                                       [ 53%]
+tests\services\test_model_cache.py .................                     [ 54%]
+tests\services\test_profile_service.py ................................. [ 55%]
+.....                                                                    [ 55%]
+tests\services\test_search_ai_service.py ............................... [ 57%]
+                                                                         [ 57%]
+tests\services\test_search_context.py .....................              [ 58%]
+tests\services\test_search_runner.py ...........                         [ 58%]
+tests\services\test_settings_service.py ................................ [ 60%]
+...........................                                              [ 61%]
+tests\services\test_status_reporter.py ................................  [ 62%]
+tests\services\test_status_reporter_timeout.py ...........               [ 63%]
+tests\services\test_task_runner.py ............                          [ 63%]
+tests\services\test_telemetry_service.py ............................... [ 65%]
+.............                                                            [ 65%]
+tests\services\test_update_service.py .............                      [ 66%]
+tests\services\test_visualization_service.py ..............              [ 66%]
+tests\test_cli.py ..............................                         [ 68%]
+tests\test_main.py .                                                     [ 68%]
+tests\test_shutdown.py .                                                 [ 68%]
+tests\ui\components\test_backup_restore_threads.py .......               [ 68%]
+tests\ui\components\test_connection_manager_threads.py .....             [ 68%]
+tests\ui\services\test_dialog_service.py .......                         [ 69%]
+tests\ui\test_backup_restore_dialog.py ....................              [ 70%]
+tests\ui\test_connection_controller.py ...................               [ 70%]
+tests\ui\test_connection_manager_panel.py ...                            [ 71%]
+tests\ui\test_cross_db_migration.py ...............                      [ 71%]
+tests\ui\test_embedding_config_dialog.py ........                        [ 72%]
+tests\ui\test_llm_console.py ......................................      [ 73%]
+tests\ui\test_llm_settings_panel.py ................                     [ 74%]
+tests\ui\test_loading_screen.py .......                                  [ 74%]
+tests\ui\test_main_window_default_left_tab.py .                          [ 74%]
+tests\ui\test_main_window_telemetry.py .                                 [ 74%]
+tests\ui\test_provider_install_dialog.py ......................          [ 75%]
+tests\ui\test_provider_type_dialog.py ........                           [ 76%]
+tests\ui\test_settings_appearance.py ....                                [ 76%]
+tests\ui\test_settings_dialog.py ....................................... [ 78%]
+...........                                                              [ 78%]
+tests\ui\views\metadata\test_metadata_io.py ............                 [ 79%]
+tests\utils\test_array_utils.py ........                                 [ 79%]
+tests\utils\test_exception_handler.py ..............                     [ 80%]
+tests\utils\test_file_preview_utils.py ................................. [ 81%]
+...                                                                      [ 81%]
+tests\utils\test_hardware_info.py ........                               [ 82%]
+tests\utils\test_json_safe.py ..                                         [ 82%]
+tests\utils\test_lazy_imports.py .............................           [ 83%]
+tests\utils\test_version.py ....                                         [ 83%]
+tests\views\test_cache_helpers.py ..                                     [ 83%]
+tests\views\test_clustering_panel.py ...........                         [ 84%]
+tests\views\test_collection_browser.py ............                      [ 84%]
+tests\views\test_collection_ready_state.py ...............               [ 85%]
+tests\views\test_collection_worker.py .........                          [ 86%]
+tests\views\test_connection_view.py ..............................       [ 87%]
+tests\views\test_data_loading_helpers.py ....                            [ 87%]
+tests\views\test_demo_collection_view.py ............                    [ 88%]
+tests\views\test_histogram_panel.py .................................... [ 89%]
+                                                                         [ 89%]
+tests\views\test_info_panel.py ..........                                [ 90%]
+tests\views\test_main_window.py .................                        [ 90%]
+tests\views\test_metadata_view_inline_details.py .................       [ 91%]
+tests\views\test_metadata_view_status_reporting.py ............          [ 92%]
+tests\views\test_plot_panel.py ..................                        [ 93%]
+tests\views\test_search_threads.py .........                             [ 93%]
+tests\views\test_search_view.py .......................................  [ 95%]
+tests\views\test_search_view_ask_ai.py .........................         [ 96%]
+tests\views\test_search_view_inline_details.py .....................     [ 97%]
+tests\views\test_visualization_view.py ................................. [ 98%]
+............................                                             [100%]
+
+============================== slowest durations ==============================
+20.35s call     tests/services/test_visualization_service.py::test_reduce_dimensions_umap
+5.57s call     tests/integration/test_clustering_real_embeddings.py::TestKMeansRealEmbeddings::test_finds_correct_number_of_clusters
+4.06s call     tests/core/llm_providers/test_llm_providers.py::TestLLMProviderFactoryExplicitTypes::test_unknown_type_falls_back_to_auto
+4.03s call     tests/core/llm_providers/test_runtime_and_selection.py::TestRuntimeManagerSelection::test_autodetect_used_when_no_explicit_or_env
+4.01s call     tests/ui/test_llm_settings_panel.py::TestHealthCheckThread::test_run_emits_health_result
+4.01s call     tests/core/llm_providers/test_providers_errors_and_factory.py::TestProviderFactoryEdgeCases::test_unknown_provider_type_is_tolerated
+3.59s call     tests/core/test_encode_text.py::TestEncodeTextCLIPPath::test_returns_normalized_list
+2.01s call     tests/ui/test_llm_settings_panel.py::TestModelListThread::test_ollama_unreachable_emits_error
+1.01s call     tests/services/test_task_runner.py::test_threaded_task_runner_cancel_all
+0.89s call     tests/ui/test_settings_dialog.py::test_on_use_accent_changed_disabled
+0.49s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_to_metadata_success
+0.46s call     tests/views/test_histogram_panel.py::test_histogram_includes_connection_names
+0.39s teardown tests/views/test_histogram_panel.py::test_on_load_comparison_starts_thread
+0.37s teardown tests/views/test_histogram_panel.py::test_on_compare_toggled_false_resets
+0.35s teardown tests/views/test_histogram_panel.py::test_on_compare_toggled_no_connections
+0.33s teardown tests/views/test_histogram_panel.py::test_on_compare_toggled_off_with_current_data
+0.33s teardown tests/views/test_histogram_panel.py::test_on_compare_toggled_true_no_primary_dim
+0.31s teardown tests/views/test_plot_panel.py::test_plot_panel_instantiates
+0.30s teardown tests/views/test_plot_panel.py::test_on_view_data_clicked_emits_signal
+0.29s teardown tests/views/test_plot_panel.py::test_create_plot_none_data
+0.28s teardown tests/views/test_visualization_view.py::test_on_data_load_error_shows_warning
+0.28s teardown tests/views/test_visualization_view.py::test_on_data_loaded_starts_visualization_thread
+0.28s teardown tests/views/test_visualization_view.py::test_open_in_browser_does_nothing_without_html
+0.28s teardown tests/views/test_histogram_panel.py::test_on_dim_scan_finished_with_results
+0.28s teardown tests/views/test_histogram_panel.py::test_set_data_different_dim_resets_comparison
+0.28s teardown tests/views/test_histogram_panel.py::test_on_compare_toggled_with_connection_starts_scan
+0.28s teardown tests/views/test_plot_panel.py::test_on_view_data_clicked_no_selection
+0.27s teardown tests/views/test_visualization_view.py::test_on_clustering_finished_density_algo_counts_noise
+0.27s teardown tests/views/test_histogram_panel.py::test_render_uses_connection_name_in_primary_label
+0.27s teardown tests/views/test_plot_panel.py::test_on_clear_selection_clicked
+0.27s teardown tests/views/test_visualization_view.py::test_visualization_view_status_label_initial
+0.27s teardown tests/views/test_histogram_panel.py::test_on_compare_loaded
+0.27s teardown tests/views/test_histogram_panel.py::test_on_compare_toggled_with_connection_manager
+0.26s teardown tests/views/test_histogram_panel.py::test_on_load_comparison_no_label
+0.26s teardown tests/views/test_visualization_view.py::test_visualization_view_instantiates
+0.26s teardown tests/views/test_plot_panel.py::test_on_point_selected_deselect
+0.26s teardown tests/views/test_histogram_panel.py::test_histogram_includes_connection_names
+0.26s teardown tests/views/test_plot_panel.py::test_create_plot_2d_with_clusters
+0.26s teardown tests/views/test_histogram_panel.py::test_extract_values_for_comparison_out_of_range
+0.26s teardown tests/views/test_visualization_view.py::test_save_temp_html_writes_file_when_html_available
+0.26s call     tests/ui/test_settings_appearance.py::test_accent_checkbox_toggles_global_stylesheet
+0.25s teardown tests/views/test_visualization_view.py::test_on_clustering_finished_updates_labels
+0.25s teardown tests/views/test_plot_panel.py::test_create_plot_3d
+0.25s teardown tests/views/test_visualization_view.py::test_set_collection_updates_state
+0.25s teardown tests/views/test_visualization_view.py::test_on_collection_changed_calls_set_collection
+0.25s teardown tests/views/test_histogram_panel.py::test_set_data_same_dim_does_not_reset_comparison
+0.25s teardown tests/views/test_visualization_view.py::test_open_in_browser_calls_webbrowser_open
+0.25s teardown tests/views/test_plot_panel.py::test_on_point_selected_with_cluster_labels
+0.25s teardown tests/views/test_visualization_view.py::test_on_view_in_data_browser_emits_signal
+0.25s teardown tests/views/test_visualization_view.py::test_set_collection_clears_old_cluster_results
+0.25s teardown tests/views/test_histogram_panel.py::test_on_compare_error
+0.25s teardown tests/views/test_visualization_view.py::test_on_provider_changed_updates_connection
+0.24s teardown tests/views/test_plot_panel.py::test_on_point_selected_positive_index
+0.24s teardown tests/views/test_histogram_panel.py::test_extract_values_for_comparison_no_embeddings
+0.24s teardown tests/views/test_visualization_view.py::test_on_loading_finished_hides_dialog
+0.24s teardown tests/views/test_visualization_view.py::test_on_reduction_finished_updates_reduced_data
+0.24s teardown tests/views/test_visualization_view.py::test_generate_visualization_cancels_running_thread
+0.24s teardown tests/views/test_histogram_panel.py::test_extract_values_empty_embeddings_sets_status
+0.24s teardown tests/views/test_histogram_panel.py::test_generate_histogram_primary_values_none_returns_silently
+0.24s teardown tests/views/test_plot_panel.py::test_create_plot_2d
+0.24s teardown tests/views/test_visualization_view.py::test_generate_visualization_no_collection_shows_warning
+0.23s teardown tests/views/test_histogram_panel.py::test_generate_histogram_no_data_sets_status
+0.23s teardown tests/views/test_histogram_panel.py::test_extract_values_norm_and_dimension
+0.23s teardown tests/views/test_visualization_view.py::test_generate_visualization_starts_thread_when_collection_set
+0.23s teardown tests/views/test_visualization_view.py::test_run_clustering_no_collection_warns
+0.23s teardown tests/views/test_visualization_view.py::test_on_collection_changed_empty_does_nothing
+0.23s teardown tests/views/test_visualization_view.py::test_on_clustering_finished_reports_to_status_bar
+0.23s teardown tests/views/test_visualization_view.py::test_on_clustering_error_shows_warning
+0.23s teardown tests/views/test_visualization_view.py::test_save_cluster_labels_exception_shows_warning
+0.23s teardown tests/views/test_histogram_panel.py::test_extract_values_dim_out_of_range
+0.23s call     tests/services/test_profile_service.py::test_delete_profile_removes_it
+0.23s teardown tests/views/test_plot_panel.py::test_on_interaction_tolerates_exception
+0.23s teardown tests/views/test_visualization_view.py::test_on_reduction_error_shows_warning
+0.23s teardown tests/views/test_visualization_view.py::test_on_clustering_data_loaded_valid_data_starts_clustering
+0.23s teardown tests/views/test_visualization_view.py::test_on_reduction_finished_reports_to_status_bar
+0.23s teardown tests/views/test_plot_panel.py::test_on_interaction_calls_telemetry
+0.22s teardown tests/views/test_visualization_view.py::test_generate_visualization_uses_all_data_when_checked
+0.22s teardown tests/views/test_visualization_view.py::test_on_error_shows_critical_dialog
+0.22s teardown tests/views/test_visualization_view.py::test_on_data_loaded_tsne_method_handled
+0.22s teardown tests/views/test_histogram_panel.py::test_set_connection_manager
+0.22s teardown tests/views/test_visualization_view.py::test_on_view_in_data_browser_ignores_empty_id
+0.22s teardown tests/views/test_visualization_view.py::test_on_data_loaded_warns_when_empty_data
+0.22s teardown tests/views/test_histogram_panel.py::test_on_clear_resets_state
+0.22s teardown tests/views/test_visualization_view.py::test_run_clustering_with_existing_data_starts_clustering_thread
+0.22s teardown tests/views/test_visualization_view.py::test_on_clustering_finished_saves_labels_when_checkbox_checked
+0.22s teardown tests/views/test_visualization_view.py::test_cleanup_temp_html_removes_files
+0.22s teardown tests/views/test_visualization_view.py::test_on_loading_started_shows_dialog
+0.22s teardown tests/metadata/test_plot_selection.py::test_plot_panel_on_view_data_clicked_emits_signal
+0.22s teardown tests/views/test_visualization_view.py::test_set_collection_exception_in_try_block_is_swallowed
+0.22s teardown tests/views/test_visualization_view.py::test_on_feature_missing_hides_loading_and_re_enables_button
+0.22s teardown tests/views/test_visualization_view.py::test_on_reduction_finished_reports_zero_points_for_none_data
+0.22s teardown tests/views/test_visualization_view.py::test_on_clustering_data_loaded_no_embeddings_shows_warning
+0.21s teardown tests/views/test_visualization_view.py::test_on_data_loaded_warns_when_no_embeddings
+0.21s teardown tests/views/test_visualization_view.py::test_on_clustering_finished_with_reduced_data_recreates_plot
+0.21s teardown tests/views/test_visualization_view.py::test_use_all_checkbox_disables_sample_spin
+0.21s teardown tests/views/test_visualization_view.py::test_save_cluster_labels_to_metadata_success
+0.21s teardown tests/views/test_visualization_view.py::test_on_clustering_finished_hdbscan_reports_non_noise_clusters
+0.21s teardown tests/views/test_visualization_view.py::test_save_cluster_labels_to_metadata_update_fails_warns
+0.21s teardown tests/views/test_visualization_view.py::test_cleanup_temp_html_tolerates_missing_files
+0.21s teardown tests/views/test_visualization_view.py::test_on_feature_missing_does_nothing_for_unknown_feature_id
+0.21s teardown tests/views/test_histogram_panel.py::test_on_load_comparison_invalid_option
+0.21s call     tests/services/test_telemetry_service.py::test_send_launch_ping_posts_event
+0.21s teardown tests/views/test_visualization_view.py::test_run_clustering_without_data_creates_load_thread
+0.21s teardown tests/metadata/test_plot_selection.py::test_plot_panel_has_selection_ui_elements
+0.20s teardown tests/metadata/test_plot_selection.py::test_plot_panel_on_point_deselected_clears_ui
+0.20s teardown tests/metadata/test_plot_selection.py::test_plot_event_bridge_signal_connected_to_panel
+0.20s teardown tests/metadata/test_plot_selection.py::test_plot_panel_on_point_selected_updates_ui
+0.20s call     tests/ui/test_settings_dialog.py::test_load_values_accent_checkbox_checked_when_enabled
+0.20s teardown tests/metadata/test_plot_selection.py::test_plot_panel_view_data_button_disabled_when_no_selection
+0.19s teardown tests/metadata/test_plot_selection.py::test_plot_panel_view_in_data_browser_signal
+0.17s teardown tests/metadata/test_cluster_saving.py::test_save_cluster_labels_to_metadata_success
+0.17s call     tests/ui/test_settings_dialog.py::test_on_use_accent_changed_enabled
+0.17s teardown tests/metadata/test_cluster_saving.py::test_save_cluster_labels_preserves_existing_metadata
+0.15s teardown tests/metadata/test_plot_selection.py::test_visualization_view_forwards_signal
+0.15s call     tests/views/test_main_window.py::test_update_views_for_collection_empty_disables_views
+0.15s call     tests/views/test_main_window.py::test_tools_menu_has_import_actions
+0.15s teardown tests/metadata/test_cluster_saving.py::test_save_cluster_labels_update_fails
+0.14s teardown tests/metadata/test_cluster_saving.py::test_save_cluster_labels_no_cluster_data
+0.14s teardown tests/metadata/test_cluster_saving.py::test_save_cluster_labels_no_connection
+0.14s teardown tests/metadata/test_cluster_saving.py::test_save_cluster_labels_no_collection
+0.14s teardown tests/metadata/test_cluster_saving.py::test_save_cluster_labels_adds_updated_at
+0.13s call     tests/ui/test_settings_dialog.py::test_features_tab_exists
+0.13s call     tests/integration/test_clustering_real_embeddings.py::TestHDBSCANRealEmbeddings::test_produces_at_least_one_non_noise_cluster
+0.12s call     tests/views/test_search_view_inline_details.py::test_pane_shows_on_result_selection
+0.12s call     tests/views/test_plot_panel.py::test_create_plot_2d
+0.11s call     tests/metadata/test_plot_selection.py::test_plot_event_bridge_signal_connected_to_panel
+0.10s call     tests/views/test_main_window.py::test_connect_to_profile_success_switches_to_active_tab
+0.10s call     tests/views/test_main_window.py::test_connect_to_profile_failure_does_not_switch_tab
+0.10s call     tests/views/test_main_window.py::test_ingest_no_metadata_view_shows_info
+0.10s call     tests/views/test_main_window.py::test_set_collection_tabs_enabled_true_calls_set_collection_ready
+0.10s call     tests/views/test_main_window.py::test_on_view_in_data_browser_requests_selection
+0.10s call     tests/views/test_main_window.py::test_new_connection_from_profile_switches_tab_and_opens_dialog
+0.10s call     tests/views/test_main_window.py::test_ingest_images_delegates_to_metadata_view
+0.10s call     tests/views/test_main_window.py::test_ingest_documents_delegates_to_metadata_view
+0.09s call     tests/views/test_main_window.py::test_on_setting_changed_status_timeout_ms_updates_reporter
+0.09s call     tests/views/test_main_window.py::test_set_collection_tabs_enabled_skips_views_without_method
+0.09s call     tests/views/test_main_window.py::test_set_collection_tabs_enabled_false_calls_set_collection_ready
+0.09s call     tests/views/test_main_window.py::test_main_window_initialization
+0.09s setup    tests/views/test_visualization_view.py::test_on_clustering_finished_updates_labels
+0.08s call     tests/core/test_sample_data_generator.py::test_generate_large_count_smoke
+0.08s call     tests/views/test_main_window.py::test_on_connection_completed_failure_no_report_action
+0.08s call     tests/views/test_main_window.py::test_on_connection_completed_success_calls_report_action
+0.08s call     tests/views/test_main_window.py::test_toggle_cache_calls_cache_manager
+0.07s setup    tests/services/test_profile_service.py::test_load_profiles_when_no_file
+0.07s call     tests/ui/test_settings_dialog.py::test_refresh_feature_statuses_updates_button_when_newly_installed
+0.07s setup    tests/views/test_visualization_view.py::test_on_data_load_error_shows_warning
+0.07s call     tests/views/test_histogram_panel.py::test_on_compare_toggled_off_with_current_data
+0.07s call     tests/components/test_inline_details_pane.py::test_file_preview_section_visible_for_text
+0.07s call     tests/components/test_inline_details_pane.py::test_update_item_with_data
+0.07s call     tests/services/test_visualization_service.py::test_reduce_dimensions_tsne
+0.07s call     tests/views/test_plot_panel.py::test_create_plot_3d
+0.07s call     tests/test_shutdown.py::test_mainwindow_shutdown_no_exceptions
+0.07s call     tests/utils/test_hardware_info.py::test_returns_dict
+0.06s call     tests/views/test_histogram_panel.py::test_on_compare_toggled_false_resets
+0.06s call     tests/utils/test_hardware_info.py::test_has_ram_key
+0.06s call     tests/utils/test_hardware_info.py::test_does_not_raise
+0.06s call     tests/utils/test_hardware_info.py::test_has_cpu_info
+0.06s call     tests/views/test_histogram_panel.py::test_on_compare_loaded
+0.06s call     tests/views/test_connection_view.py::test_refresh_providers_silent_suppresses_messagebox
+0.06s call     tests/utils/test_hardware_info.py::test_cpu_fallback_without_psutil
+0.06s call     tests/utils/test_hardware_info.py::test_has_gpu_key
+0.06s call     tests/ui/test_settings_dialog.py::test_features_tab_has_all_four_feature_rows
+0.06s call     tests/ui/test_settings_dialog.py::test_clear_cache_flow
+0.06s setup    tests/views/test_visualization_view.py::test_visualization_view_status_label_initial
+0.06s call     tests/ui/test_settings_dialog.py::test_features_tab_installed_shows_checkmark
+0.06s call     tests/ui/test_settings_dialog.py::test_features_tab_not_installed_shows_install_button
+0.05s call     tests/ui/test_settings_dialog.py::test_features_tab_not_installed_shows_cross
+0.05s call     tests/ui/test_settings_dialog.py::test_on_install_clicked_opens_provider_install_dialog
+0.05s call     tests/ui/test_settings_dialog.py::test_refresh_provider_statuses_updates_button_when_newly_installed
+0.05s call     tests/ui/test_settings_dialog.py::test_status_timeout_spinbox_zero_shows_permanent_text
+0.05s teardown tests/ui/test_settings_dialog.py::test_load_values_accent_checkbox_checked_when_enabled
+0.05s call     tests/ui/test_settings_dialog.py::test_providers_tab_is_separate_from_features_tab
+0.05s call     tests/ui/test_settings_dialog.py::test_get_tab_layout_returns_existing
+0.05s call     tests/ui/test_settings_dialog.py::test_reset_highlight_defaults
+0.05s call     tests/ui/test_settings_dialog.py::test_features_tab_installed_shows_uninstall_button
+0.05s call     tests/ui/test_settings_dialog.py::test_feature_row_action_btn_tooltip_contains_package_spec
+0.05s call     tests/ui/test_settings_dialog.py::test_on_uninstall_done_success_updates_status_message
+0.05s call     tests/ui/test_settings_dialog.py::test_on_uninstall_clicked_cancelled_does_not_start_thread
+0.05s call     tests/ui/test_settings_dialog.py::test_on_uninstall_done_failure_updates_status_message
+0.05s setup    tests/views/test_visualization_view.py::test_on_reduction_finished_updates_reduced_data
+0.05s call     tests/views/test_connection_view.py::test_on_provider_changed_qdrant_else_branch
+0.05s call     tests/ui/test_settings_dialog.py::test_status_timeout_spinbox_loads_default
+0.05s setup    tests/views/test_visualization_view.py::test_on_reduction_error_shows_warning
+0.05s call     tests/views/test_histogram_panel.py::test_generate_histogram_primary_values_none_returns_silently
+0.05s call     tests/ui/test_settings_dialog.py::test_provider_row_action_btn_tooltip_contains_package_spec
+0.05s call     tests/ui/test_settings_dialog.py::test_add_section_layout_routed_to_correct_tab
+0.05s call     tests/views/test_connection_view.py::test_get_connection_config_http_and_ephemeral
+0.05s call     tests/ui/test_settings_dialog.py::test_add_section_creates_tab_if_missing
+0.05s setup    tests/views/test_visualization_view.py::test_open_in_browser_calls_webbrowser_open
+0.05s call     tests/views/test_connection_view.py::test_get_connection_config_pgvector
+0.05s call     tests/views/test_histogram_panel.py::test_set_data_same_dim_does_not_reset_comparison
+0.05s call     tests/ui/test_settings_dialog.py::test_status_timeout_spinbox_change_calls_settings
+0.04s setup    tests/views/test_visualization_view.py::test_set_collection_updates_state
+0.04s setup    tests/views/test_visualization_view.py::test_open_in_browser_does_nothing_without_html
+0.04s call     tests/core/test_provider_detection_features.py::test_get_all_feature_info_returns_four_items
+0.04s call     tests/ui/test_settings_dialog.py::test_reset_defaults_sets_timeout_to_5s
+0.04s call     tests/ui/test_settings_appearance.py::test_reset_button_restores_defaults_and_saves
+0.04s call     tests/ui/test_settings_dialog.py::test_core_tabs_present
+0.04s setup    tests/views/test_visualization_view.py::test_on_collection_changed_calls_set_collection
+0.04s setup    tests/views/test_visualization_view.py::test_on_loading_started_shows_dialog
+0.04s call     tests/ui/test_settings_dialog.py::test_get_tab_layout_creates_new_tab
+0.04s call     tests/views/test_histogram_panel.py::test_render_uses_connection_name_in_primary_label
+0.04s call     tests/core/llm_providers/test_providers_errors_and_factory.py::TestInvalidModelName::test_openai_invalid_model_raises_provider_error
+0.04s setup    tests/views/test_visualization_view.py::test_cleanup_temp_html_removes_files
+0.04s setup    tests/views/test_metadata_view_inline_details.py::test_edit_method_exists
+0.04s call     tests/ui/test_settings_dialog.py::test_on_provider_uninstall_clicked_yes_starts_thread
+0.04s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddFinished::test_failure_shows_warning
+0.04s setup    tests/views/test_search_view_inline_details.py::test_query_section_content_hugs_top
+0.04s setup    tests/views/test_visualization_view.py::test_on_data_loaded_starts_visualization_thread
+0.04s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_truthy_results_but_empty_ids_is_noop
+0.04s call     tests/ui/test_settings_dialog.py::test_dialog_has_tab_widget
+0.04s setup    tests/views/test_visualization_view.py::test_on_clustering_finished_saves_labels_when_checkbox_checked
+0.04s setup    tests/views/test_search_view_inline_details.py::test_inline_details_pane_exists
+0.04s call     tests/ui/test_settings_dialog.py::test_provider_installed_shows_uninstall_button
+0.04s call     tests/ui/test_settings_appearance.py::test_color_picker_updates_settings
+0.04s call     tests/components/test_inline_details_pane.py::test_file_preview_section_visible_for_image
+0.04s call     tests/views/test_connection_view.py::test_on_provider_changed_port_updates
+0.04s call     tests/views/test_connection_view.py::test_on_provider_changed_pinecone_branch
+0.04s setup    tests/views/test_visualization_view.py::test_cleanup_temp_html_tolerates_missing_files
+0.04s call     tests/ui/test_settings_dialog.py::test_provider_rows_created_for_patched_providers
+0.04s call     tests/ui/test_settings_dialog.py::test_on_provider_uninstall_done_success_updates_status_message
+0.04s call     tests/ui/test_settings_dialog.py::test_apply_preset
+0.04s setup    tests/views/test_visualization_view.py::test_save_temp_html_writes_file_when_html_available
+0.04s call     tests/ui/test_settings_dialog.py::test_uninstall_button_click_emits_with_bool_arg
+0.04s setup    tests/views/test_visualization_view.py::test_on_view_in_data_browser_ignores_empty_id
+0.04s call     tests/ui/test_settings_appearance.py::test_loads_saved_color_values_on_init
+0.04s setup    tests/views/test_search_view.py::test_on_search_finished_uses_provider_attribute_for_db_type
+0.04s setup    tests/views/test_visualization_view.py::test_on_data_loaded_warns_when_empty_data
+0.04s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_truthy_results_but_empty_ids_does_not_open_dialog
+0.04s setup    tests/views/test_search_view.py::test_copy_vectors_fetches_embedding
+0.04s call     tests/views/test_connection_view.py::test_provider_changes_enable_fields
+0.04s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_no_results_shows_message_box
+0.04s call     tests/ui/test_settings_dialog.py::test_provider_not_installed_shows_cross
+0.04s setup    tests/views/test_visualization_view.py::test_run_clustering_with_existing_data_starts_clustering_thread
+0.04s setup    tests/views/test_search_view_ask_ai.py::test_check_llm_configured_logs_unexpected_exception
+0.04s call     tests/ui/test_settings_dialog.py::test_on_provider_install_clicked_opens_install_dialog
+0.04s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_passes_prefilled_prompt
+0.04s setup    tests/views/test_visualization_view.py::test_on_data_loaded_tsne_method_handled
+0.04s setup    tests/views/test_visualization_view.py::test_use_all_checkbox_disables_sample_spin
+0.04s setup    tests/views/test_visualization_view.py::test_on_error_shows_critical_dialog
+0.04s setup    tests/views/test_visualization_view.py::test_run_clustering_without_data_creates_load_thread
+0.04s setup    tests/views/test_search_view.py::test_display_results_null_distance
+0.04s setup    tests/views/test_search_view.py::test_close_event_saves_pane_state
+0.04s setup    tests/views/test_visualization_view.py::test_visualization_view_instantiates
+0.04s setup    tests/views/test_search_view.py::test_display_results_column_restore_on_second_call
+0.04s setup    tests/views/test_search_view.py::test_on_search_finished_query_embedding_none_when_absent
+0.04s setup    tests/views/test_search_view.py::test_on_selection_changed_no_results
+0.04s setup    tests/views/test_visualization_view.py::test_set_collection_clears_old_cluster_results
+0.04s call     tests/ui/test_settings_dialog.py::test_on_provider_uninstall_done_failure_updates_status_message
+0.04s setup    tests/views/test_visualization_view.py::test_run_clustering_no_collection_warns
+0.04s setup    tests/views/test_search_view.py::test_on_search_finished_populates_search_context
+0.04s call     tests/views/test_visualization_view.py::test_on_data_loaded_starts_visualization_thread
+0.04s setup    tests/views/test_visualization_view.py::test_on_clustering_finished_density_algo_counts_noise
+0.04s setup    tests/views/test_visualization_view.py::test_generate_visualization_starts_thread_when_collection_set
+0.04s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_empty_dict_shows_message_box
+0.04s setup    tests/views/test_search_view_inline_details.py::test_splitter_allocates_more_space_to_results
+0.04s setup    tests/views/test_visualization_view.py::test_save_cluster_labels_to_metadata_update_fails_warns
+0.04s call     tests/views/test_histogram_panel.py::test_on_clear_resets_state
+0.04s setup    tests/views/test_metadata_view_inline_details.py::test_selection_updates_inline_pane
+0.04s setup    tests/views/test_visualization_view.py::test_on_clustering_data_loaded_valid_data_starts_clustering
+0.04s call     tests/views/test_connection_view.py::test_get_connection_config_and_browse
+0.04s setup    tests/views/test_search_view.py::test_on_search_finished_empty_results
+0.04s call     tests/ui/test_settings_dialog.py::test_settings_panel_hook_exception_swallowed
+0.04s setup    tests/views/test_search_view.py::test_on_error_shows_critical_dialog
+0.04s call     tests/views/test_plot_panel.py::test_create_plot_2d_with_clusters
+0.04s call     tests/views/test_connection_view.py::test_on_type_changed_pinecone
+0.04s setup    tests/views/test_collection_ready_state.py::test_search_button_disabled_on_init
+0.04s call     tests/ui/test_settings_dialog.py::test_load_values_and_apply
+0.04s call     tests/ui/test_settings_dialog.py::test_ok_button_calls_apply_and_accepts
+0.04s call     tests/ui/test_main_window_telemetry.py::test_close_event_calls_flush_on_shutdown
+0.04s setup    tests/views/test_search_view_inline_details.py::test_pane_shows_on_result_selection
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_passes_selected_row
+0.03s call     tests/views/test_connection_view.py::test_on_type_changed_pgvector
+0.03s call     tests/views/test_metadata_view_inline_details.py::test_inline_pane_handles_missing_embedding
+0.03s call     tests/ui/test_settings_dialog.py::test_on_provider_uninstall_clicked_cancelled_does_not_start_thread
+0.03s setup    tests/views/test_search_view_inline_details.py::test_similarity_calculation
+0.03s call     tests/views/test_visualization_view.py::test_on_clustering_data_loaded_valid_data_starts_clustering
+0.03s setup    tests/views/test_visualization_view.py::test_on_loading_finished_hides_dialog
+0.03s call     tests/ui/test_settings_dialog.py::test_provider_installed_shows_checkmark
+0.03s setup    tests/views/test_visualization_view.py::test_on_data_loaded_warns_when_no_embeddings
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_initial_indices_clamped_to_llm_context_max
+0.03s setup    tests/views/test_search_view_inline_details.py::test_pane_hides_on_collection_change
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_button_connected
+0.03s setup    tests/views/test_search_view_inline_details.py::test_pane_handles_missing_distance
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_llm_not_configured_does_not_open_dialog
+0.03s setup    tests/views/test_visualization_view.py::test_on_clustering_error_shows_warning
+0.03s call     tests/ui/test_settings_dialog.py::test_clear_cache_answer_no
+0.03s setup    tests/views/test_visualization_view.py::test_on_clustering_finished_with_reduced_data_recreates_plot
+0.03s setup    tests/views/test_visualization_view.py::test_on_clustering_data_loaded_no_embeddings_shows_warning
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_passes_all_results_to_dialog
+0.03s setup    tests/views/test_search_view.py::test_on_search_error_reports_to_status_bar
+0.03s call     tests/services/test_task_runner.py::test_threaded_task_runner_fixed_task_id_reuses_slot
+0.03s setup    tests/views/test_visualization_view.py::test_on_reduction_finished_reports_to_status_bar
+0.03s setup    tests/views/test_search_view_inline_details.py::test_pane_updates_on_selection_change
+0.03s setup    tests/views/test_search_view_inline_details.py::test_search_input_height_reduced
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_double_click_opens_view_dialog
+0.03s setup    tests/views/test_visualization_view.py::test_on_feature_missing_does_nothing_for_unknown_feature_id
+0.03s setup    tests/views/test_search_view.py::test_show_context_menu_on_valid_row
+0.03s call     tests/ui/test_settings_dialog.py::test_provider_not_installed_shows_install_button
+0.03s setup    tests/views/test_visualization_view.py::test_on_provider_changed_updates_connection
+0.03s setup    tests/views/test_visualization_view.py::test_on_view_in_data_browser_emits_signal
+0.03s setup    tests/views/test_search_view_inline_details.py::test_advanced_filters_hide_when_unchecked
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_inline_pane_state_saved_on_close
+0.03s call     tests/views/test_histogram_panel.py::test_set_data_different_dim_resets_comparison
+0.03s setup    tests/views/test_search_view_inline_details.py::test_pane_hides_on_refresh
+0.03s setup    tests/views/test_search_view.py::test_on_selection_changed_with_row
+0.03s call     tests/views/test_visualization_view.py::test_on_data_loaded_tsne_method_handled
+0.03s setup    tests/views/test_visualization_view.py::test_on_clustering_finished_hdbscan_reports_non_noise_clusters
+0.03s setup    tests/views/test_search_view.py::test_set_breadcrumb_elide_left
+0.03s setup    tests/views/test_visualization_view.py::test_generate_visualization_cancels_running_thread
+0.03s setup    tests/views/test_search_view_inline_details.py::test_open_full_details_from_search_pane
+0.03s setup    tests/views/test_visualization_view.py::test_generate_visualization_no_collection_shows_warning
+0.03s setup    tests/views/test_search_view.py::test_on_provider_changed_clears_results
+0.03s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddFinished::test_success_calls_report_action
+0.03s call     tests/ui/test_settings_dialog.py::test_clear_cache_returns_false
+0.03s setup    tests/views/test_collection_ready_state.py::test_set_collection_enables_buttons
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_edit_opens_update_dialog
+0.03s setup    tests/views/test_search_view.py::test_on_search_error_updates_status
+0.03s setup    tests/views/test_search_view_inline_details.py::test_pane_hides_on_search_error
+0.03s setup    tests/views/test_visualization_view.py::test_on_feature_missing_hides_loading_and_re_enables_button
+0.03s setup    tests/views/test_search_view.py::test_display_results_empty_ids
+0.03s setup    tests/views/test_visualization_view.py::test_save_cluster_labels_exception_shows_warning
+0.03s setup    tests/views/test_visualization_view.py::test_generate_visualization_uses_all_data_when_checked
+0.03s setup    tests/views/test_search_view.py::test_show_context_menu_no_item
+0.03s setup    tests/views/test_visualization_view.py::test_on_reduction_finished_reports_zero_points_for_none_data
+0.03s setup    tests/views/test_visualization_view.py::test_on_collection_changed_empty_does_nothing
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_with_results_opens_dialog
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_selection_change_updates_different_item
+0.03s setup    tests/views/test_search_view_inline_details.py::test_pane_hides_on_empty_results
+0.03s setup    tests/views/test_search_view.py::test_set_collection_cache_hit_restores_results
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_check_llm_configured_does_not_log_attribute_error
+0.03s setup    tests/views/test_visualization_view.py::test_on_clustering_finished_reports_to_status_bar
+0.03s setup    tests/views/test_search_view.py::test_copy_vectors_no_ids
+0.03s setup    tests/views/test_search_view.py::test_on_collection_changed_calls_set_collection
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_inline_pane_visible_in_data_browser_mode
+0.03s setup    tests/views/test_search_view.py::test_on_loading_started_shows_dialog
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_no_selection_edit_does_nothing
+0.03s setup    tests/views/test_visualization_view.py::test_set_collection_exception_in_try_block_is_swallowed
+0.03s setup    tests/views/test_visualization_view.py::test_save_cluster_labels_to_metadata_success
+0.03s call     tests/views/test_connection_view.py::test_load_last_connection_cloud
+0.03s setup    tests/views/test_search_view.py::test_on_search_finished_reports_to_status_bar
+0.03s setup    tests/views/test_search_view_inline_details.py::test_inline_pane_starts_hidden
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_splitter_state_persistence
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_inline_details_pane_exists
+0.03s setup    tests/views/test_collection_ready_state.py::test_set_collection_ready_true_enables_buttons
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_last_row_window
+0.03s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddError::test_hides_loading_dialog
+0.03s setup    tests/views/test_search_view.py::test_display_results_truncates_long_doc
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_uses_3_item_window
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_inline_pane_updates_after_page_change
+0.03s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddFinished::test_failure_does_not_call_report_action
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_right_click_edit_menu_exists
+0.03s call     tests/ui/test_main_window_default_left_tab.py::test_saved_profiles_is_default_selected_tab
+0.03s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddFinished::test_success_invalidates_cache
+0.03s setup    tests/views/test_search_view.py::test_on_search_finished_with_client_filters
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_first_row_window
+0.03s setup    tests/views/test_search_view.py::test_set_collection_cache_miss_loads_metadata
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_prefilled_prompt_not_empty
+0.03s setup    tests/views/test_search_view.py::test_set_elide_mode_invalid_defaults_to_left
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_deselection_clears_inline_pane
+0.03s setup    tests/views/test_search_view.py::test_on_loading_finished_hides_dialog
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_opens_dialog
+0.03s setup    tests/views/test_search_view.py::test_copy_vectors_no_results
+0.03s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddFinished::test_success_reloads_data
+0.03s call     tests/views/test_connection_view.py::test_on_type_changed_http_and_ephemeral
+0.03s setup    tests/views/test_search_view.py::test_on_search_error_uses_provider_attribute_for_db_type
+0.03s setup    tests/views/test_search_view_inline_details.py::test_advanced_filters_show_when_checked
+0.03s setup    tests/views/test_search_view.py::test_on_search_finished_with_results
+0.03s setup    tests/views/test_search_view.py::test_on_provider_changed_with_connection
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_open_full_details_from_inline_pane
+0.03s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddError::test_shows_warning_dialog
+0.03s setup    tests/views/test_search_view_inline_details.py::test_rank_display
+0.03s setup    tests/views/test_search_view.py::test_on_search_finished_populates_query_embedding_from_results
+0.03s setup    tests/views/test_metadata_view_inline_details.py::test_inline_pane_shows_correct_metadata
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_truthy_results_but_empty_ids_shows_message
+0.03s call     tests/views/test_connection_view.py::test_load_last_connection_ephemeral
+0.03s setup    tests/views/test_search_view.py::test_perform_search_no_collection
+0.03s setup    tests/views/test_search_view.py::test_on_search_finished_populates_embedding_model_from_results
+0.03s setup    tests/views/test_search_view.py::test_on_row_double_clicked_out_of_bounds
+0.03s setup    tests/views/test_collection_ready_state.py::test_search_status_shows_empty_state
+0.03s setup    tests/views/test_search_view_inline_details.py::test_pane_shows_search_metrics
+0.03s setup    tests/views/test_search_view_inline_details.py::test_advanced_filters_start_collapsed
+0.03s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_uses_correct_row
+0.02s setup    tests/views/test_search_view_inline_details.py::test_double_click_opens_details_in_search
+0.02s setup    tests/views/test_metadata_view_status_reporting.py::TestDeleteSelectedStatusReporting::test_delete_error_reports_to_status_bar
+0.02s setup    tests/views/test_metadata_view_status_reporting.py::TestOnItemAddError::test_reports_error_to_status_bar
+0.02s call     tests/views/test_connection_view.py::test_load_last_connection_http
+0.02s call     tests/views/test_search_view_inline_details.py::test_pane_updates_on_selection_change
+0.02s setup    tests/views/test_metadata_view_status_reporting.py::TestOnDataLoadedStatusReporting::test_reports_data_loaded_on_success
+0.02s call     tests/views/test_search_view_inline_details.py::test_open_full_details_from_search_pane
+0.02s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_button_label
+0.02s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_llm_not_configured_shows_message
+0.02s call     tests/views/test_collection_worker.py::test_worker_emits_creation_complete_true_without_sample
+0.02s setup    tests/views/test_search_view.py::test_perform_search_cancels_running_thread
+0.02s call     tests/views/test_connection_view.py::test_load_last_connection_pgvector
+0.02s setup    tests/views/test_search_view_inline_details.py::test_pane_state_saved_on_close
+0.02s setup    tests/views/test_search_view.py::test_perform_search_empty_query
+0.02s setup    tests/views/test_metadata_view_inline_details.py::test_inline_pane_shows_vector_info
+0.02s setup    tests/views/test_collection_ready_state.py::test_collection_changed_signal_enables_buttons
+0.02s setup    tests/views/test_search_view_ask_ai.py::test_ask_ai_button_exists
+0.02s setup    tests/views/test_search_view_ask_ai.py::test_explain_result_no_results_is_noop
+0.02s setup    tests/views/test_collection_ready_state.py::test_set_collection_ready_false_disables_buttons
+0.02s setup    tests/views/test_search_view_ask_ai.py::test_context_menu_has_explain_action
+0.02s setup    tests/views/test_collection_ready_state.py::test_ask_ai_button_disabled_on_init
+0.02s setup    tests/views/test_search_view.py::test_set_elide_mode_middle
+0.02s call     tests/core/test_provider_detection_features.py::test_get_all_feature_info_all_are_feature_info
+0.02s setup    tests/views/test_collection_ready_state.py::test_collection_changed_empty_disables_buttons
+0.02s call     tests/views/test_search_view_inline_details.py::test_pane_hides_on_refresh
+0.02s call     tests/views/test_search_view_inline_details.py::test_similarity_calculation
+0.02s call     tests/core/test_provider_detection_features.py::test_get_all_feature_info_ids_match_expected_order
+0.02s call     tests/views/test_histogram_panel.py::test_on_load_comparison_starts_thread
+0.02s setup    tests/views/test_collection_ready_state.py::test_provider_changed_disables_buttons
+0.02s setup    tests/views/test_metadata_view_status_reporting.py::TestDeleteSelectedStatusReporting::test_delete_success_reports_to_status_bar
+0.02s call     tests/views/test_search_view_inline_details.py::test_double_click_opens_details_in_search
+0.02s call     tests/views/test_search_view_inline_details.py::test_pane_shows_search_metrics
+0.02s setup    tests/views/test_metadata_view_status_reporting.py::TestOnDataLoadedStatusReporting::test_reports_error_on_load_failure
+0.02s call     tests/views/test_search_view_inline_details.py::test_rank_display
+0.02s call     tests/views/test_search_view_inline_details.py::test_pane_hides_on_empty_results
+0.02s call     tests/views/test_search_view_inline_details.py::test_pane_state_saved_on_close
+0.02s call     tests/ui/test_settings_dialog.py::test_update_cache_info_cache_exists_with_models
+0.02s call     tests/services/test_model_cache.py::test_clear_cache_all
+0.02s teardown tests/ui/test_settings_dialog.py::test_clear_cache_flow
+0.02s call     tests/views/test_histogram_panel.py::test_on_compare_toggled_with_connection_starts_scan
+0.02s call     tests/ui/test_settings_dialog.py::test_update_cache_info_enabled_no_models_yet
+0.02s call     tests/views/test_clustering_panel.py::test_get_clustering_params_optics_advanced
+0.02s setup    tests/views/test_clustering_panel.py::test_get_clustering_params_kmeans_basic
+0.02s call     tests/views/test_info_panel.py::test_update_embedding_model_display_variants
+0.02s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_preserves_existing_metadata
+0.02s call     tests/views/test_histogram_panel.py::test_on_compare_toggled_with_connection_manager
+0.02s setup    tests/views/test_clustering_panel.py::test_on_algorithm_changed_updates_advanced_controls_when_visible
+0.02s call     tests/views/test_clustering_panel.py::test_get_clustering_params_dbscan_advanced
+0.02s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_adds_updated_at
+0.02s setup    tests/views/test_clustering_panel.py::test_get_clustering_params_hdbscan_basic
+0.02s call     tests/views/test_info_panel.py::test_refresh_database_info_with_backend
+0.02s setup    tests/views/test_clustering_panel.py::test_on_algorithm_changed_clears_result_label
+0.02s call     tests/views/test_clustering_panel.py::test_get_clustering_params_kmeans_advanced
+0.02s call     tests/views/test_collection_ready_state.py::test_metadata_collection_changed_non_empty_enables_buttons
+0.02s call     tests/views/test_info_panel.py::test_configure_embedding_model_flow
+0.02s call     tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_emits_finished_on_success
+0.02s call     tests/views/test_info_panel.py::test_clear_embedding_model_and_update_state
+0.02s setup    tests/views/test_collection_ready_state.py::test_metadata_set_collection_ready_false
+0.02s call     tests/views/test_collection_ready_state.py::test_metadata_collection_changed_empty_disables_buttons
+0.02s setup    tests/views/test_clustering_panel.py::test_get_clustering_params_optics_basic
+0.02s setup    tests/views/test_collection_ready_state.py::test_metadata_set_collection_ready_true
+0.02s call     tests/views/test_clustering_panel.py::test_get_clustering_params_hdbscan_advanced
+0.02s setup    tests/views/test_collection_ready_state.py::test_metadata_action_buttons_disabled_on_init
+0.02s call     tests/views/test_info_panel.py::test_display_collection_info_provider_variants
+0.01s call     tests/views/test_collection_ready_state.py::test_metadata_provider_changed_disables_buttons
+0.01s setup    tests/views/test_clustering_panel.py::test_get_clustering_params_dbscan_basic
+0.01s call     tests/views/test_collection_worker.py::test_worker_emits_creation_complete_false_on_service_failure
+0.01s call     tests/metadata/test_cluster_saving.py::test_run_clustering_skips_save_when_checkbox_disabled
+0.01s call     tests/views/test_info_panel.py::test_refresh_database_info_no_connection
+0.01s call     tests/metadata/test_metadata_navigation.py::test_select_item_by_id_on_current_page
+0.01s call     tests/core/llm_providers/test_runtime_and_selection.py::TestRuntimeManagerAutodetectBranches::test_autodetect_uses_vi_ollama_url_env_var
+0.01s setup    tests/views/test_clustering_panel.py::test_toggle_advanced_shows_then_hides
+0.01s teardown tests/views/test_search_view_inline_details.py::test_pane_handles_missing_distance
+0.01s teardown tests/views/test_search_view_inline_details.py::test_pane_hides_on_search_error
+0.01s call     tests/core/llm_providers/test_runtime_and_selection.py::TestRuntimeManagerAutodetectBranches::test_vi_llm_model_env_var_sets_selected_model_in_debug
+0.01s call     tests/services/test_task_runner.py::test_threaded_task_runner_run_task_calls_on_finished
+0.01s call     tests/views/test_collection_worker.py::test_worker_with_sample_data_emits_complete
+0.01s call     tests/views/test_info_panel.py::test_refresh_collection_info_uses_thread
+0.01s call     tests/components/test_create_collection_dialog.py::test_sample_options_enable_and_random_flag
+0.01s call     tests/views/test_info_panel.py::test_set_collection_cache_hit
+0.01s call     tests/core/llm_providers/test_runtime_and_selection.py::TestRuntimeManagerAutodetectBranches::test_api_key_value_is_always_redacted
+0.01s teardown tests/ui/test_settings_dialog.py::test_load_values_and_apply
+0.01s call     tests/views/test_search_threads.py::test_search_thread_emits_finished_on_success
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_data_load_thread_emits_error_when_data_none
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_data_load_thread_emits_finished_on_success
+0.01s call     tests/metadata/test_cluster_saving.py::test_run_clustering_calls_save_when_checkbox_enabled
+0.01s call     tests/ui/test_settings_dialog.py::test_add_section_and_cache_info
+0.01s call     tests/services/test_task_runner.py::test_threaded_task_runner_cancel_task
+0.01s call     tests/integration/test_clustering_real_embeddings.py::TestKMeansRealEmbeddings::test_consistent_across_runs
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_item_update_thread_emits_finished_on_success
+0.01s call     tests/utils/test_lazy_imports.py::test_get_plotly_returns_module
+0.01s teardown tests/ui/test_settings_appearance.py::test_color_picker_updates_settings
+0.01s teardown tests/ui/test_settings_dialog.py::test_status_timeout_spinbox_change_calls_settings
+0.01s teardown tests/ui/test_settings_dialog.py::test_reset_defaults_sets_timeout_to_5s
+0.01s teardown tests/ui/test_settings_dialog.py::test_add_section_creates_tab_if_missing
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_item_update_thread_emits_error_on_failure
+0.01s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_handles_numpy_array
+0.01s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_update_fails
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_data_load_thread_emits_error_on_exception
+0.01s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_no_collection
+0.01s call     tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_sequential_image_then_document
+0.01s call     tests/views/test_search_threads.py::test_search_thread_emits_error_when_results_none
+0.01s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_no_connection
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_emits_error_when_parse_fails
+0.01s teardown tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_emits_error_on_exception
+0.01s teardown tests/ui/test_settings_appearance.py::test_loads_saved_color_values_on_init
+0.01s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_handles_noise_points
+0.01s call     tests/metadata/test_plot_selection.py::test_visualization_view_forwards_signal
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_item_update_thread_with_embeddings_arg
+0.01s call     tests/metadata/test_cluster_saving.py::test_save_cluster_labels_no_cluster_data
+0.01s call     tests/components/test_profile_manager_panel.py::test_provider_ui_branches_and_browse_and_load
+0.01s call     tests/core/llm_providers/test_runtime_and_selection.py::TestRuntimeManagerAutodetectBranches::test_autodetect_reachable_adds_selected_reason
+0.01s teardown tests/components/test_ask_ai_integration.py::test_ask_ai_dialog_picks_up_settings_change
+0.01s teardown tests/ui/test_settings_dialog.py::test_get_tab_layout_creates_new_tab
+0.01s call     tests/views/test_search_threads.py::test_search_thread_passes_server_filter
+0.01s setup    tests/ui/test_settings_dialog.py::test_get_tab_layout_creates_new_tab
+0.01s call     tests/metadata/test_metadata_navigation.py::test_main_window_handles_view_in_data_browser_signal
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_documents_has_name
+0.01s call     tests/core/llm_providers/test_runtime_and_selection.py::TestRuntimeManagerAutodetectBranches::test_autodetect_unreachable_adds_skipped_reason
+0.01s setup    tests/ui/test_settings_dialog.py::test_status_timeout_spinbox_zero_shows_permanent_text
+0.01s call     tests/components/test_inline_details_pane.py::test_state_persistence_save
+0.01s call     tests/components/test_ask_ai_dialog.py::test_dialog_constructs_without_error
+0.01s call     tests/integration/test_clustering_real_embeddings.py::TestClusteringEdgeCases::test_image_like_512d_embeddings_kmeans
+0.01s call     tests/metadata/test_metadata_navigation.py::test_select_item_scrolls_into_view
+0.01s call     tests/services/test_model_cache.py::test_clear_cache_specific_model
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_unknown_returns_none
+0.01s setup    tests/components/test_ingestion_dialog.py::TestIngestionDialogAccept::test_single_file_path_sets_folder_mode_false
+0.01s call     tests/components/test_inline_details_pane.py::test_file_preview_clears_on_none
+0.01s setup    tests/views/test_demo_collection_view.py::test_demo_view_displays_empty_table_initially
+0.01s teardown tests/ui/test_settings_dialog.py::test_ok_button_calls_apply_and_accepts
+0.01s setup    tests/views/test_histogram_panel.py::test_on_compare_toggled_true_no_primary_dim
+0.01s call     tests/integration/test_clustering_real_embeddings.py::TestKMeansRealEmbeddings::test_all_points_assigned
+0.01s setup    tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_progress_callback_called
+0.01s call     tests/views/test_histogram_panel.py::test_on_compare_toggled_true_no_primary_dim
+0.01s call     tests/components/test_profile_manager_panel.py::test_save_profile_create_and_update_and_config_kwargs
+0.01s setup    tests/views/test_demo_collection_view.py::test_demo_view_no_data_no_crash
+0.01s teardown tests/views/test_info_panel.py::test_refresh_database_info_with_backend
+0.01s call     tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_image_ingestion_succeeds
+0.01s setup    tests/ui/test_settings_dialog.py::test_ok_button_calls_apply_and_accepts
+0.01s teardown tests/views/test_visualization_view.py::test_visualization_thread_does_not_emit_feature_missing_on_generic_error
+0.01s teardown tests/views/test_collection_worker.py::test_worker_emits_error_on_exception
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_clear_display
+0.01s call     tests/components/test_inline_details_pane.py::test_file_preview_section_hidden_when_no_paths
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_all_known_ids[clip]
+0.01s teardown tests/views/test_search_view_inline_details.py::test_pane_state_saved_on_close
+0.01s call     tests/metadata/test_metadata_navigation.py::test_cross_page_navigation_with_filters
+0.01s setup    tests/utils/test_file_preview_utils.py::TestFileType::test_image_extensions[.webp]
+0.01s call     tests/metadata/test_metadata_navigation.py::test_select_item_by_id_not_found
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_hides_search_pane
+0.01s call     tests/test_cli.py::test_install_unknown_provider_exits_nonzero
+0.01s setup    tests/ui/test_settings_appearance.py::test_loads_saved_color_values_on_init
+0.01s call     tests/metadata/test_metadata_navigation.py::test_select_item_by_id_different_page
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_all_known_ids[embeddings]
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_inline_pane_updates_after_page_change
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_all_known_ids[viz]
+0.01s setup    tests/views/test_connection_view.py::test_get_connection_config_and_browse
+0.01s call     tests/components/test_inline_details_pane.py::test_open_full_details_signal
+0.01s call     tests/ui/test_provider_install_dialog.py::test_start_install_shows_progress_bar
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_long_document_truncation
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_mixed_non_serializable_metadata_does_not_crash
+0.01s call     tests/views/test_connection_view.py::test_connect_with_config_qdrant_persistent
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_all_known_ids[documents]
+0.01s call     tests/components/test_inline_details_pane.py::test_vector_dimension_display
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_no_embedding
+0.01s call     tests/components/test_inline_details_pane.py::test_copy_vector_to_clipboard
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_bad_embedding_len
+0.01s call     tests/core/llm_providers/test_ollama.py::TestOllamaGenerateMessagesExtra::test_invalid_json_response_raises_provider_error
+0.01s call     tests/components/test_create_collection_dialog_validations.py::test_accept_rejects_missing_model_when_sample_enabled
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_no_document
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_with_search_data
+0.01s call     tests/services/test_import_export_service.py::test_export_to_csv_without_embeddings
+0.01s setup    tests/services/test_backup_helpers.py::test_write_and_read_backup_zip
+0.01s call     tests/services/test_file_ingestion_service.py::TestMinImageDimension::test_tiny_image_rejected
+0.01s call     tests/services/test_file_ingestion_service.py::TestFolderIngestion::test_ingest_folder_images
+0.01s call     tests/metadata/test_metadata_navigation.py::test_select_item_by_id_no_data
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_uuid_in_metadata_does_not_crash
+0.01s setup    tests/services/test_telemetry_service.py::test_write_crash_marker_creates_file
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_invalid_timestamp
+0.01s call     tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_document_embedding_is_384_dim
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_no_metadata
+0.01s call     tests/ui/test_cross_db_migration.py::test_migration_thread_run_direct_success
+0.01s call     tests/views/test_search_view_inline_details.py::test_pane_handles_missing_distance
+0.01s setup    tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_sequential_image_then_document
+0.01s setup    tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_overwrite_deletes_existing_chunks
+0.01s call     tests/components/test_inline_details_pane.py::test_update_item_bad_embedding_display
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_data_load_thread_emits_error_when_no_connection
+0.01s call     tests/components/test_inline_details_pane.py::test_copy_vector_json_to_clipboard
+0.01s teardown tests/ui/test_settings_dialog.py::test_clear_cache_returns_false
+0.01s setup    tests/services/test_profile_service.py::test_delete_profile_emits_signal
+0.01s call     tests/views/test_search_threads.py::test_search_thread_emits_error_on_exception
+0.01s setup    tests/ui/views/metadata/test_metadata_io.py::test_import_parse_fails_returns_none
+0.01s call     tests/views/test_collection_worker.py::test_worker_emits_error_on_exception
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_item_update_thread_emits_error_when_no_connection
+0.01s setup    tests/services/test_update_service.py::TestGetLatestRelease::test_rate_limit_respected_from_cache
+0.01s call     tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_image_embedding_is_512_dim
+0.01s call     tests/components/test_inline_details_pane.py::test_timestamp_formatting
+0.01s call     tests/services/test_model_cache.py::test_is_cached_with_valid_cache
+0.01s call     tests/services/test_model_cache.py::test_get_cache_info_with_models
+0.01s call     tests/components/test_inline_details_pane.py::test_state_persistence_load
+0.01s call     tests/views/test_connection_view.py::test_on_provider_changed_unavailable_falls_back_after_cancel
+0.01s call     tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_ingest_plain_text
+0.01s call     tests/integration/test_clustering_real_embeddings.py::TestClusteringEdgeCases::test_single_point_kmeans
+0.01s setup    tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_image_embedding_is_512_dim
+0.01s call     tests/services/test_model_cache.py::test_save_model_to_cache_with_save_pretrained
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_inline_pane_updates_after_page_change
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_selection_updates_inline_pane
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_emits_error_on_exception
+0.01s call     tests/core/test_model_cache.py::test_save_model_to_cache_tuple_clip
+0.01s call     tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_emits_error_when_add_items_fails
+0.01s setup    tests/services/test_file_ingestion_service.py::TestFileTypeHelpers::test_is_image_file
+0.01s call     tests/views/test_visualization_view.py::test_generate_visualization_starts_thread_when_collection_set
+0.01s call     tests/views/test_search_view.py::test_perform_search_cancels_running_thread
+0.01s call     tests/services/test_file_ingestion_service.py::TestDocumentFlushFailure::test_final_flush_failure_recorded
+0.01s call     tests/services/test_file_ingestion_service.py::TestImageFlushFailure::test_flush_failure_raises
+0.01s call     tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_chunk_ids_use_hash_prefix
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_selection_updates_inline_pane
+0.01s call     tests/test_cli.py::test_version_flag_exits_zero_and_prints_version
+0.01s setup    tests/utils/test_file_preview_utils.py::TestIsTextFile::test_python_file
+0.01s call     tests/views/test_search_threads.py::test_search_thread_emits_error_when_no_connection
+0.01s setup    tests/ui/views/metadata/test_metadata_io.py::test_export_failure_path
+0.01s setup    tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_document_ingestion_succeeds
+0.01s call     tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_document_ingestion_succeeds
+0.01s setup    tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_image_ingestion_succeeds
+0.01s setup    tests/core/test_text_generator.py::test_subtitles_from_valid_srt
+0.01s call     tests/views/test_search_view_inline_details.py::test_pane_hides_on_search_error
+0.01s setup    tests/utils/test_file_preview_utils.py::TestFileType::test_image_extensions[.tif]
+0.01s call     tests/services/test_settings_service.py::test_save_settings_exception_silenced
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_open_full_details_from_inline_pane
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_open_full_details_from_inline_pane
+0.01s call     tests/core/test_clustering.py::test_hdbscan_clustering
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_inline_pane_state_saved_on_close
+0.01s setup    tests/ui/views/metadata/test_metadata_io.py::test_import_add_items_fails_returns_none
+0.01s call     tests/services/test_model_cache.py::test_save_model_to_cache_tuple
+0.01s setup    tests/views/test_connection_view.py::test_connection_thread_success
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_double_click_opens_view_dialog
+0.01s setup    tests/services/test_update_service.py::TestGetLatestRelease::test_returns_cached_release_within_ttl
+0.01s setup    tests/core/test_text_generator.py::test_parse_srt_empty_file
+0.01s call     tests/metadata/test_metadata_table.py::test_show_context_menu_no_block
+0.01s call     tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_progress_callback_called
+0.01s setup    tests/test_cli.py::test_dump_settings_empty_dict_when_file_missing
+0.01s call     tests/views/test_search_view.py::test_on_search_finished_reports_to_status_bar
+0.01s call     tests/views/test_search_view.py::test_show_context_menu_on_valid_row
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_inline_pane_state_saved_on_close
+0.01s setup    tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_document_embedding_is_384_dim
+0.01s teardown tests/views/test_search_threads.py::test_search_thread_emits_error_when_no_connection
+0.01s call     tests/components/test_profile_manager_panel.py::test_test_connection_flow_creates_threads_and_handles_pinecone_and_weaviate
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_documents_returns_feature_info
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_deselection_clears_inline_pane
+0.01s setup    tests/services/test_file_ingestion_service.py::TestDocumentFlushFailure::test_final_flush_failure_recorded
+0.01s call     tests/views/test_clustering_panel.py::test_on_algorithm_changed_updates_advanced_controls_when_visible
+0.01s call     tests/services/test_backup_restore_service.py::test_restore_outer_exception_cleanup_succeeds
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_right_click_edit_menu_exists
+0.01s call     tests/services/test_settings_service.py::test_invalid_json_file
+0.01s setup    tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_document_metadata_contains_file_path
+0.01s call     tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_partial_ingestion_triggers_cleanup_and_reingest
+0.01s setup    tests/integration/test_multimodal_ingestion.py::TestMultimodalIngestion::test_image_metadata_contains_file_path
+0.01s setup    tests/ui/views/metadata/test_metadata_io.py::test_import_success
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_splitter_state_persistence
+0.01s call     tests/core/test_model_cache.py::test_clear_cache_all
+0.01s setup    tests/metadata/test_metadata_table.py::test_preview_column_with_previewable_path
+0.01s teardown tests/views/test_metadata_view_status_reporting.py::TestDeleteSelectedStatusReporting::test_delete_error_reports_to_status_bar
+0.01s teardown tests/metadata/test_metadata_threads_worker.py::test_data_load_thread_emits_error_when_no_connection
+0.01s teardown tests/metadata/test_metadata_threads_worker.py::test_item_update_thread_emits_error_when_no_connection
+0.01s call     tests/ui/views/metadata/test_metadata_io.py::test_import_success
+0.01s setup    tests/ui/views/metadata/test_metadata_io.py::test_export_csv_format
+0.01s teardown tests/views/test_metadata_view_status_reporting.py::TestOnItemAddError::test_hides_loading_dialog
+0.01s setup    tests/services/test_update_service.py::TestGetLatestRelease::test_force_refresh_ignores_cache
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_documents_install_command_contains_extra
+0.01s call     tests/services/test_backup_restore_service.py::test_restore_save_model_to_settings_raises_is_swallowed
+0.01s setup    tests/ui/views/metadata/test_metadata_io.py::test_export_success_json
+0.01s call     tests/services/test_file_ingestion_service.py::TestImageIngestion::test_ingest_single_image
+0.01s teardown tests/views/test_search_view_ask_ai.py::test_ask_ai_truthy_results_but_empty_ids_does_not_open_dialog
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_double_click_opens_view_dialog
+0.01s call     tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_chunk_total_in_metadata
+0.01s call     tests/test_cli.py::test_help_flag_exits_zero
+0.01s teardown tests/views/test_search_view.py::test_on_search_finished_reports_to_status_bar
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_inline_pane_shows_vector_info
+0.01s setup    tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_emits_error_when_add_items_fails
+0.01s call     tests/ui/test_backup_restore_dialog.py::test_refresh_backups_list_no_backups
+0.01s call     tests/views/test_connection_view.py::test_on_provider_changed_unavailable_opens_install_dialog
+0.01s teardown tests/views/test_search_view.py::test_on_loading_started_shows_dialog
+0.01s setup    tests/services/test_file_ingestion_service.py::TestDocumentIngestion::test_chunk_ids_use_hash_prefix
+0.01s setup    tests/utils/test_file_preview_utils.py::TestFileType::test_image_extensions[.bmp]
+0.01s teardown tests/views/test_search_threads.py::test_search_thread_emits_error_on_exception
+0.01s setup    tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_emits_error_when_parse_fails
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_inline_pane_visible_in_data_browser_mode
+0.01s call     tests/services/test_file_ingestion_service.py::TestImageIngestion::test_skips_duplicate_image
+0.01s setup    tests/utils/test_file_preview_utils.py::TestFileType::test_image_extensions[.jpg]
+0.01s setup    tests/services/test_update_service.py::TestGetLatestRelease::test_rate_limit_no_reset_header
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_inline_pane_shows_correct_metadata
+0.01s teardown tests/views/test_search_view.py::test_on_search_finished_populates_search_context
+0.01s call     tests/services/test_profile_service.py::test_load_profiles_corrupted_file
+0.01s setup    tests/views/test_demo_collection_view.py::test_demo_view_initializes
+0.01s call     tests/core/test_model_cache.py::test_clear_cache_specific_model
+0.01s setup    tests/utils/test_file_preview_utils.py::TestIsTextFile::test_nonexistent_txt_extension
+0.01s call     tests/views/test_search_view_ask_ai.py::test_explain_result_truthy_results_but_empty_ids_is_noop
+0.01s call     tests/components/test_ask_ai_dialog.py::test_explicit_initial_row_indices_not_overridden
+0.01s setup    tests/metadata/test_metadata_threads_worker.py::test_data_import_thread_run_direct_exception
+0.01s call     tests/test_cli.py::test_help_lists_version_option
+0.01s call     tests/views/test_histogram_panel.py::test_on_compare_toggled_no_connections
+0.01s call     tests/views/test_metadata_view_inline_details.py::test_selection_change_updates_different_item
+0.01s call     tests/services/test_backup_restore_service.py::test_restore_with_overwrite_true_replaces_existing
+0.01s call     tests/views/test_search_view.py::test_on_search_finished_populates_search_context
+0.01s setup    tests/utils/test_file_preview_utils.py::TestIsTextFile::test_typescript_file_non_text_mime
+0.01s setup    tests/utils/test_file_preview_utils.py::TestFileType::test_image_extensions[.tiff]
+0.01s call     tests/views/test_histogram_panel.py::test_on_dim_scan_finished_empty
+0.01s call     tests/providers/weaviate/test_weaviate_connection.py::test_weaviate_add_items_handles_exception
+0.01s call     tests/core/test_provider_detection_features.py::test_get_feature_info_documents_id
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_no_selection_edit_does_nothing
+0.01s call     tests/services/test_backup_restore_service.py::test_restore_recompute_load_model_raises
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_inline_details_pane_exists
+0.01s teardown tests/views/test_metadata_view_inline_details.py::test_edit_method_exists
+0.01s teardown tests/views/test_metadata_view_status_reporting.py::TestOnItemAddFinished::test_success_calls_report_action
+0.01s teardown tests/views/test_metadata_view_status_reporting.py::TestOnItemAddFinished::test_failure_shows_warning
+0.01s call     tests/core/test_model_cache.py::test_get_cache_info_with_models
+0.01s setup    tests/utils/test_file_preview_utils.py::TestFileType::test_text_file
+0.01s call     tests/test_cli.py::test_help_epilog_contains_github_url
+0.01s setup    tests/utils/test_file_preview_utils.py::TestIsTextFile::test_binary_file
+0.01s call     tests/core/test_model_cache.py::test_save_model_to_cache_save_pretrained
+0.01s setup    tests/utils/test_file_preview_utils.py::TestFileType::test_pdf_is_unknown
+0.01s teardown tests/views/test_search_view.py::test_on_selection_changed_no_results
+0.01s call     tests/metadata/test_cluster_saving.py::test_clustering_panel_save_checkbox_exists
+0.01s setup    tests/ui/test_settings_dialog.py::test_reset_highlight_defaults
+0.01s call     tests/test_cli.py::test_install_flag_in_parse_cli_args_triggers_handler
+0.01s call     tests/services/test_import_export_service.py::test_export_to_csv_with_embeddings
+0.01s call     tests/test_cli.py::test_help_mentions_starting_app_without_args
+
+(5946 durations < 0.005s hidden.  Use -vv to show these durations.)
+================ 2194 passed, 40 skipped in 104.66s (0:01:44) =================

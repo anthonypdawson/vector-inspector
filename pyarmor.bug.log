@@ -1,0 +1,42 @@
+[BUG]: out of license
+
+## Command Line
+C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Scripts\pyarmor gen -O dist --mix -r src/vector_inspector
+
+## Environments
+Python 3.13.11
+Pyarmor 9.2.3 (trial), 000000, non-profits
+Platform windows.x86_64
+Native windows.amd64
+Home C:\Users\ayd\.pyarmor
+
+## Traceback
+Traceback (most recent call last):
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\__main__.py", line 796, in main
+    main_entry(sys.argv[1:])
+    ~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\__main__.py", line 789, in main_entry
+    return args.func(ctx, args)
+           ~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\__main__.py", line 248, in cmd_gen
+    builder.process(options)
+    ~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\generate.py", line 188, in process
+    self._obfuscate_scripts()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\generate.py", line 144, in _obfuscate_scripts
+    code = Pytransform3.generate_obfuscated_script(self.ctx, r)
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\core\__init__.py", line 95, in generate_obfuscated_script
+    return m.generate_obfuscated_script(ctx, res)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "<maker>", line 728, in generate_obfuscated_script
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\__init__.py", line 16, in process
+    return meth(self, res, *args, **kwargs)
+  File "<maker>", line 544, in process
+  File "C:\Users\ayd\.pyenv\pyenv-win\versions\3.13.11\Lib\site-packages\pyarmor\cli\__init__.py", line 16, in process
+    return meth(self, res, *args, **kwargs)
+  File "<maker>", line 1114, in process
+  File "<maker>", line 1071, in mix_node
+RuntimeError: out of license
+
+

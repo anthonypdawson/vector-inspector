@@ -1,0 +1,60 @@
+wing: vector_inspector
+rooms:
+- name: design
+  description: Files from assets/
+  keywords:
+  - design
+  - assets
+- name: documentation
+  description: Files from docs/
+  keywords:
+  - documentation
+  - docs
+- name: htmlcov
+  description: Files from htmlcov/
+  keywords:
+  - htmlcov
+  - htmlcov
+- name: logs
+  description: Files from logs/
+  keywords:
+  - logs
+  - logs
+- name: scripts
+  description: Files from scripts/
+  keywords:
+  - scripts
+  - scripts
+- name: site
+  description: Files from site/
+  keywords:
+  - site
+  - site
+- name: src
+  description: Files from src/
+  keywords:
+  - src
+  - src
+- name: testing
+  description: Files from tests/
+  keywords:
+  - testing
+  - tests
+- name: test_scripts
+  description: Files from test_scripts/
+  keywords:
+  - test_scripts
+  - test_scripts
+- name: backend
+  description: Files from models/
+  keywords:
+  - backend
+  - models
+- name: frontend
+  description: Files from components/
+  keywords:
+  - frontend
+  - components
+- name: general
+  description: Files that don't fit other rooms
+  keywords: []
