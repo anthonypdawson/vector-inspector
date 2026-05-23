@@ -1,5 +1,6 @@
 """Milvus connection manager supporting both Milvus Lite and remote Milvus."""
 
+import hashlib
 import os
 from typing import Any, Optional
 
@@ -32,6 +33,42 @@ class MilvusConnection(VectorDBConnection):
         self._client: Optional[MilvusClient] = None
         self._connected = False
         self._mode: Optional[str] = None  # 'lite' or 'remote'
+
+    @staticmethod
+    def _to_milvus_id(value: Any) -> int:
+        """Convert any external ID value to Milvus-compatible int64 ID."""
+        if isinstance(value, int):
+            return value
+
+        text = str(value)
+        if text.isdigit() or (text.startswith("-") and text[1:].isdigit()):
+            return int(text)
+
+        # Deterministic 63-bit hash for non-numeric IDs.
+        digest = hashlib.sha256(text.encode("utf-8")).digest()
+        numeric = int.from_bytes(digest[:8], "big") & ((1 << 63) - 1)
+        return numeric or 1
+
+    def _get_vector_dimension(self, collection_name: str) -> int | None:
+        """Infer vector dimension from Milvus collection schema."""
+        if not self._client:
+            return None
+        try:
+            collection_info = self._client.describe_collection(collection_name=collection_name)
+            fields = collection_info.get("fields", []) if isinstance(collection_info, dict) else []
+            for field in fields:
+                if not isinstance(field, dict):
+                    continue
+                field_name = str(field.get("name", "")).lower()
+                field_type = str(field.get("type", "")).lower()
+                if "vector" not in field_name and "vector" not in field_type:
+                    continue
+                params = field.get("params", {})
+                if isinstance(params, dict) and params.get("dim") is not None:
+                    return int(params["dim"])
+        except Exception:
+            return None
+        return None
 
     def connect(self) -> bool:
         """
@@ -117,7 +154,19 @@ class MilvusConnection(VectorDBConnection):
             return []
         try:
             collections = self._client.list_collections()
-            return collections if isinstance(collections, list) else []
+            if isinstance(collections, list):
+                return [str(name) for name in collections]
+            if isinstance(collections, tuple):
+                return [str(name) for name in collections]
+            if isinstance(collections, dict):
+                for key in ("collections", "data", "result", "tables"):
+                    value = collections.get(key)
+                    if isinstance(value, list):
+                        return [str(name) for name in value]
+                return []
+            if collections is not None and hasattr(collections, "__iter__"):
+                return [str(name) for name in collections]
+            return []
         except Exception as e:
             log_tracked_error(
                 "Milvus list_collections failed: %s",
@@ -126,6 +175,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="list_collections",
                 provider="milvus",
                 error_type=type(e).__name__,
+                summary=f"mode={self._mode}",
             )
             return []
 
@@ -152,9 +202,11 @@ class MilvusConnection(VectorDBConnection):
                 for field in collection_info["fields"]:  # type: ignore
                     field_name = field.get("name", "")
                     field_type = field.get("type", "")
+                    field_type_str = str(field_type).lower()
+                    field_name_str = str(field_name).lower()
 
                     # Check if it's a vector field
-                    if "vector" in field_type.lower() or "vector" in field_name.lower():
+                    if "vector" in field_type_str or "vector" in field_name_str:
                         # Try to extract dimension
                         params = field.get("params", {})
                         if isinstance(params, dict):
@@ -164,7 +216,7 @@ class MilvusConnection(VectorDBConnection):
                                 break
 
                     # Collect metadata field names (non-ID, non-vector fields)
-                    if field_name != "id" and "vector" not in field_type.lower() and "vector" not in field_name.lower():
+                    if field_name != "id" and "vector" not in field_type_str and "vector" not in field_name_str:
                         metadata_fields.append(field_name)
 
             return {
@@ -216,7 +268,7 @@ class MilvusConnection(VectorDBConnection):
                 collection_name=name,
                 dimension=vector_size,
                 metric_type=metric_type,
-                auto_id=True,
+                auto_id=False,
             )
 
             log_info("Created Milvus collection: %s (vector_size=%d)", name, vector_size)
@@ -230,8 +282,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="create_collection",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=name,
-                vector_size=vector_size,
+                summary=f"collection={name} vector_size={vector_size}",
                 exc_info=True,
             )
             return False
@@ -252,21 +303,38 @@ class MilvusConnection(VectorDBConnection):
             if not documents:
                 return True
 
+            vector_dimension: int | None = None
+            if embeddings and embeddings[0]:
+                vector_dimension = len(embeddings[0])
+            else:
+                vector_dimension = self._get_vector_dimension(collection_name)
+
+            if not vector_dimension:
+                log_tracked_error(
+                    "Milvus add_items failed: could not infer vector dimension",
+                    category="connection",
+                    operation="add_items",
+                    provider="milvus",
+                    error_type="ConfigError",
+                    summary=f"collection={collection_name}",
+                )
+                return False
+
             # Prepare data for insertion
             data = []
             for i, doc in enumerate(documents):
+                item_id = self._to_milvus_id(ids[i] if ids and i < len(ids) else f"{collection_name}:{i}:{doc}")
                 item = {
+                    "id": item_id,
                     "text": doc,
                     "metadata": metadatas[i] if metadatas else {},
                 }
 
                 # Add embedding if provided
                 if embeddings and i < len(embeddings):
-                    item["embedding"] = embeddings[i]
-
-                # Add ID if provided
-                if ids and i < len(ids):
-                    item["id"] = ids[i]
+                    item["vector"] = embeddings[i]
+                else:
+                    item["vector"] = [0.0] * vector_dimension
 
                 data.append(item)
 
@@ -287,8 +355,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="add_items",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=collection_name,
-                num_items=len(documents),
+                summary=f"collection={collection_name} num_items={len(documents)}",
                 exc_info=True,
             )
             return False
@@ -299,13 +366,7 @@ class MilvusConnection(VectorDBConnection):
             return {"documents": [], "metadatas": [], "ids": []}
 
         try:
-            # Convert string IDs to integers if needed
-            int_ids = []
-            for id_val in ids:
-                try:
-                    int_ids.append(int(id_val))
-                except ValueError:
-                    int_ids.append(id_val)
+            int_ids = [self._to_milvus_id(id_val) for id_val in ids]
 
             results = self._client.get(
                 collection_name=name,
@@ -336,8 +397,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="get_items",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=name,
-                num_ids=len(ids),
+                summary=f"collection={name} num_ids={len(ids)}",
             )
             return {"documents": [], "metadatas": [], "ids": []}
 
@@ -359,7 +419,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="delete_collection",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=name,
+                summary=f"collection={name}",
                 exc_info=True,
             )
             return False
@@ -391,7 +451,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="count_collection",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=name,
+                summary=f"collection={name}",
             )
             return 0
 
@@ -482,7 +542,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="query_collection",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=collection_name,
+                summary=f"collection={collection_name}",
                 exc_info=True,
             )
             return None
@@ -524,7 +584,7 @@ class MilvusConnection(VectorDBConnection):
             # Query all items with pagination
             query_kwargs = {
                 "collection_name": collection_name,
-                "output_fields": ["text", "metadata", "embedding"],
+                "output_fields": ["text", "metadata", "vector"],
                 "limit": limit or 10000,
                 "offset": offset or 0,
             }
@@ -543,8 +603,8 @@ class MilvusConnection(VectorDBConnection):
                     ids.append(str(item.get("id", "")))
                     documents.append(item.get("text", ""))
                     metadatas.append(item.get("metadata", {}))
-                    if "embedding" in item:
-                        embeddings.append(item["embedding"])
+                    if "vector" in item:
+                        embeddings.append(item["vector"])
 
             return {
                 "ids": ids,
@@ -561,7 +621,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="get_all_items",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=collection_name,
+                summary=f"collection={collection_name}",
                 exc_info=True,
             )
             return None
@@ -589,7 +649,7 @@ class MilvusConnection(VectorDBConnection):
             # Prepare data for upsert
             data: list[dict[str, Any]] = []
             for i, item_id in enumerate(ids):
-                item: dict[str, Any] = {"id": int(item_id) if item_id.isdigit() else item_id}
+                item: dict[str, Any] = {"id": self._to_milvus_id(item_id)}
 
                 if documents and i < len(documents):
                     item["text"] = documents[i]
@@ -598,7 +658,7 @@ class MilvusConnection(VectorDBConnection):
                     item["metadata"] = metadatas[i]
 
                 if embeddings and i < len(embeddings):
-                    item["embedding"] = embeddings[i]
+                    item["vector"] = embeddings[i]
 
                 data.append(item)
 
@@ -619,8 +679,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="update_items",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=collection_name,
-                num_items=len(ids),
+                summary=f"collection={collection_name} num_items={len(ids)}",
                 exc_info=True,
             )
             return False
@@ -647,13 +706,7 @@ class MilvusConnection(VectorDBConnection):
 
         try:
             if ids:
-                # Convert string IDs to integers if needed
-                int_ids = []
-                for id_val in ids:
-                    try:
-                        int_ids.append(int(id_val))
-                    except ValueError:
-                        int_ids.append(id_val)
+                int_ids = [self._to_milvus_id(id_val) for id_val in ids]
 
                 self._client.delete(
                     collection_name=collection_name,
@@ -687,8 +740,7 @@ class MilvusConnection(VectorDBConnection):
                 operation="delete_items",
                 provider="milvus",
                 error_type=type(e).__name__,
-                collection_name=collection_name,
-                num_ids=len(ids) if ids else 0,
+                summary=f"collection={collection_name} num_ids={len(ids) if ids else 0}",
                 exc_info=True,
             )
             return False
