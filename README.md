@@ -169,17 +169,17 @@ These correspond to the version constraints in `pyproject.toml`.
 
 **Python**: `>=3.11`
 
-| Provider | Install Extra | Package(s) | Min Version(s) | Platform | Status |
-|----------|--------------|------------|----------------|----------|--------|
-| ChromaDB | `[chromadb]` | `chromadb` | 0.4.22 | Windows, macOS, Linux | ✅ Stable |
-| Qdrant | `[qdrant]` | `qdrant-client` | 1.7.0 | Windows, macOS, Linux | ✅ Stable |
-| Pinecone | `[pinecone]` | `pinecone` | 8.0.0 | Windows, macOS, Linux | ✅ Stable |
-| LanceDB | `[lancedb]` | `lancedb`, `pyarrow` | 0.27.0, 14.0.0 | Windows, macOS, Linux | ✅ Stable |
-| PgVector | `[pgvector]` | `psycopg2-binary`, `pgvector` | 2.9.11, 0.4.2 | Windows, macOS, Linux | ✅ Stable |
-| Weaviate | `[weaviate]` | `weaviate-client` | 4.19.2 | Windows, macOS, Linux | ✅ Stable |
-| Milvus | `[milvus]` | `pymilvus` | 2.6.8 | macOS, Linux only | 🔬 Experimental |
+| Provider | Install Extra | Package(s) | Min Version(s) | Platform | Connection Mode | Status |
+|----------|--------------|------------|----------------|----------|-----------------|--------|
+| ChromaDB | `[chromadb]` | `chromadb` | 0.4.22 | Windows, macOS, Linux | Persistent | ✅ Stable |
+| Qdrant | `[qdrant]` | `qdrant-client` | 1.7.0 | Windows, macOS, Linux | Persistent / HTTP | ✅ Stable |
+| Pinecone | `[pinecone]` | `pinecone` | 8.0.0 | Windows, macOS, Linux | HTTP (Cloud) | ✅ Stable |
+| LanceDB | `[lancedb]` | `lancedb`, `pyarrow` | 0.27.0, 14.0.0 | Windows, macOS, Linux | Persistent | ✅ Stable |
+| PgVector | `[pgvector]` | `psycopg2-binary`, `pgvector` | 2.9.11, 0.4.2 | Windows, macOS, Linux | HTTP (PostgreSQL) | ✅ Stable |
+| Weaviate | `[weaviate]` | `weaviate-client` | 4.19.2 | Windows, macOS, Linux | Persistent / HTTP | ✅ Stable |
+| Milvus | `[milvus]` | `pymilvus` | 2.6.8 | Windows, macOS, Linux | **Lite** (file) / HTTP (server) | ✅ Stable |
 
-> **Milvus note**: `pymilvus` does not support Windows. Milvus connections are only available on macOS and Linux.
+> **Milvus modes**: Use **Milvus Lite** (file-based) on any platform, or connect to a remote Milvus server via HTTP. Milvus Lite is ideal for development and testing; use a Milvus server for production workloads.
 
 ---
 
@@ -251,7 +251,7 @@ Notes:
   - ChromaDB (persistent local storage)
   - Qdrant (remote server or embedded local)
   - Pinecone (cloud-hosted)
-  - Milvus (remote server or Milvus Lite) (Only on MacOs/Linux, experimental) - In Progress
+  - Milvus (remote server or **Milvus Lite**) — supports Windows via Milvus Lite, macOS/Linux via both
   - LanceDB (persistent local storage) — requires `lancedb>=0.27.0`, `pyarrow>=14.0.0`
   - PgVector/PostgreSQL (remote server)
   - Weaviate (Local/Remote + WCD/Cloud)
