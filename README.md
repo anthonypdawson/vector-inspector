@@ -159,6 +159,28 @@ scripts/run.bat    # Windows
 ```
 
 **Note for developers**: The dependency groups in `pyproject.toml` can be installed with PDM using `-G <group>`. Available groups: `chromadb`, `qdrant`, `pinecone`, `lancedb`, `pgvector`, `weaviate`, `milvus`, `embeddings`, `clip`, `viz`, `documents`, `llm`, `recommended`, `all`.
+
+---
+
+## Provider Compatibility Matrix
+
+Minimum tested library versions and platform support for each database provider.
+These correspond to the version constraints in `pyproject.toml`.
+
+**Python**: `>=3.11`
+
+| Provider | Install Extra | Package(s) | Min Version(s) | Platform | Status |
+|----------|--------------|------------|----------------|----------|--------|
+| ChromaDB | `[chromadb]` | `chromadb` | 0.4.22 | Windows, macOS, Linux | ✅ Stable |
+| Qdrant | `[qdrant]` | `qdrant-client` | 1.7.0 | Windows, macOS, Linux | ✅ Stable |
+| Pinecone | `[pinecone]` | `pinecone` | 8.0.0 | Windows, macOS, Linux | ✅ Stable |
+| LanceDB | `[lancedb]` | `lancedb`, `pyarrow` | 0.27.0, 14.0.0 | Windows, macOS, Linux | ✅ Stable |
+| PgVector | `[pgvector]` | `psycopg2-binary`, `pgvector` | 2.9.11, 0.4.2 | Windows, macOS, Linux | ✅ Stable |
+| Weaviate | `[weaviate]` | `weaviate-client` | 4.19.2 | Windows, macOS, Linux | ✅ Stable |
+| Milvus | `[milvus]` | `pymilvus` | 2.6.8 | macOS, Linux only | 🔬 Experimental |
+
+> **Milvus note**: `pymilvus` does not support Windows. Milvus connections are only available on macOS and Linux.
+
 ---
 
 # 🟩 Running Vector Inspector
