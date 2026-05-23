@@ -70,6 +70,26 @@ class MilvusConnection(VectorDBConnection):
             return None
         return None
 
+    def _ensure_collection_loaded(self, collection_name: str) -> bool:
+        """Ensure a collection is loaded before get/query/search operations."""
+        if not self._client:
+            return False
+        try:
+            self._client.load_collection(collection_name=collection_name)
+            return True
+        except Exception as e:
+            log_tracked_error(
+                "Milvus load_collection failed: %s",
+                e,
+                category="connection",
+                operation="load_collection",
+                provider="milvus",
+                error_type=type(e).__name__,
+                summary=f"collection={collection_name}",
+                exc_info=True,
+            )
+            return False
+
     def connect(self) -> bool:
         """
         Establish connection to Milvus.
@@ -365,6 +385,9 @@ class MilvusConnection(VectorDBConnection):
         if not self.is_connected or not self._client:
             return {"documents": [], "metadatas": [], "ids": []}
 
+        if not self._ensure_collection_loaded(name):
+            return {"documents": [], "metadatas": [], "ids": []}
+
         try:
             int_ids = [self._to_milvus_id(id_val) for id_val in ids]
 
@@ -429,6 +452,9 @@ class MilvusConnection(VectorDBConnection):
         if not self.is_connected or not self._client:
             return 0
 
+        if not self._ensure_collection_loaded(name):
+            return 0
+
         try:
             # Try to get count from collection stats
             stats = self._client.get_collection_stats(collection_name=name)
@@ -458,7 +484,7 @@ class MilvusConnection(VectorDBConnection):
     def query_collection(
         self,
         collection_name: str,
-        query_texts: list[str] | None = None,  # noqa: ARG002
+        query_texts: list[str] | None = None,
         query_embeddings: list[list[float]] | None = None,
         n_results: int = 10,
         where: dict[str, Any] | None = None,
@@ -481,7 +507,31 @@ class MilvusConnection(VectorDBConnection):
         if not self.is_connected or not self._client:
             return None
 
+        query_embedding_model: str | None = None
+
+        # Follow the provider contract used by SearchThread: when only query_texts
+        # are provided, compute embeddings with the resolved model for this collection.
+        if not query_embeddings and query_texts:
+            try:
+                query_embeddings = self.compute_embeddings_for_documents(collection_name, query_texts)
+                query_embedding_model = self.get_embedding_model(collection_name)
+            except Exception as e:
+                log_tracked_error(
+                    "Milvus query_collection embedding generation failed: %s",
+                    e,
+                    category="embedding",
+                    operation="query_collection",
+                    provider="milvus",
+                    error_type=type(e).__name__,
+                    summary=f"collection={collection_name}",
+                    exc_info=True,
+                )
+                return None
+
         if not query_embeddings:
+            return None
+
+        if not self._ensure_collection_loaded(collection_name):
             return None
 
         try:
@@ -531,7 +581,7 @@ class MilvusConnection(VectorDBConnection):
                 "distances": [distances],
                 "embeddings": [embeddings] if embeddings else None,
                 "query_embedding": query_embeddings[0] if query_embeddings else None,
-                "query_embedding_model": None,
+                "query_embedding_model": query_embedding_model,
             }
 
         except Exception as e:
@@ -567,6 +617,9 @@ class MilvusConnection(VectorDBConnection):
             Dictionary with collection items
         """
         if not self.is_connected or not self._client:
+            return None
+
+        if not self._ensure_collection_loaded(collection_name):
             return None
 
         try:
