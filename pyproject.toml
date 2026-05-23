@@ -15,6 +15,7 @@ dependencies = [
     "keyring>=25.7.0",  # secure credential storage
     "gputil>=1.4.0",
     "requests>=2.33.1",
+    "pymilvus[milvus_lite]>=3.0.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
