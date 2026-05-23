@@ -5,7 +5,12 @@ when database providers are not installed. Use get_connection_class() to
 retrieve a connection class safely.
 """
 
+from typing import TYPE_CHECKING
+
 from .base_connection import VectorDBConnection
+
+if TYPE_CHECKING:
+    from typing import Type
 
 __all__ = [
     "VectorDBConnection",
@@ -13,7 +18,7 @@ __all__ = [
 ]
 
 
-def get_connection_class(provider: str):
+def get_connection_class(provider: str) -> "Type[VectorDBConnection]":
     """Get connection class for a provider, with lazy import.
 
     Args:
