@@ -41,10 +41,26 @@ class MilvusConnection(VectorDBConnection):
             True if connection successful, False otherwise
         """
         try:
-            if self.path:
+            if self.path is not None:
                 # Milvus Lite mode (local file-based)
-                # Normalize path to absolute
-                db_path = os.path.abspath(os.path.expanduser(self.path))
+                # Normalize path to absolute file path.
+                # Milvus Lite expects a file path (typically ending with .db).
+                raw_path = self.path.strip() if isinstance(self.path, str) else ""
+                if not raw_path:
+                    raw_path = "./milvus.db"
+
+                db_path = os.path.abspath(os.path.expanduser(raw_path))
+
+                # If a directory is provided (e.g. selected via folder picker),
+                # place a default Milvus Lite DB file inside it.
+                if os.path.isdir(db_path):
+                    db_path = os.path.join(db_path, "milvus.db")
+
+                # If no extension is provided, default to a .db file path.
+                root, ext = os.path.splitext(db_path)
+                if not ext:
+                    db_path = f"{root}.db"
+
                 self._client = MilvusClient(uri=db_path)
                 self._mode = "lite"
                 log_info("Connected to Milvus Lite: %s", db_path)

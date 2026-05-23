@@ -1112,7 +1112,10 @@ class ProfileEditorDialog(QDialog):
             config["type"] = "cloud"
         elif provider == "lancedb" or self.persistent_radio.isChecked():
             config["type"] = "persistent"
-            config["path"] = self.path_input.text()
+            path_text = self.path_input.text().strip()
+            if provider == "milvus" and not path_text:
+                path_text = "./milvus.db"
+            config["path"] = path_text
         elif self.http_radio.isChecked():
             config["type"] = "http"
             config["host"] = self.host_input.text()
