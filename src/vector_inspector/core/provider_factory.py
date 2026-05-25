@@ -144,17 +144,18 @@ class ProviderFactory:
     @staticmethod
     def _create_milvus(config: dict[str, Any], credentials: dict[str, Any]) -> VectorDBConnection:
         """Create a Milvus connection."""
-        from vector_inspector.core.connections.milvus_connection import MilvusConnection
+        from vector_inspector.core.connections import get_connection_class
 
+        MilvusConnection = get_connection_class("milvus")
         conn_type = config.get("type")
 
         if conn_type == "persistent":
             # Milvus Lite (file-based local database)
-            return MilvusConnection(path=config.get("path"))
+            return MilvusConnection(path=config.get("path", "./milvus.db"))
         if conn_type == "http":
             # Remote Milvus server (HTTP)
             return MilvusConnection(
-                host=config.get("host"),
+                host=config.get("host", "localhost"),
                 port=int(config.get("port", 19530)),
             )
         raise ValueError("Unsupported connection type for Milvus profile")

@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 
 pytest.importorskip("pymilvus")

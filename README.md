@@ -59,6 +59,16 @@ These scripts:
 
 This is the easiest and most reliable way to get started.
 
+## Windows Bootstrap Installer (pip-enabled)
+
+If you need a complete Python environment with pip access after installation,
+use the bootstrap installer workflow documented in:
+
+- [docs/BOOTSTRAP_INSTALLER.md](docs/BOOTSTRAP_INSTALLER.md)
+
+This flow creates an app-local virtual environment, installs `vector-inspector`
+from pip, and generates launchers for both the app and pip.
+
 ## From PyPI
 
 ### Fast Install (Minimal)
@@ -177,9 +187,9 @@ These correspond to the version constraints in `pyproject.toml`.
 | LanceDB | `[lancedb]` | `lancedb`, `pyarrow` | 0.27.0, 14.0.0 | Windows, macOS, Linux | Persistent | ✅ Stable |
 | PgVector | `[pgvector]` | `psycopg2-binary`, `pgvector` | 2.9.11, 0.4.2 | Windows, macOS, Linux | HTTP (PostgreSQL) | ✅ Stable |
 | Weaviate | `[weaviate]` | `weaviate-client` | 4.19.2 | Windows, macOS, Linux | Persistent / HTTP | ✅ Stable |
-| Milvus | `[milvus]` | `pymilvus` | 2.6.8 | Windows, macOS, Linux | **Lite** (file) / HTTP (server) | ✅ Stable |
+| Milvus | `[milvus]` | `pymilvus` | 2.6.8 | macOS, Linux | **Lite** (file) / HTTP (server) | ⚠️ Experimental |
 
-> **Milvus modes**: Use **Milvus Lite** (file-based) on any platform, or connect to a remote Milvus server via HTTP. Milvus Lite is ideal for development and testing; use a Milvus server for production workloads.
+> **Milvus modes**: Use **Milvus Lite** (file-based) on macOS/Linux, or connect to a remote Milvus server via HTTP. Milvus Lite is ideal for development and testing; use a Milvus server for production workloads. Windows support is experimental — some Milvus Lite operations (e.g. dropping collections) are known to fail due to OS-level file-locking limitations.
 
 ---
 

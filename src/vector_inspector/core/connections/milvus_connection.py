@@ -381,7 +381,7 @@ class MilvusConnection(VectorDBConnection):
                 item = {
                     "id": item_id,
                     "text": doc,
-                    "metadata": metadatas[i] if metadatas else {},
+                    "metadata": metadatas[i] if metadatas and i < len(metadatas) else {},
                 }
 
                 # Add embedding if provided
@@ -500,14 +500,13 @@ class MilvusConnection(VectorDBConnection):
             if stats and "row_count" in stats:
                 return int(stats["row_count"])
 
-            # Fallback: query with limit 1 to get any result
+            # Fallback: count all IDs via a full query
             result = self._client.query(
                 collection_name=name,
+                filter="id >= 0",
                 output_fields=["id"],
-                limit=1,
             )
-            # If we can query, the collection exists; return 1 or 0
-            return 1 if result else 0
+            return len(result) if result else 0
         except Exception as e:
             log_tracked_error(
                 "Milvus count_collection failed: %s",
