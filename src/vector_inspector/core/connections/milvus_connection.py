@@ -168,6 +168,40 @@ class MilvusConnection(VectorDBConnection):
         """Check if connected to Milvus."""
         return self._connected
 
+    # ------------------------------------------------------------------
+    # Capability flags
+    # These reflect what the connected Milvus deployment supports.
+    # Lite (file-based) has a fixed schema and limited API surface;
+    # remote server exposes the full Milvus feature set.
+    # These flags are informational — UI and future features should
+    # consult them before offering advanced options.
+    # ------------------------------------------------------------------
+
+    @property
+    def supports_metadata(self) -> bool:
+        """Both Lite and server support a JSON metadata field."""
+        return True
+
+    @property
+    def supports_scalar_fields(self) -> bool:
+        """Remote server supports typed scalar columns; Lite uses a fixed schema."""
+        return self._mode == "remote"
+
+    @property
+    def supports_partitions(self) -> bool:
+        """Partitions (sub-collection sharding) are a server-only feature."""
+        return self._mode == "remote"
+
+    @property
+    def supports_index_types(self) -> bool:
+        """Configurable index types (HNSW, IVF_FLAT, etc.) require a remote server."""
+        return self._mode == "remote"
+
+    @property
+    def supports_search_params(self) -> bool:
+        """Fine-grained search parameters (nprobe, ef, etc.) require a remote server."""
+        return self._mode == "remote"
+
     def list_collections(self) -> list[str]:
         """Get list of all collections."""
         if not self.is_connected or not self._client:
