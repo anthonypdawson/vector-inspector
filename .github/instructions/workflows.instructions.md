@@ -4,6 +4,19 @@ applyTo: "**"
 
 # Developer Workflows & Release Notes
 
+## PDM-First Rule
+
+**This is a PDM-managed project. All commands that invoke Python, pytest, scripts, or tools must be prefixed with `pdm run`.**
+
+- ✅ `pdm run pytest`
+- ✅ `pdm run python -m vector_inspector`
+- ✅ `pdm run ruff check src/`
+- ❌ `pytest` (wrong — bypasses the PDM environment)
+- ❌ `python script.py` (wrong — may use wrong interpreter/env)
+- ❌ `ruff check src/` (wrong — tool may not be in PATH)
+
+Never use bare `python`, `pytest`, `ruff`, or any other project tool without `pdm run`.
+
 ## Install & Run
 
 ```

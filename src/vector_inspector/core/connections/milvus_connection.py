@@ -391,9 +391,14 @@ class MilvusConnection(VectorDBConnection):
         try:
             int_ids = [self._to_milvus_id(id_val) for id_val in ids]
 
-            results = self._client.get(
+            # Use query() with an id filter rather than get() — Milvus Lite's get()
+            # omits dynamic fields (text, metadata) from results due to an unimplemented
+            # AllocTimestamp gRPC method; query() returns all fields correctly.
+            id_list = ", ".join(str(i) for i in int_ids)
+            results = self._client.query(
                 collection_name=name,
-                ids=int_ids,
+                filter=f"id in [{id_list}]",
+                output_fields=["id", "text", "metadata"],
             )
 
             documents = []
