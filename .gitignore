@@ -9,6 +9,7 @@ __pycache__/
 *.code-workspace
 *env/
 .env
+logs
 dist
 dist_nuitka
 build

@@ -359,6 +359,8 @@ class ConnectionDialog(QDialog):
             self.port_input.setText("6333")
         elif self.provider == "chromadb" and self.port_input.text() == "6333":
             self.port_input.setText("8000")
+        elif self.provider == "milvus" and self.port_input.text() in ("8000", "6333"):
+            self.port_input.setText("19530")
 
         # Enable/disable fields for PgVector
         if self.provider == "pgvector":
@@ -387,6 +389,20 @@ class ConnectionDialog(QDialog):
             self.database_input.setEnabled(False)
             self.user_input.setEnabled(False)
             self.password_input.setEnabled(False)
+        elif self.provider == "milvus":
+            self.persistent_radio.setEnabled(True)
+            self.http_radio.setEnabled(True)
+            self.ephemeral_radio.setEnabled(False)
+            self.ephemeral_radio.setChecked(False)
+            # Default to persistent for Milvus Lite
+            if not self.persistent_radio.isChecked() and not self.http_radio.isChecked():
+                self.persistent_radio.setChecked(True)
+            self.api_key_input.setEnabled(False)
+            self.database_input.setEnabled(False)
+            self.user_input.setEnabled(False)
+            self.password_input.setEnabled(False)
+            # Update path/host/port based on connection type
+            self._on_type_changed()
         else:
             self.persistent_radio.setEnabled(True)
             self.http_radio.setEnabled(True)
@@ -423,6 +439,14 @@ class ConnectionDialog(QDialog):
             self.user_input.setEnabled(True)
             self.password_input.setEnabled(True)
             self.api_key_input.setEnabled(False)
+        elif self.provider == "milvus":
+            self.path_input.setEnabled(is_persistent)
+            self.host_input.setEnabled(is_http)
+            self.port_input.setEnabled(is_http)
+            self.api_key_input.setEnabled(False)
+            self.database_input.setEnabled(False)
+            self.user_input.setEnabled(False)
+            self.password_input.setEnabled(False)
         else:
             self.path_input.setEnabled(is_persistent)
             self.host_input.setEnabled(is_http)
@@ -454,6 +478,19 @@ class ConnectionDialog(QDialog):
                     "password": self.password_input.text(),
                 }
             )
+        elif self.provider == "milvus":
+            if self.persistent_radio.isChecked():
+                config.update({"type": "persistent", "path": self.path_input.text()})
+            elif self.http_radio.isChecked():
+                config.update(
+                    {
+                        "type": "http",
+                        "host": self.host_input.text(),
+                        "port": int(self.port_input.text()),
+                    }
+                )
+            else:
+                config.update({"type": "persistent", "path": "./milvus.db"})
         elif self.persistent_radio.isChecked():
             config.update({"type": "persistent", "path": self.path_input.text()})
         elif self.http_radio.isChecked():
