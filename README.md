@@ -59,16 +59,6 @@ These scripts:
 
 This is the easiest and most reliable way to get started.
 
-## Windows Bootstrap Installer (pip-enabled)
-
-If you need a complete Python environment with pip access after installation,
-use the bootstrap installer workflow documented in:
-
-- [docs/BOOTSTRAP_INSTALLER.md](docs/BOOTSTRAP_INSTALLER.md)
-
-This flow creates an app-local virtual environment, installs `vector-inspector`
-from pip, and generates launchers for both the app and pip.
-
 ## From PyPI
 
 ### Fast Install (Minimal)
