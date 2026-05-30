@@ -10,8 +10,8 @@ Or run directly with Python:
     python scripts/bootstrap_installer.py [options]
 
 After installation, a 'vector-inspector' launcher is placed in <install_root>/bin/.
-Use --add-to-path to register it automatically, or --create-shortcut to add a
-desktop shortcut. pip is used internally by the app to manage optional providers.
+PATH registration and a desktop shortcut are created by default; use --no-add-to-path
+or --no-shortcut to skip them. pip is used internally by the app to manage optional providers.
 """
 
 from __future__ import annotations
@@ -33,6 +33,34 @@ DEFAULT_MIN_VERSION = (3, 11)
 STATE_FILE_NAME = "bootstrap-state.json"
 
 PLATFORM = sys.platform  # "win32", "darwin", "linux"
+
+# Extras shown in the interactive menu. Must match the [project.optional-dependencies]
+# keys declared in vector-inspector's pyproject.toml.
+KNOWN_PROVIDER_EXTRAS: list[str] = [
+    "chromadb",
+    "qdrant",
+    "milvus",
+    "pinecone",
+    "lancedb",
+    "pgvector",
+    "weaviate",
+]
+
+KNOWN_FEATURE_EXTRAS: list[str] = [
+    "embeddings",
+    "clip",
+    "viz",
+    "documents",
+    "llm",
+]
+
+KNOWN_BUNDLE_EXTRAS: list[str] = [
+    "recommended",
+    "starter",
+    "cloud",
+    "local",
+    "all",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -516,6 +544,94 @@ def write_state_file(
 
 
 # ---------------------------------------------------------------------------
+# Interactive console menu (questionary)
+# ---------------------------------------------------------------------------
+
+
+def run_interactive_menu(args: argparse.Namespace) -> argparse.Namespace:
+    """Show an interactive installation menu when running in a TTY with no CLI args.
+
+    Falls back silently if *questionary* is not importable or stdin is not a TTY.
+    Exits cleanly on Ctrl+C.
+    """
+    if not sys.stdin.isatty():
+        return args
+    # Only show the menu when the user ran the installer with no arguments
+    # (e.g. double-clicked the executable).  Explicit CLI flags bypass it.
+    if len(sys.argv) > 1:
+        return args
+
+    try:
+        import questionary  # type: ignore[import-untyped]
+    except ImportError:
+        print_step("questionary not available — using defaults (install questionary to enable the setup wizard).")
+        return args
+
+    print_header(f"{APP_NAME} Setup")
+    print("  Use arrow keys to navigate, Space to toggle checkboxes, Enter to confirm.")
+    print("  Press Ctrl+C at any time to cancel.\n")
+
+    try:
+        install_root = questionary.text(
+            "Install root:",
+            default=args.install_root,
+        ).ask()
+        if install_root is None:
+            sys.exit(0)
+        args.install_root = install_root
+
+        selected_providers = questionary.checkbox(
+            "Database providers:",
+            choices=KNOWN_PROVIDER_EXTRAS,
+            instruction="(Space to select, Enter to confirm — leave empty for core only)",
+        ).ask()
+        if selected_providers is None:
+            sys.exit(0)
+
+        selected_features = questionary.checkbox(
+            "Features:",
+            choices=KNOWN_FEATURE_EXTRAS,
+            instruction="(Space to select, Enter to confirm)",
+        ).ask()
+        if selected_features is None:
+            sys.exit(0)
+
+        selected_bundles = questionary.checkbox(
+            "Convenience bundles (optional — override individual selections above):",
+            choices=KNOWN_BUNDLE_EXTRAS,
+            instruction="(Space to select, Enter to confirm — leave empty to skip)",
+        ).ask()
+        if selected_bundles is None:
+            sys.exit(0)
+
+        all_extras = selected_providers + selected_features + selected_bundles
+        args.extras = ",".join(all_extras)
+
+        add_to_path = questionary.confirm(
+            "Add launcher to PATH?",
+            default=args.add_to_path,
+        ).ask()
+        if add_to_path is None:
+            sys.exit(0)
+        args.add_to_path = add_to_path
+
+        create_shortcut = questionary.confirm(
+            "Create desktop shortcut?",
+            default=args.create_shortcut,
+        ).ask()
+        if create_shortcut is None:
+            sys.exit(0)
+        args.create_shortcut = create_shortcut
+
+    except KeyboardInterrupt:
+        print("\nInstallation cancelled.")
+        sys.exit(0)
+
+    print()
+    return args
+
+
+# ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
 
@@ -567,17 +683,21 @@ def parse_args() -> argparse.Namespace:
             help="Do not use winget to auto-install Python when missing.",
         )
     parser.add_argument(
-        "--add-to-path",
-        action="store_true",
+        "--no-add-to-path",
+        dest="add_to_path",
+        action="store_false",
+        default=True,
         help=(
-            "Automatically add the launcher bin directory to the user PATH "
+            "Skip adding the launcher bin directory to the user PATH "
             "(registry on Windows, shell RC file on macOS/Linux)."
         ),
     )
     parser.add_argument(
-        "--create-shortcut",
-        action="store_true",
-        help="Create a desktop shortcut for Vector Inspector.",
+        "--no-shortcut",
+        dest="create_shortcut",
+        action="store_false",
+        default=True,
+        help="Skip creating a desktop shortcut for Vector Inspector.",
     )
     return parser.parse_args()
 
@@ -589,6 +709,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    args = run_interactive_menu(args)
 
     try:
         min_version = parse_min_version(args.python_min_version)

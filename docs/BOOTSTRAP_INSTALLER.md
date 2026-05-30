@@ -101,13 +101,25 @@ Install to a custom location:
 Add to PATH automatically:
 
 ```sh
-./bootstrap_installer --add-to-path
+./bootstrap_installer
 ```
 
 Create a desktop shortcut:
 
 ```sh
-./bootstrap_installer --create-shortcut
+./bootstrap_installer
+```
+
+Skip PATH registration:
+
+```sh
+./bootstrap_installer --no-add-to-path
+```
+
+Skip desktop shortcut:
+
+```sh
+./bootstrap_installer --no-shortcut
 ```
 
 Recreate the environment from scratch:
