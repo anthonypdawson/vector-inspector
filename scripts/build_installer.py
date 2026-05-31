@@ -6,7 +6,7 @@ detection, venv creation, and app installation.
 
 Usage (run from repo root):
 
-    python scripts/build_installer.py
+    pdm run python scripts/build_installer.py
 
 Requirements
 ------------

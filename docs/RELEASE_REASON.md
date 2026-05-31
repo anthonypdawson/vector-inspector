@@ -1,6 +1,6 @@
 # Release Notes (0.8.2) — May 25, 2026
 
-Bootstrap package installer for systems without python (or users that do not want to use command line)
+Bootstrap installer for systems without Python installed, or for users who prefer not to use the command line.
 
 ## Packaging & Distribution
 

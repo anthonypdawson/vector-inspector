@@ -388,7 +388,8 @@ def add_to_path_windows(bin_dir: Path) -> bool:
             except FileNotFoundError:
                 current = ""
             bin_str = str(bin_dir)
-            if bin_str.lower() not in current.lower():
+            current_entries = [e.lower() for e in current.split(";") if e]
+            if bin_str.lower() not in current_entries:
                 new_value = f"{current};{bin_str}" if current else bin_str
                 winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_value)
                 print_step("Added to user PATH in registry.")
@@ -900,6 +901,20 @@ def run_uninstall(install_root: Path) -> int:
             return 0
 
     if install_root.exists():
+        # Validate this is actually a Vector Inspector install before deleting
+        state_file = install_root / STATE_FILE_NAME
+        valid = False
+        try:
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            valid = data.get("app") == APP_NAME
+        except Exception:
+            pass
+        if not valid:
+            print_step(
+                f"ERROR: {install_root} does not appear to be a {APP_NAME} install "
+                "(missing or invalid bootstrap-state.json). Aborting to avoid data loss."
+            )
+            return 1
         shutil.rmtree(install_root)
         print_step(f"Removed: {install_root}")
     else:
@@ -929,7 +944,14 @@ def run_uninstall(install_root: Path) -> int:
 
 
 def check_existing_install():
-    """Check for an existing install and prompt user for action if found."""
+    """Check for an existing install and prompt user for action if found.
+
+    Returns (None, None) immediately when running non-interactively (explicit
+    CLI args present, or stdin is not a TTY) so scripted/automated runs are
+    never blocked by an interactive prompt.
+    """
+    if len(sys.argv) > 1 or not sys.stdin.isatty():
+        return None, None
     config_dir = Path.home() / ".vector-inspector"
     install_path_file = config_dir / "install_path"
     if install_path_file.exists():
@@ -967,6 +989,20 @@ def check_existing_install():
             action = ask_action()
             if action == "Replace (clean install)":
                 print_step(f"Removing previous install at {existing_path}...")
+                # Validate this is a Vector Inspector install before deleting
+                state_file = existing_path / STATE_FILE_NAME
+                valid = False
+                try:
+                    data = json.loads(state_file.read_text(encoding="utf-8"))
+                    valid = data.get("app") == APP_NAME
+                except Exception:
+                    pass
+                if not valid:
+                    print_step(
+                        f"ERROR: {existing_path} does not appear to be a {APP_NAME} install "
+                        "(missing or invalid bootstrap-state.json). Aborting to avoid data loss."
+                    )
+                    sys.exit(1)
                 try:
                     shutil.rmtree(existing_path)
                 except Exception as exc:

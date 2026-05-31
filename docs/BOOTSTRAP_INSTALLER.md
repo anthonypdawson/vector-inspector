@@ -65,7 +65,7 @@ on a machine with **no Python pre-installed**. You must build on the target OS.
 Build the executable:
 
 ```sh
-python scripts/build_installer.py
+pdm run python scripts/build_installer.py
 ```
 
 The version is read from `src/vector_inspector/__init__.py` automatically.
@@ -212,7 +212,7 @@ Launch from the venv python directly to see error output:
 ## Notes for release engineering
 
 - Platform-specific binaries are built automatically by `.github/workflows/build-installer.yml` when a GitHub release is published. No manual build step is needed for releases.
-- To build locally (e.g. for testing), run `python scripts/build_installer.py` from the repo root on the target OS.
+- To build locally (e.g. for testing), run `pdm run python scripts/build_installer.py` from the repo root on the target OS.
 - The installer binary does not require Python to be pre-installed on the end-user's machine.
 - Because it installs from PyPI into a live venv, users always get the latest published release and can manage optional extras at any time.
 - The `questionary` TUI library is bundled into the binary at build time — end users do not need to install it.
