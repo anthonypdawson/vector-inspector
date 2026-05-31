@@ -4,7 +4,7 @@
 Can be compiled to a standalone executable with Nuitka so no Python is required on
 the target system:
 
-    pdm run python scripts/build_bootstrap_exe.py
+    pdm run python scripts/build_installer.py
 
 Or run directly with Python:
 
@@ -556,6 +556,16 @@ def write_state_file(
 # ---------------------------------------------------------------------------
 
 
+def _is_frozen() -> bool:
+    """Return True when running inside a compiled (Nuitka/PyInstaller) binary.
+
+    In a frozen binary sys.executable is the binary itself, so we cannot pip-install
+    new packages into it, and newly installed packages would not be importable anyway.
+    """
+    # Nuitka onefile sets sys.frozen; PyInstaller sets sys._MEIPASS
+    return getattr(sys, "frozen", False) or hasattr(sys, "_MEIPASS")
+
+
 def _try_import_questionary():
     """Attempt to import questionary; return the module or None."""
     try:
@@ -568,17 +578,22 @@ def _try_import_questionary():
 def ensure_questionary():
     """Return the questionary module, prompting to install it if missing.
 
-    Returns None if unavailable and the user declined or stdin is not a TTY.
+    In a frozen/compiled binary questionary is always bundled, so the import
+    succeeds immediately. When running from source and questionary is absent,
+    offers to pip-install it; falls back to plain input() prompts otherwise.
     """
     q = _try_import_questionary()
     if q is not None:
         return q
-    print_step("'questionary' not found — interactive setup wizard is unavailable.")
+    if _is_frozen():
+        # Should not happen — questionary is bundled at build time.
+        return None
     if not sys.stdin.isatty():
         return None
-    resp = input("Would you like to install 'questionary' now to enable the setup wizard? [Y/n]: ").strip().lower()
+    print_step("'questionary' not found — the arrow-key setup wizard is unavailable.")
+    resp = input("Install 'questionary' now to enable it? [Y/n]: ").strip().lower()
     if resp not in ("", "y", "yes"):
-        print_step("Continuing without interactive setup wizard.")
+        print_step("Continuing with plain-text prompts.")
         return None
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "questionary"])
@@ -587,17 +602,98 @@ def ensure_questionary():
         return None
     q = _try_import_questionary()
     if q is not None:
-        print_step("'questionary' installed successfully. Launching setup wizard...\n")
+        print_step("'questionary' installed. Launching setup wizard...\n")
     else:
-        print_step("'questionary' still not importable after install.")
+        print_step("'questionary' still not importable — using plain-text prompts.")
     return q
+
+
+# ---------------------------------------------------------------------------
+# Plain-text fallback prompts (used when questionary is unavailable)
+# ---------------------------------------------------------------------------
+
+def _prompt_bool(question: str, default: bool) -> bool:
+    """Simple y/n prompt with a default."""
+    hint = "[Y/n]" if default else "[y/N]"
+    while True:
+        try:
+            resp = input(f"{question} {hint}: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nInstallation cancelled.")
+            sys.exit(0)
+        if resp == "":
+            return default
+        if resp in ("y", "yes"):
+            return True
+        if resp in ("n", "no"):
+            return False
+        print("  Please enter y or n.")
+
+
+def _prompt_choices(question: str, choices: list[str]) -> list[str]:
+    """Print a numbered list and return the user-selected items."""
+    print(f"\n{question}")
+    for i, choice in enumerate(choices, 1):
+        print(f"  {i:2d}. {choice}")
+    print("  Enter numbers separated by commas, or press Enter to skip.")
+    try:
+        resp = input("  Selection: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\nInstallation cancelled.")
+        sys.exit(0)
+    if not resp:
+        return []
+    selected = []
+    for part in resp.split(","):
+        part = part.strip()
+        if part.isdigit():
+            idx = int(part) - 1
+            if 0 <= idx < len(choices):
+                selected.append(choices[idx])
+    return selected
+
+
+def _run_cli_menu(args: argparse.Namespace, *, lock_install_root: bool = False) -> argparse.Namespace:
+    """Plain input() fallback when questionary is unavailable."""
+    print_header(f"{APP_NAME} Setup")
+    print("  Answer each prompt and press Enter. Defaults are shown in [brackets].\n")
+
+    try:
+        if lock_install_root:
+            print_step(f"Updating existing install at: {args.install_root}")
+        else:
+            try:
+                resp = input(f"Install root [{args.install_root}]: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\nInstallation cancelled.")
+                sys.exit(0)
+            if resp:
+                args.install_root = resp
+
+        providers = _prompt_choices("Database providers (optional):", KNOWN_PROVIDER_EXTRAS)
+        features = _prompt_choices("Features (optional):", KNOWN_FEATURE_EXTRAS)
+        bundles = _prompt_choices("Convenience bundles (optional):", KNOWN_BUNDLE_EXTRAS)
+        all_extras = providers + features + bundles
+        args.extras = ",".join(all_extras)
+
+        args.add_to_path = _prompt_bool("Add launcher to PATH?", args.add_to_path)
+        args.create_shortcut = _prompt_bool("Create desktop shortcut?", args.create_shortcut)
+        launch = _prompt_bool("Launch after install?", not args.no_launch)
+        args.no_launch = not launch
+
+    except KeyboardInterrupt:
+        print("\nInstallation cancelled.")
+        sys.exit(0)
+
+    print()
+    return args
 
 
 def run_interactive_menu(args: argparse.Namespace, *, lock_install_root: bool = False) -> argparse.Namespace:
     """Show an interactive installation menu when running in a TTY with no CLI args.
 
-    Falls back silently if *questionary* is not importable or stdin is not a TTY.
-    Exits cleanly on Ctrl+C.
+    Uses questionary (arrow-key TUI) when available; falls back to plain input()
+    prompts otherwise. Exits cleanly on Ctrl+C.
 
     When *lock_install_root* is True (Update mode), the install directory prompt
     is skipped — only features/extras and launch options can be changed.
@@ -611,7 +707,7 @@ def run_interactive_menu(args: argparse.Namespace, *, lock_install_root: bool = 
 
     questionary = ensure_questionary()
     if questionary is None:
-        return args
+        return _run_cli_menu(args, lock_install_root=lock_install_root)
 
 
     print_header(f"{APP_NAME} Setup")
