@@ -52,92 +52,81 @@ When run, it:
 
 ## Build the bootstrap executable with Nuitka
 
-Build helper script: [scripts/build_bootstrap_exe.py](../scripts/build_bootstrap_exe.py)
+Build helper script: [scripts/build_installer.py](../scripts/build_installer.py)
 
 Nuitka compiles `bootstrap_installer.py` into a standalone executable that runs
 on a machine with **no Python pre-installed**. You must build on the target OS.
 
 ### Prerequisites
 
-- [pipx](https://pipx.pypa.io) installed — Nuitka is run ephemerally via `pipx run nuitka`, so it does **not** need to be a project dependency.
-- A C compiler available on the build machine (MSVC on Windows, Xcode CLT on macOS, gcc/clang on Linux).
+- A C compiler on the build machine (MSVC on Windows, Xcode CLT on macOS, gcc/clang on Linux).
+- `nuitka` and `questionary` are **auto-installed** into the current environment by the build script if missing — no manual setup required.
 
 Build the executable:
 
 ```sh
-python scripts/build_bootstrap_exe.py
+python scripts/build_installer.py
 ```
+
+The version is read from `src/vector_inspector/__init__.py` automatically.
 
 Output (varies by platform):
 
 | Platform | Output file |
 |----------|-------------|
-| Windows  | `build/bootstrap-installer/bootstrap_installer.exe` |
-| macOS    | `build/bootstrap-installer/bootstrap_installer` |
-| Linux    | `build/bootstrap-installer/bootstrap_installer` |
+| Windows  | `build/bootstrap-installer/vector-inspector-vX.Y.Z-installer.exe` |
+| macOS    | `build/bootstrap-installer/vector-inspector-vX.Y.Z-installer` |
+| Linux    | `build/bootstrap-installer/vector-inspector-vX.Y.Z-installer` |
 
-## Use the bootstrap executable
+The GitHub Actions workflow (`.github/workflows/build-installer.yml`) builds all three platform
+binaries automatically when a release is published and attaches them to the release as assets.
 
-Examples below use the Windows `.exe`; on macOS/Linux omit the `.exe`.
+## Use the bootstrap installer
 
-Default install (auto-detects platform paths):
+Examples below use the versioned filename (replace `X.Y.Z` with the actual version).
+On macOS/Linux omit the `.exe` suffix.
+
+### Interactive mode (recommended)
+
+Double-click the file or run it with no arguments to launch the interactive setup wizard.
+If `questionary` is bundled (it is in official releases), you get an arrow-key TUI;
+otherwise a plain-text prompt flow is used automatically.
 
 ```sh
-./bootstrap_installer
+./vector-inspector-vX.Y.Z-installer
 ```
 
-Install with extras:
+On a subsequent run the wizard detects an existing install and offers:
+- **Replace** — clean reinstall to the same location
+- **Update** — change extras/features without moving the install
+- **Uninstall** — remove the install and desktop shortcut
+- **Cancel**
+
+### Non-interactive / scripted mode
+
+All options can be passed as CLI flags to bypass the wizard:
 
 ```sh
-./bootstrap_installer --extras milvus,viz
-```
+# Install with extras
+./vector-inspector-vX.Y.Z-installer --extras milvus,viz
 
-Install to a custom location:
+# Install to a custom location
+./vector-inspector-vX.Y.Z-installer --install-root /opt/VectorInspector
 
-```sh
-./bootstrap_installer --install-root /opt/VectorInspector
-```
+# Skip PATH registration
+./vector-inspector-vX.Y.Z-installer --no-add-to-path
 
-Add to PATH automatically:
+# Skip desktop shortcut
+./vector-inspector-vX.Y.Z-installer --no-shortcut
 
-```sh
-./bootstrap_installer
-```
+# Recreate the venv from scratch
+./vector-inspector-vX.Y.Z-installer --recreate-venv
 
-Create a desktop shortcut:
+# Install only, do not launch after
+./vector-inspector-vX.Y.Z-installer --no-launch
 
-```sh
-./bootstrap_installer
-```
-
-Skip PATH registration:
-
-```sh
-./bootstrap_installer --no-add-to-path
-```
-
-Skip desktop shortcut:
-
-```sh
-./bootstrap_installer --no-shortcut
-```
-
-Recreate the environment from scratch:
-
-```sh
-./bootstrap_installer --recreate-venv
-```
-
-Install only (no immediate app launch):
-
-```sh
-./bootstrap_installer --no-launch
-```
-
-Disable winget fallback (Windows only):
-
-```sh
-./bootstrap_installer.exe --no-winget
+# Disable winget Python fallback (Windows only)
+./vector-inspector-vX.Y.Z-installer.exe --no-winget
 ```
 
 ## Using pip after installation
@@ -162,21 +151,31 @@ To manually install or upgrade extras, use the venv python directly:
 
 ## Updating an existing install
 
-Run the bootstrap installer again. It reuses the existing venv by default and upgrades Vector Inspector.
+Run the installer again. It detects the existing install and presents a menu:
+- Choose **Update** to change extras/features while keeping the install location.
+- Choose **Replace** for a clean reinstall to the same location.
 
-```powershell
-.\bootstrap_installer.exe
+```sh
+./vector-inspector-vX.Y.Z-installer
 ```
 
-To force a clean environment rebuild:
+To force a clean environment rebuild non-interactively:
 
-```powershell
-.\bootstrap_installer.exe --recreate-venv
+```sh
+./vector-inspector-vX.Y.Z-installer --recreate-venv
 ```
 
 ## Uninstall
 
-Delete the install root folder (default `%LOCALAPPDATA%/VectorInspector`). This removes the app-local venv and launchers.
+Run the installer and choose **Uninstall** from the menu, or pass `--uninstall` directly:
+
+```sh
+./vector-inspector-vX.Y.Z-installer --uninstall
+```
+
+This removes the install directory, desktop shortcut, and the installer's own config file.
+Alternatively, delete the install root folder manually (`%LOCALAPPDATA%\VectorInspector` on Windows,
+`~/Library/Application Support/VectorInspector` on macOS, `~/.local/share/vectorinspector` on Linux).
 
 ## Troubleshooting
 
@@ -212,6 +211,8 @@ Launch from the venv python directly to see error output:
 
 ## Notes for release engineering
 
-- Build the bootstrap executable on each target platform (Windows, macOS, Linux) to produce platform-specific binaries.
-- The bootstrap executable is the primary distribution method for Vector Inspector — it does not require Python to be pre-installed.
+- Platform-specific binaries are built automatically by `.github/workflows/build-installer.yml` when a GitHub release is published. No manual build step is needed for releases.
+- To build locally (e.g. for testing), run `python scripts/build_installer.py` from the repo root on the target OS.
+- The installer binary does not require Python to be pre-installed on the end-user's machine.
 - Because it installs from PyPI into a live venv, users always get the latest published release and can manage optional extras at any time.
+- The `questionary` TUI library is bundled into the binary at build time — end users do not need to install it.
