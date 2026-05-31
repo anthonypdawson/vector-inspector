@@ -1,3 +1,4 @@
+
 """Cross-platform bootstrap installer for Vector Inspector with app-local pip support.
 
 Can be compiled to a standalone executable with Nuitka so no Python is required on
@@ -376,38 +377,37 @@ def add_to_path_windows(bin_dir: Path) -> bool:
     try:
         import winreg
 
-        key = winreg.OpenKey(
+        with winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
             r"Environment",
             0,
             winreg.KEY_READ | winreg.KEY_WRITE,
-        )
-        try:
-            current, _ = winreg.QueryValueEx(key, "Path")
-        except FileNotFoundError:
-            current = ""
-        bin_str = str(bin_dir)
-        if bin_str.lower() not in current.lower():
-            new_value = f"{current};{bin_str}" if current else bin_str
-            winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_value)
-            print_step("Added to user PATH in registry.")
-            # Broadcast WM_SETTINGCHANGE so open shells pick it up immediately
-            import ctypes
+        ) as key:
+            try:
+                current, _ = winreg.QueryValueEx(key, "Path")
+            except FileNotFoundError:
+                current = ""
+            bin_str = str(bin_dir)
+            if bin_str.lower() not in current.lower():
+                new_value = f"{current};{bin_str}" if current else bin_str
+                winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_value)
+                print_step("Added to user PATH in registry.")
+                # Broadcast WM_SETTINGCHANGE so open shells pick it up immediately
+                import ctypes
 
-            HWND_BROADCAST = 0xFFFF
-            WM_SETTINGCHANGE = 0x001A
-            ctypes.windll.user32.SendMessageTimeoutW(
-                HWND_BROADCAST,
-                WM_SETTINGCHANGE,
-                0,
-                "Environment",
-                2,
-                5000,
-                None,
-            )
-        else:
-            print_step("Already in user PATH; skipping.")
-        winreg.CloseKey(key)
+                HWND_BROADCAST = 0xFFFF
+                WM_SETTINGCHANGE = 0x001A
+                ctypes.windll.user32.SendMessageTimeoutW(
+                    HWND_BROADCAST,
+                    WM_SETTINGCHANGE,
+                    0,
+                    "Environment",
+                    2,
+                    5000,
+                    None,
+                )
+            else:
+                print_step("Already in user PATH; skipping.")
         return True
     except Exception as exc:
         print_step(f"Could not update PATH in registry: {exc}")
@@ -542,17 +542,65 @@ def write_state_file(
     }
     state_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
+    # Also write the install root to ~/.vector-inspector/install_path for uninstaller
+    try:
+        config_dir = Path.home() / ".vector-inspector"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        (config_dir / "install_path").write_text(str(install_root), encoding="utf-8")
+    except Exception as exc:
+        print_step(f"Warning: Could not write install path config: {exc}")
+
 
 # ---------------------------------------------------------------------------
 # Interactive console menu (questionary)
 # ---------------------------------------------------------------------------
 
 
-def run_interactive_menu(args: argparse.Namespace) -> argparse.Namespace:
+def _try_import_questionary():
+    """Attempt to import questionary; return the module or None."""
+    try:
+        import questionary  # type: ignore[import-untyped]
+        return questionary
+    except ImportError:
+        return None
+
+
+def ensure_questionary():
+    """Return the questionary module, prompting to install it if missing.
+
+    Returns None if unavailable and the user declined or stdin is not a TTY.
+    """
+    q = _try_import_questionary()
+    if q is not None:
+        return q
+    print_step("'questionary' not found — interactive setup wizard is unavailable.")
+    if not sys.stdin.isatty():
+        return None
+    resp = input("Would you like to install 'questionary' now to enable the setup wizard? [Y/n]: ").strip().lower()
+    if resp not in ("", "y", "yes"):
+        print_step("Continuing without interactive setup wizard.")
+        return None
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "questionary"])
+    except Exception as exc:
+        print_step(f"Failed to install questionary: {exc}")
+        return None
+    q = _try_import_questionary()
+    if q is not None:
+        print_step("'questionary' installed successfully. Launching setup wizard...\n")
+    else:
+        print_step("'questionary' still not importable after install.")
+    return q
+
+
+def run_interactive_menu(args: argparse.Namespace, *, lock_install_root: bool = False) -> argparse.Namespace:
     """Show an interactive installation menu when running in a TTY with no CLI args.
 
     Falls back silently if *questionary* is not importable or stdin is not a TTY.
     Exits cleanly on Ctrl+C.
+
+    When *lock_install_root* is True (Update mode), the install directory prompt
+    is skipped — only features/extras and launch options can be changed.
     """
     if not sys.stdin.isatty():
         return args
@@ -561,24 +609,26 @@ def run_interactive_menu(args: argparse.Namespace) -> argparse.Namespace:
     if len(sys.argv) > 1:
         return args
 
-    try:
-        import questionary  # type: ignore[import-untyped]
-    except ImportError:
-        print_step("questionary not available — using defaults (install questionary to enable the setup wizard).")
+    questionary = ensure_questionary()
+    if questionary is None:
         return args
+
 
     print_header(f"{APP_NAME} Setup")
     print("  Use arrow keys to navigate, Space to toggle checkboxes, Enter to confirm.")
     print("  Press Ctrl+C at any time to cancel.\n")
 
     try:
-        install_root = questionary.text(
-            "Install root:",
-            default=args.install_root,
-        ).ask()
-        if install_root is None:
-            sys.exit(0)
-        args.install_root = install_root
+        if lock_install_root:
+            print_step(f"Updating existing install at: {args.install_root}")
+        else:
+            install_root = questionary.text(
+                "Install root:",
+                default=args.install_root,
+            ).ask()
+            if install_root is None:
+                sys.exit(0)
+            args.install_root = install_root
 
         selected_providers = questionary.checkbox(
             "Database providers:",
@@ -622,6 +672,14 @@ def run_interactive_menu(args: argparse.Namespace) -> argparse.Namespace:
         if create_shortcut is None:
             sys.exit(0)
         args.create_shortcut = create_shortcut
+
+        launch_after_install = questionary.confirm(
+            "Launch after install?",
+            default=not args.no_launch,
+        ).ask()
+        if launch_after_install is None:
+            sys.exit(0)
+        args.no_launch = not launch_after_install
 
     except KeyboardInterrupt:
         print("\nInstallation cancelled.")
@@ -699,17 +757,182 @@ def parse_args() -> argparse.Namespace:
         default=True,
         help="Skip creating a desktop shortcut for Vector Inspector.",
     )
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="Uninstall Vector Inspector and remove all created files.",
+    )
     return parser.parse_args()
 
+
+# ---------------------------------------------------------------------------
+# Uninstall
+# ---------------------------------------------------------------------------
+
+
+def _get_desktop_shortcut_path() -> Path:
+    desktop = get_desktop_dir()
+    if PLATFORM == "win32":
+        return desktop / f"{APP_NAME}.lnk"
+    if PLATFORM == "darwin":
+        return desktop / f"{APP_NAME}.command"
+    return desktop / f"{APP_NAME_SLUG}.desktop"
+
+
+def run_uninstall(install_root: Path) -> int:
+    """Remove the installed app, launcher, desktop shortcut, and config file."""
+    config_dir = Path.home() / ".vector-inspector"
+    install_path_file = config_dir / "install_path"
+    shortcut = _get_desktop_shortcut_path()
+
+    print_header(f"Uninstall {APP_NAME}")
+    print(f"  Install directory : {install_root}")
+    print(f"  Desktop shortcut  : {shortcut}")
+    print(f"  Config file       : {install_path_file}")
+    print()
+
+    q = ensure_questionary()
+    if q is not None:
+        confirmed = q.confirm("Proceed with uninstall?", default=False).ask()
+        if not confirmed:
+            print_step("Uninstall cancelled.")
+            return 0
+    else:
+        resp = input("Proceed with uninstall? [y/N]: ").strip().lower()
+        if resp not in ("y", "yes"):
+            print_step("Uninstall cancelled.")
+            return 0
+
+    if install_root.exists():
+        shutil.rmtree(install_root)
+        print_step(f"Removed: {install_root}")
+    else:
+        print_step(f"Not found (skipped): {install_root}")
+
+    if shortcut.exists():
+        shortcut.unlink()
+        print_step(f"Removed: {shortcut}")
+    else:
+        print_step(f"Not found (skipped): {shortcut}")
+
+    if install_path_file.exists():
+        install_path_file.unlink()
+        print_step(f"Removed: {install_path_file}")
+    try:
+        config_dir.rmdir()  # only removes if empty
+    except OSError:
+        pass
+
+    print_step(f"{APP_NAME} has been uninstalled.")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Existing install check
+# ---------------------------------------------------------------------------
+
+
+def check_existing_install():
+    """Check for an existing install and prompt user for action if found."""
+    config_dir = Path.home() / ".vector-inspector"
+    install_path_file = config_dir / "install_path"
+    if install_path_file.exists():
+        try:
+            existing_path = Path(install_path_file.read_text(encoding="utf-8").strip()).expanduser().resolve()
+        except Exception:
+            return None, None
+        if existing_path.exists():
+            def ask_action():
+                q = ensure_questionary()
+                if q is not None:
+                    return q.select(
+                        f"Existing installation found at {existing_path}. What would you like to do?",
+                        choices=[
+                            "Replace (clean install)",
+                            "Update (change features/extras)",
+                            "Uninstall",
+                            "Cancel",
+                        ],
+                    ).ask()
+                print(f"Existing installation found at {existing_path}.")
+                print("[1] Replace (clean install)")
+                print("[2] Update (change features/extras)")
+                print("[3] Uninstall")
+                print("[4] Cancel")
+                resp = input("Enter choice [1-4]: ").strip()
+                if resp == "1":
+                    return "Replace (clean install)"
+                elif resp == "2":
+                    return "Update (change features/extras)"
+                elif resp == "3":
+                    return "Uninstall"
+                else:
+                    return "Cancel"
+            action = ask_action()
+            if action == "Replace (clean install)":
+                print_step(f"Removing previous install at {existing_path}...")
+                try:
+                    shutil.rmtree(existing_path)
+                except Exception as exc:
+                    print_step(f"Failed to remove previous install: {exc}")
+                    sys.exit(1)
+                return existing_path, "replace"
+            elif action == "Update (change features/extras)":
+                return existing_path, "update"
+            elif action == "Uninstall":
+                return existing_path, "uninstall"
+            else:
+                print_step("Cancelled.")
+                sys.exit(0)
+    return None, None
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 
+def _print_installer_tip() -> None:
+    print()
+    print_header(f"Managing your {APP_NAME} installation")
+    print("  Re-run this installer at any time to:")
+    print("    - Update installed database providers or feature extras")
+    print("    - Add or remove the launcher from your PATH")
+    print("    - Create or remove the desktop shortcut")
+    print("    - Change whether the app launches after install")
+    print("    - Uninstall completely")
+    print()
+    print("  Or use CLI flags directly:")
+    print(f"    --uninstall          Remove {APP_NAME} and all created files")
+    print(f"    --extras <list>      Change installed extras, e.g. 'chromadb,viz'")
+    print(f"    --no-add-to-path     Skip PATH registration")
+    print(f"    --no-shortcut        Skip desktop shortcut")
+    print(f"    --no-launch          Install without launching")
+    print()
+
+
 def main() -> int:
     args = parse_args()
-    args = run_interactive_menu(args)
+
+    # --uninstall flag: read install path from config and uninstall directly
+    if getattr(args, "uninstall", False):
+        config_dir = Path.home() / ".vector-inspector"
+        install_path_file = config_dir / "install_path"
+        if not install_path_file.exists():
+            print_step("No install path config found. Cannot determine what to uninstall.")
+            return 1
+        install_root = Path(install_path_file.read_text(encoding="utf-8").strip()).expanduser().resolve()
+        return run_uninstall(install_root)
+
+    existing_path, install_mode = check_existing_install()
+
+    if install_mode == "uninstall" and existing_path is not None:
+        return run_uninstall(existing_path)
+
+    if install_mode == "update" and existing_path is not None:
+        args.install_root = str(existing_path)
+        args = run_interactive_menu(args, lock_install_root=True)
+    else:
+        args = run_interactive_menu(args)
 
     try:
         min_version = parse_min_version(args.python_min_version)
@@ -762,6 +985,7 @@ def main() -> int:
 
     if args.no_launch:
         print_step("Installation complete. Launch skipped by request.")
+        _print_installer_tip()
         return 0
 
     entry = venv_app_entry_path(venv_dir)
@@ -771,6 +995,7 @@ def main() -> int:
         return 1
 
     print_step(f"Launching {APP_NAME}...")
+    _print_installer_tip()
     subprocess.Popen([str(entry)])
     return 0
 
