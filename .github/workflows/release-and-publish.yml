@@ -134,21 +134,44 @@ jobs:
         generate_release_notes: true
         body: |
           ${{ steps.release_reason.outputs.reason }}
-                    
+
           ## Installation
 
-          Download the `.whl` or `.tar.gz` file from the Assets section below, then install with:
+          ### Option 1 — Bootstrap installer (recommended, no Python required)
+
+          Download the installer for your platform from the **Assets** section below:
+
+          | Platform | File |
+          |----------|------|
+          | Windows  | `vector-inspector-v${{ steps.get_version.outputs.current }}-installer.exe` |
+          | macOS    | `vector-inspector-v${{ steps.get_version.outputs.current }}-installer` |
+          | Linux    | `vector-inspector-v${{ steps.get_version.outputs.current }}-installer` |
+
+          Run it — no Python installation needed. An interactive setup wizard will guide you through the install.
+          On macOS/Linux you may need to mark it executable first:
 
           ```bash
-          pip install <your-filename.whl>
-          # or
-          pip install <your-filename.tar.gz>
+          chmod +x vector-inspector-v${{ steps.get_version.outputs.current }}-installer
+          ./vector-inspector-v${{ steps.get_version.outputs.current }}-installer
           ```
 
-          After installation, run the application with:
+          To uninstall, run the installer again and choose **Uninstall**, or pass `--uninstall`:
 
           ```bash
+          ./vector-inspector-v${{ steps.get_version.outputs.current }}-installer --uninstall
+          ```
+
+          ### Option 2 — pip (requires Python 3.11+)
+
+          ```bash
+          pip install vector-inspector==${{ steps.get_version.outputs.current }}
           vector-inspector
+          ```
+
+          Or download the `.whl` / `.tar.gz` from Assets and install locally:
+
+          ```bash
+          pip install vector-inspector-${{ steps.get_version.outputs.current }}-py3-none-any.whl
           ```
 
           For more details and troubleshooting, see the [README](https://github.com/anthonypdawson/vector-inspector#installation).
