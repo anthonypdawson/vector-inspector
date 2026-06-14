@@ -522,8 +522,16 @@ class LanceDBConnection(VectorDBConnection):
                             exc_info=True,
                         )
                         return None
+                # Get IDs first to know result count
+                ids = results["id"].tolist() if "id" in results.columns else []
+                result_count = len(ids)
+
                 raw_meta = results["metadata"].tolist() if "metadata" in results.columns else []
                 metadatas = self._parse_metadata_list(raw_meta)
+
+                # Ensure metadatas has same length as ids
+                while len(metadatas) < result_count:
+                    metadatas.append({})
 
                 # Get documents from content column (auto-detect)
                 schema = {col: str(dtype) for col, dtype in results.dtypes.items()}
@@ -532,14 +540,13 @@ class LanceDBConnection(VectorDBConnection):
                 if content_col in results.columns:
                     documents = results[content_col].tolist()
                 else:
-                    # Fallback: try to use a 'document' key if present in metadata, else raw metadata
+                    # Fallback: try to use a 'document' key if present in metadata, else empty string
                     documents = [
-                        m.get(content_col) if isinstance(m, dict) and content_col in m else str(raw)
-                        for raw, m in zip(raw_meta, metadatas)
+                        m.get(content_col, "") if isinstance(m, dict) and content_col in m else ""
+                        for m in metadatas
                     ]
 
                 # LanceDB returns '_distance' not 'score'
-                ids = results["id"].tolist() if "id" in results.columns else []
                 distances = results["_distance"].tolist() if "_distance" in results.columns else []
                 vectors = results["vector"].tolist() if "vector" in results.columns else []
 
@@ -584,8 +591,15 @@ class LanceDBConnection(VectorDBConnection):
                 df = df[offset:]
             if limit:
                 df = df[:limit]
+            # Get result count first
+            result_count = len(df)
+
             raw_meta = df["metadata"].tolist() if "metadata" in df.columns else []
             metadatas = self._parse_metadata_list(raw_meta)
+
+            # Ensure metadatas has same length as result count
+            while len(metadatas) < result_count:
+                metadatas.append({})
 
             # Get documents from content column (auto-detect)
             schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
@@ -594,10 +608,10 @@ class LanceDBConnection(VectorDBConnection):
             if content_col in df.columns:
                 documents = df[content_col].tolist()
             else:
-                # Fallback: prefer content_col key inside metadata if present
+                # Fallback: prefer content_col key inside metadata if present, else empty string
                 documents = [
-                    m.get(content_col) if isinstance(m, dict) and content_col in m else str(raw)
-                    for raw, m in zip(raw_meta, metadatas)
+                    m.get(content_col, "") if isinstance(m, dict) and content_col in m else ""
+                    for m in metadatas
                 ]
 
             return {
