@@ -48,6 +48,7 @@ class EmbeddingConfigDialog(QDialog):
             type_names = {
                 "sentence-transformer": "Sentence Transformers",
                 "clip": "CLIP Models",
+                "ollama": "Ollama",
                 "openai": "OpenAI API",
                 "cohere": "Cohere API",
                 "vertex-ai": "Google Vertex AI",

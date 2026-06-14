@@ -484,7 +484,12 @@ class VectorDBConnection(ABC):
             )
 
             # Use batch encoding when available (sentence-transformer), otherwise per-doc
-            if model_type != "clip":
+            if model_type == "ollama":
+                # Ollama - use encode_text helper for each document
+                from vector_inspector.core.embedding_utils import encode_text
+
+                result = [encode_text(d, model, model_type) for d in documents]
+            elif model_type != "clip":
                 # sentence-transformer-like models support batch encode
                 result = model.encode(documents, show_progress_bar=False).tolist()
             else:

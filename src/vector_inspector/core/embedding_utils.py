@@ -104,22 +104,27 @@ def get_available_models_for_dimension(dimension: int) -> list:
 
 def load_embedding_model(model_name: str, model_type: str) -> SentenceTransformer | Any:
     """
-    Load an embedding model (sentence-transformer or CLIP).
+    Load an embedding model (sentence-transformer, CLIP, or Ollama).
 
     Uses disk cache when available to speed up repeated loads.
 
     Args:
         model_name: Name of the model to load
-        model_type: Type of model ("sentence-transformer" or "clip")
+        model_type: Type of model ("sentence-transformer", "clip", or "ollama")
 
     Returns:
-        Loaded model (SentenceTransformer or CLIP model)
+        Loaded model (SentenceTransformer, CLIP model, or Ollama client stub)
     """
     from vector_inspector.core.model_cache import (
         is_cache_enabled,
         load_cached_path,
         save_model_to_cache,
     )
+
+    # Ollama models don't need loading - just return the model name
+    if model_type == "ollama":
+        log_info(f"Using Ollama model: {model_name}")
+        return model_name  # Return model name as-is for Ollama
 
     # Try to load from cache first
     cached_path = load_cached_path(model_name)
@@ -156,18 +161,30 @@ def load_embedding_model(model_name: str, model_type: str) -> SentenceTransforme
     return model
 
 
-def encode_text(text: str, model: SentenceTransformer | tuple, model_type: str) -> list:
+def encode_text(text: str, model: SentenceTransformer | tuple | str, model_type: str) -> list:
     """
     Encode text using the appropriate model.
 
     Args:
         text: Text to encode
-        model: The loaded model (SentenceTransformer or (CLIPModel, CLIPProcessor) tuple)
-        model_type: Type of model ("sentence-transformer" or "clip")
+        model: The loaded model (SentenceTransformer, (CLIPModel, CLIPProcessor) tuple, or Ollama model name)
+        model_type: Type of model ("sentence-transformer", "clip", or "ollama")
 
     Returns:
         Embedding vector as a list
     """
+    if model_type == "ollama":
+        try:
+            import ollama
+        except ImportError:
+            raise ImportError(
+                "Ollama package not installed. Install with: pip install ollama"
+            )
+
+        # model is the model name string for Ollama
+        response = ollama.embed(model=model, input=text)
+        return response.embeddings[0] if response.embeddings else []
+
     if model_type == "clip":
         import torch
 

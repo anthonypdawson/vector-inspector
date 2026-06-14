@@ -602,8 +602,10 @@ class PgVectorConnection(VectorDBConnection):
                 # Use inherited method to resolve and load the embedding model
                 loaded_model, model_name, model_type = self.load_embedding_model_for_collection(collection_name)
 
-                # Compute embeddings for the provided query_texts (use helper for CLIP)
-                if model_type != "clip":
+                # Compute embeddings for the provided query_texts (use helper for CLIP and Ollama)
+                if model_type == "ollama":
+                    computed = [encode_text(t, loaded_model, model_type) for t in query_texts]
+                elif model_type != "clip":
                     computed = loaded_model.encode(query_texts, show_progress_bar=False).tolist()
                 else:
                     computed = [encode_text(t, loaded_model, model_type) for t in query_texts]
