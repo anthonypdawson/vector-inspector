@@ -31,6 +31,13 @@ class ProviderTypeDialog(QDialog):
             "icon": "🎨"
         },
         {
+            "id": "ollama",
+            "name": "🦙 Ollama",
+            "description": "Local models via Ollama server\nNo API key required, requires Ollama running",
+            "filter_type": "ollama",
+            "icon": "💻"
+        },
+        {
             "id": "openai",
             "name": "☁️ OpenAI API",
             "description": "Cloud-based embeddings\nRequires OpenAI API key",

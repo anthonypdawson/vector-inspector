@@ -67,8 +67,8 @@ class EmbeddingConfigDialog(QDialog):
         """Setup dialog UI."""
         layout = QVBoxLayout(self)
 
-        # Handle custom model entry case
-        if self.provider_type == "custom":
+        # Handle custom model entry case (including Ollama)
+        if self.provider_type in ("custom", "ollama"):
             self._setup_custom_ui(layout)
             return
 
@@ -210,13 +210,22 @@ class EmbeddingConfigDialog(QDialog):
         custom_layout = QFormLayout()
 
         self.custom_name_input = QLineEdit()
-        self.custom_name_input.setPlaceholderText("e.g., sentence-transformers/all-mpnet-base-v2")
+        # Update placeholder based on provider type
+        if self.provider_type == "ollama":
+            self.custom_name_input.setPlaceholderText("e.g., nomic-embed-text, mxbai-embed-large")
+        else:
+            self.custom_name_input.setPlaceholderText("e.g., sentence-transformers/all-mpnet-base-v2")
         custom_layout.addRow("Model Name:", self.custom_name_input)
 
         self.custom_type_combo = QComboBox()
         self.custom_type_combo.addItems(
-            ["sentence-transformer", "clip", "openai", "cohere", "vertex-ai", "voyage", "custom"]
+            ["sentence-transformer", "clip", "ollama", "openai", "cohere", "vertex-ai", "voyage", "custom"]
         )
+        # Pre-select the provider type if specified
+        if self.provider_type and self.provider_type != "custom":
+            index = self.custom_type_combo.findText(self.provider_type)
+            if index >= 0:
+                self.custom_type_combo.setCurrentIndex(index)
         custom_layout.addRow("Model Type:", self.custom_type_combo)
 
         self.custom_desc_input = QLineEdit()
