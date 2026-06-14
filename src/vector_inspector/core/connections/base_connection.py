@@ -16,6 +16,10 @@ class VectorDBConnection(ABC):
     must implement to be compatible with Vector Inspector.
     """
 
+    def __init__(self):
+        """Initialize the connection with content column cache."""
+        self._content_column_cache: dict[str, str] = {}
+
     @abstractmethod
     def connect(self) -> bool:
         """
@@ -98,6 +102,82 @@ class VectorDBConnection(ABC):
         Backends like Qdrant, Milvus, and pgvector *require* the size upfront and return True.
         """
         return True
+
+    def _detect_content_column(
+        self,
+        collection_name: str,
+        schema: dict[str, str] | None = None,
+        override: str | None = None
+    ) -> str:
+        """Detect the content/text column name for a collection.
+
+        Args:
+            collection_name: Name of the collection
+            schema: Optional schema dict mapping column names to types
+            override: Optional manual override for content column name
+
+        Returns:
+            The detected content column name (defaults to "document" if not found)
+        """
+        # Check cache first
+        if collection_name in self._content_column_cache:
+            return self._content_column_cache[collection_name]
+
+        # Use override if provided
+        if override:
+            self._content_column_cache[collection_name] = override
+            return override
+
+        # Common content column names, in order of preference
+        common_names = ["document", "text", "content", "text_content", "doc", "body"]
+
+        if schema:
+            # Check for common names in schema
+            for name in common_names:
+                if name in schema:
+                    self._content_column_cache[collection_name] = name
+                    return name
+
+            # Fallback: find first text-type column (excluding id, embedding, metadata)
+            text_types = ["text", "varchar", "character varying", "string", "str"]
+            reserved = {"id", "embedding", "metadata", "vector"}
+
+            for col_name, col_type in schema.items():
+                if col_name.lower() not in reserved:
+                    if any(t in col_type.lower() for t in text_types):
+                        self._content_column_cache[collection_name] = col_name
+                        return col_name
+
+        # Default fallback
+        default = "document"
+        self._content_column_cache[collection_name] = default
+        return default
+
+    def set_content_column(self, collection_name: str, column_name: str) -> None:
+        """Set a custom content column name for a collection.
+
+        Args:
+            collection_name: Name of the collection
+            column_name: Name of the content column to use
+
+        Note:
+            This override is stored in memory cache only. For persistent storage,
+            implementations should store in collection metadata.
+        """
+        self._content_column_cache[collection_name] = column_name
+
+    def get_content_column(self, collection_name: str) -> str:
+        """Get the content column name for a collection.
+
+        Args:
+            collection_name: Name of the collection
+
+        Returns:
+            The content column name (uses cache or detection)
+        """
+        if collection_name in self._content_column_cache:
+            return self._content_column_cache[collection_name]
+        return self._detect_content_column(collection_name)
 
     @abstractmethod
     def add_items(

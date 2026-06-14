@@ -19,6 +19,7 @@ class LanceDBConnection(VectorDBConnection):
                 uri: Path or URI to LanceDB database
                 **kwargs: Additional LanceDB options
         """
+        super().__init__()
         self._uri = uri
         self._client = None
         self._db = None
@@ -162,11 +163,12 @@ class LanceDBConnection(VectorDBConnection):
             # Creating with only a schema (no data) prevents LanceDB from auto-detecting
             # which column is the vector for search operations.
             # The dummy row will remain but can be filtered out in queries if needed.
+            # Use "document" as default content column for new tables
             dummy_data = [
                 {
                     "vector": [0.0] * vector_size,
                     "id": "__dummy_init__",
-                    "document": "",
+                    "document": "",  # Default content column name for new tables
                     "metadata": "{}",
                 }
             ]
@@ -230,11 +232,16 @@ class LanceDBConnection(VectorDBConnection):
             id_list = ids if ids else [str(i) for i in range(len(documents))]
             doc_list = documents if documents else [""] * len(vectors)
 
+            # Detect content column from existing table schema
+            existing_df = tbl.to_pandas()
+            schema = {col: str(existing_df.dtypes[col]) for col in existing_df.columns}
+            content_col = self._detect_content_column(collection_name, schema)
+
             arr = pa.table(
                 {
                     "vector": vectors,
                     "id": id_list,
-                    "document": doc_list,
+                    content_col: doc_list,
                     "metadata": [str(m) for m in meta],
                 }
             )
@@ -272,9 +279,12 @@ class LanceDBConnection(VectorDBConnection):
                 else:
                     metadatas.append(m)
 
-            # Get documents from 'document' column if present
-            if "document" in filtered.columns:
-                documents = filtered["document"].tolist()
+            # Get documents from content column (auto-detect)
+            schema = {col: str(filtered.schema.field(col).type) for col in filtered.columns}
+            content_col = self._detect_content_column(name, schema)
+
+            if content_col in filtered.columns:
+                documents = filtered[content_col].tolist()
             else:
                 # Fallback to metadata column for older tables
                 documents = filtered["metadata"].tolist()
@@ -515,13 +525,16 @@ class LanceDBConnection(VectorDBConnection):
                 raw_meta = results["metadata"].tolist() if "metadata" in results.columns else []
                 metadatas = self._parse_metadata_list(raw_meta)
 
-                # Get documents from 'document' column if present, else fall back to metadata extraction
-                if "document" in results.columns:
-                    documents = results["document"].tolist()
+                # Get documents from content column (auto-detect)
+                schema = {col: str(results.schema.field(col).type) for col in results.columns}
+                content_col = self._detect_content_column(collection_name, schema)
+
+                if content_col in results.columns:
+                    documents = results[content_col].tolist()
                 else:
                     # Fallback: try to use a 'document' key if present in metadata, else raw metadata
                     documents = [
-                        m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
+                        m.get(content_col) if isinstance(m, dict) and content_col in m else str(raw)
                         for raw, m in zip(raw_meta, metadatas)
                     ]
 
@@ -574,13 +587,16 @@ class LanceDBConnection(VectorDBConnection):
             raw_meta = df["metadata"].tolist() if "metadata" in df.columns else []
             metadatas = self._parse_metadata_list(raw_meta)
 
-            # Get documents from 'document' column if present, else from metadata
-            if "document" in df.columns:
-                documents = df["document"].tolist()
+            # Get documents from content column (auto-detect)
+            schema = {col: str(df.schema.field(col).type) for col in df.columns}
+            content_col = self._detect_content_column(collection_name, schema)
+
+            if content_col in df.columns:
+                documents = df[content_col].tolist()
             else:
-                # Fallback: prefer 'document' key inside metadata if present
+                # Fallback: prefer content_col key inside metadata if present
                 documents = [
-                    m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
+                    m.get(content_col) if isinstance(m, dict) and content_col in m else str(raw)
                     for raw, m in zip(raw_meta, metadatas)
                 ]
 
@@ -665,10 +681,10 @@ class LanceDBConnection(VectorDBConnection):
             if ids:
                 df = df[~df["id"].isin(ids)]
 
+            # Preserve all existing columns (auto-detect content column)
             table_dict: dict[str, list] = {}
-            for col in ("vector", "id", "document", "metadata"):
-                if col in df.columns:
-                    table_dict[col] = df[col].tolist()
+            for col in df.columns:
+                table_dict[col] = df[col].tolist()
 
             arr = pa.table(table_dict)
             self._db.drop_table(collection_name)
