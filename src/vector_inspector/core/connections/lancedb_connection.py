@@ -280,7 +280,7 @@ class LanceDBConnection(VectorDBConnection):
                     metadatas.append(m)
 
             # Get documents from content column (auto-detect)
-            schema = {col: str(filtered.schema.field(col).type) for col in filtered.columns}
+            schema = {col: str(dtype) for col, dtype in filtered.dtypes.items()}
             content_col = self._detect_content_column(name, schema)
 
             if content_col in filtered.columns:
@@ -526,7 +526,7 @@ class LanceDBConnection(VectorDBConnection):
                 metadatas = self._parse_metadata_list(raw_meta)
 
                 # Get documents from content column (auto-detect)
-                schema = {col: str(results.schema.field(col).type) for col in results.columns}
+                schema = {col: str(dtype) for col, dtype in results.dtypes.items()}
                 content_col = self._detect_content_column(collection_name, schema)
 
                 if content_col in results.columns:
@@ -588,7 +588,7 @@ class LanceDBConnection(VectorDBConnection):
             metadatas = self._parse_metadata_list(raw_meta)
 
             # Get documents from content column (auto-detect)
-            schema = {col: str(df.schema.field(col).type) for col in df.columns}
+            schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
             content_col = self._detect_content_column(collection_name, schema)
 
             if content_col in df.columns:
