@@ -174,16 +174,33 @@ def encode_text(text: str, model: SentenceTransformer | tuple | str, model_type:
         Embedding vector as a list
     """
     if model_type == "ollama":
-        try:
-            import ollama
-        except ImportError:
-            raise ImportError(
-                "Ollama package not installed. Install with: pip install ollama"
-            )
+        import json
+        import urllib.request
 
         # model is the model name string for Ollama
-        response = ollama.embed(model=model, input=text)
-        return response.embeddings[0] if response.embeddings else []
+        # Use HTTP API directly (no extra dependencies needed)
+        base_url = "http://localhost:11434"
+        url = f"{base_url}/api/embed"
+
+        data = json.dumps({"model": model, "input": text}).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as response:
+                result = json.loads(response.read().decode("utf-8"))
+                embeddings = result.get("embeddings", [])
+                return embeddings[0] if embeddings else []
+        except Exception as e:
+            from vector_inspector.core.logging import log_tracked_error
+            log_tracked_error(
+                "Ollama embedding failed: %s. Ensure Ollama is running (http://localhost:11434)",
+                e,
+                category="embedding",
+                operation="ollama_embed",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
+            raise RuntimeError(f"Failed to get embedding from Ollama: {e}") from e
 
     if model_type == "clip":
         import torch
