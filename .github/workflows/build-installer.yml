@@ -16,6 +16,11 @@ on:
         description: 'Release tag to attach installers to (e.g. v0.8.1)'
         required: true
         type: string
+      test_mode:
+        description: 'Test mode: build but do not upload to release'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-installer:
@@ -36,6 +41,20 @@ jobs:
       contents: write  # required to upload assets to the release
 
     steps:
+      - name: Check release branch
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          # For release events, ensure it came from master branch
+          BASE_BRANCH="${{ github.event.release.target_commitish }}"
+          if [[ "$BASE_BRANCH" != "master" ]]; then
+            echo "⚠️  Release was created from branch: $BASE_BRANCH"
+            echo "⚠️  Installers should only be built from 'master' branch"
+            echo "⚠️  Skipping installer build for safety"
+            exit 1
+          fi
+          echo "✓ Release from master branch - proceeding with build"
+
       - name: Resolve ref to check out
         id: resolve_ref
         shell: bash
@@ -71,7 +90,15 @@ jobs:
           fi
 
       - name: Upload installer to release
+        if: github.event.inputs.test_mode != 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           files: build/bootstrap-installer/vector-inspector-*-installer*
+
+      - name: Test mode - show what would be uploaded
+        if: github.event.inputs.test_mode == 'true'
+        shell: bash
+        run: |
+          echo "🧪 TEST MODE: Would upload these files:"
+          ls -lh build/bootstrap-installer/vector-inspector-*-installer* || true
