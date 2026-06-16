@@ -13,6 +13,7 @@ from pathlib import Path
 # Import from our other modules
 from vi_installer.platform import (
     PLATFORM,
+    detect_shell_rc,
     get_default_install_root,
     print_header,
     print_path_instructions,
@@ -45,6 +46,71 @@ APP_NAME_SLUG = "vector-inspector"
 DEFAULT_PACKAGE = "vector-inspector"
 DEFAULT_MIN_VERSION = (3, 11)
 STATE_FILE_NAME = "bootstrap-state.json"
+
+
+# ---------------------------------------------------------------------------
+# Rollback Support
+
+
+class InstallRollback:
+    """Track installation artifacts for rollback on failure.
+
+    Usage:
+        rollback = InstallRollback()
+        try:
+            venv_dir = install_root / "runtime" / "venv"
+            ensure_venv(...)
+            rollback.track_directory(venv_dir)
+            # ... more operations ...
+            rollback.commit()  # Success - don't clean up
+        except Exception:
+            rollback.rollback()  # Failure - clean up
+            raise
+    """
+
+    def __init__(self):
+        self.directories: list[Path] = []
+        self.files: list[Path] = []
+        self.committed = False
+
+    def track_directory(self, path: Path) -> None:
+        """Track a directory to remove on rollback."""
+        if path.exists():
+            self.directories.append(path)
+
+    def track_file(self, path: Path) -> None:
+        """Track a file to remove on rollback."""
+        if path.exists():
+            self.files.append(path)
+
+    def commit(self) -> None:
+        """Mark installation as successful - skip rollback."""
+        self.committed = True
+
+    def rollback(self) -> None:
+        """Remove all tracked artifacts."""
+        if self.committed:
+            return
+
+        print_step("Installation failed. Rolling back...")
+
+        for file in self.files:
+            try:
+                if file.exists():
+                    file.unlink()
+                    print_step(f"  Removed file: {file}")
+            except Exception as exc:
+                print_step(f"  Warning: Could not remove {file}: {exc}")
+
+        for directory in self.directories:
+            try:
+                if directory.exists():
+                    shutil.rmtree(directory)
+                    print_step(f"  Removed directory: {directory}")
+            except Exception as exc:
+                print_step(f"  Warning: Could not remove {directory}: {exc}")
+
+        print_step("Rollback complete.")
 
 # Extras shown in the interactive menu
 KNOWN_PROVIDER_EXTRAS: list[str] = [
@@ -303,6 +369,7 @@ def parse_args() -> argparse.Namespace:
     default_root = get_default_install_root()
     parser = argparse.ArgumentParser(
         description=f"Install {APP_NAME} into an app-local virtual environment with pip access.",
+        epilog=f"Requires Python {DEFAULT_MIN_VERSION[0]}.{DEFAULT_MIN_VERSION[1]}+ (configurable via --python-min-version).",
     )
     parser.add_argument(
         "--install-root",
@@ -516,6 +583,20 @@ def run_uninstall(install_root: Path) -> int:
         pass
 
     print_step(f"{APP_NAME} has been uninstalled.")
+
+    # Warn about manual cleanup needed
+    bin_dir = install_root / "bin"
+    print()
+    print("⚠️  Manual cleanup may be needed:")
+    if PLATFORM == "win32":
+        print(f"   • Windows PATH may still contain: {bin_dir}")
+        print(f"     Remove via: System Properties → Environment Variables → Edit PATH")
+    else:
+        rc_file = detect_shell_rc()
+        print(f"   • Shell RC file ({rc_file}) may still contain PATH export")
+        print(f"     Remove the line: export PATH=\"{bin_dir}:$PATH\"")
+    print()
+
     return 0
 
 
@@ -591,27 +672,46 @@ def main() -> int:
         suggest_python_install(min_version)
         return 1
 
-    venv_dir = install_root / "runtime" / "venv"
-    python_in_venv = ensure_venv(python_cmd, venv_dir, recreate=args.recreate_venv)
+    # Use rollback context to clean up on failure
+    rollback = InstallRollback()
+    try:
+        venv_dir = install_root / "runtime" / "venv"
+        python_in_venv = ensure_venv(python_cmd, venv_dir, recreate=args.recreate_venv)
+        rollback.track_directory(venv_dir)
 
-    install_app(python_in_venv, package_spec=package_spec, upgrade=not args.no_upgrade)
+        install_app(python_in_venv, package_spec=package_spec, upgrade=not args.no_upgrade)
 
-    app_launcher = write_launchers(install_root)
-    print_step(f"App launcher : {app_launcher}")
+        app_launcher = write_launchers(install_root)
+        rollback.track_file(app_launcher)
+        print_step(f"App launcher : {app_launcher}")
 
-    bin_dir = install_root / "bin"
-    if args.add_to_path:
-        if PLATFORM == "win32":
-            add_to_path_windows(bin_dir)
+        bin_dir = install_root / "bin"
+        rollback.track_directory(bin_dir)
+
+        if args.add_to_path:
+            if PLATFORM == "win32":
+                add_to_path_windows(bin_dir)
+            else:
+                add_to_path_unix(bin_dir)
         else:
-            add_to_path_unix(bin_dir)
-    else:
-        print_path_instructions(bin_dir)
+            print_path_instructions(bin_dir)
 
-    if args.create_shortcut:
-        create_desktop_shortcut(install_root)
+        if args.create_shortcut:
+            shortcut = get_desktop_shortcut_path()
+            create_desktop_shortcut(install_root)
+            rollback.track_file(shortcut)
 
-    write_state_file(install_root, package_spec=package_spec, min_python_version=min_version)
+        write_state_file(install_root, package_spec=package_spec, min_python_version=min_version)
+        state_file = install_root / STATE_FILE_NAME
+        rollback.track_file(state_file)
+
+        # Success - commit and skip rollback
+        rollback.commit()
+
+    except Exception as exc:
+        rollback.rollback()
+        print_step(f"Installation failed: {exc}")
+        return 1
 
     if args.no_launch:
         print_step("Installation complete. Launch skipped by request.")

@@ -51,6 +51,8 @@ def detect_shell_rc() -> str:
         return "~/.zshrc"
     if "fish" in shell:
         return "~/.config/fish/config.fish"
+    if "nu" in shell:
+        return "~/.config/nushell/config.nu"
     return "~/.bashrc"
 
 

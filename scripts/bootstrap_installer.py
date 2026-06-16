@@ -14,6 +14,17 @@ Or run directly with Python:
 import sys
 from pathlib import Path
 
+# Require Python 3.10+ to run the installer itself
+# (The installed app requires 3.11+ by default, configurable via --python-min-version)
+MIN_INSTALLER_PYTHON = (3, 10)
+if sys.version_info < MIN_INSTALLER_PYTHON:
+    print(
+        f"Error: This installer requires Python {'.'.join(map(str, MIN_INSTALLER_PYTHON))} or higher.\n"
+        f"You are running Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.\n"
+        f"Please upgrade Python and try again."
+    )
+    sys.exit(1)
+
 # Add repo root to path for development mode
 # (In production/Nuitka build, installer package is bundled)
 repo_root = Path(__file__).parent.parent

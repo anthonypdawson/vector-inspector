@@ -48,6 +48,10 @@ def add_to_path_windows(bin_dir: Path) -> bool:
 
     Returns:
         True if successful, False otherwise
+
+    Notes:
+        Windows has a 2047 character limit for PATH. If adding this directory
+        would exceed the limit, the operation will fail with a warning.
     """
     try:
         import winreg
@@ -66,6 +70,17 @@ def add_to_path_windows(bin_dir: Path) -> bool:
             current_entries = [e.lower() for e in current.split(";") if e]
             if bin_str.lower() not in current_entries:
                 new_value = f"{current};{bin_str}" if current else bin_str
+
+                # Windows PATH limit is 2047 characters
+                if len(new_value) > 2047:
+                    print_step(
+                        f"WARNING: Cannot add to PATH - would exceed Windows 2047 character limit.\n"
+                        f"         Current PATH length: {len(current)} characters\n"
+                        f"         After adding: {len(new_value)} characters\n"
+                        f"         You can manually add '{bin_dir}' to your PATH or clean up existing entries."
+                    )
+                    return False
+
                 winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_value)
                 print_step("Added to user PATH in registry.")
                 # Broadcast WM_SETTINGCHANGE so open shells pick it up immediately
