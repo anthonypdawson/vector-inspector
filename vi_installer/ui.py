@@ -49,6 +49,15 @@ STATE_FILE_NAME = "bootstrap-state.json"
 
 
 # ---------------------------------------------------------------------------
+# Dry Run Support
+
+
+def dry_run_step(message: str) -> None:
+    """Print a dry-run step with [DRY RUN] prefix."""
+    print(f"[DRY RUN] Would: {message}")
+
+
+# ---------------------------------------------------------------------------
 # Rollback Support
 
 
@@ -434,6 +443,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Uninstall Vector Inspector and remove all created files.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making any changes.",
+    )
     return parser.parse_args()
 
 
@@ -645,6 +659,12 @@ def main() -> int:
     else:
         args = run_interactive_menu(args)
 
+    # Show dry-run notice if enabled
+    if getattr(args, "dry_run", False):
+        print()
+        print("🔍 DRY RUN MODE: No changes will be made to your system.")
+        print()
+
     try:
         min_version = parse_min_version(args.python_min_version)
     except ValueError as exc:
@@ -671,6 +691,65 @@ def main() -> int:
         print_step("No compatible Python interpreter found.")
         suggest_python_install(min_version)
         return 1
+
+    # Dry-run mode: print what would happen without making changes
+    if getattr(args, "dry_run", False):
+        print()
+        print_header("Dry Run - What Would Happen")
+        print()
+
+        # Python discovery
+        from vi_installer.python import read_python_version
+
+        py_version = read_python_version(python_cmd)
+        version_str = f"{py_version[0]}.{py_version[1]}" if py_version else "unknown"
+        dry_run_step(f"Use Python {version_str} at {' '.join(python_cmd)}")
+
+        # Venv creation
+        venv_dir = install_root / "runtime" / "venv"
+        dry_run_step(f"Create virtual environment at {venv_dir}")
+
+        # Package installation
+        dry_run_step(f"Install package: {package_spec}")
+        if not args.no_upgrade:
+            dry_run_step("Use --upgrade flag for pip install")
+
+        # Launcher
+        bin_dir = install_root / "bin"
+        launcher_name = f"{APP_NAME_SLUG}.cmd" if PLATFORM == "win32" else APP_NAME_SLUG
+        dry_run_step(f"Create launcher at {bin_dir / launcher_name}")
+
+        # PATH
+        if args.add_to_path:
+            if PLATFORM == "win32":
+                dry_run_step(f"Add to Windows PATH registry: {bin_dir}")
+            else:
+                rc_file = detect_shell_rc()
+                dry_run_step(f"Add to {rc_file}: export PATH=\"{bin_dir}:$PATH\"")
+        else:
+            dry_run_step("Skip adding to PATH (--no-add-to-path)")
+
+        # Shortcut
+        if args.create_shortcut:
+            shortcut = get_desktop_shortcut_path()
+            dry_run_step(f"Create desktop shortcut at {shortcut}")
+        else:
+            dry_run_step("Skip creating desktop shortcut (--no-shortcut)")
+
+        # State file
+        state_file = install_root / STATE_FILE_NAME
+        dry_run_step(f"Write state file to {state_file}")
+
+        # Launch
+        if not args.no_launch:
+            entry = venv_app_entry_path(venv_dir)
+            dry_run_step(f"Launch application from {entry}")
+        else:
+            dry_run_step("Skip launching app (--no-launch)")
+
+        print()
+        print("[DRY RUN] No changes made.")
+        return 0
 
     # Use rollback context to clean up on failure
     rollback = InstallRollback()
