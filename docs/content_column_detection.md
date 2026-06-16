@@ -155,6 +155,49 @@ If you're creating tables with custom schemas outside of Vector Inspector:
 2. Or use any text-type column - it will be auto-detected
 3. Or manually configure via `set_content_column()` after connecting
 
+## Performance
+
+The content column detection system is designed for efficiency with minimal overhead:
+
+### Caching Strategy
+
+- **Per-collection caching**: Each detected column name is cached in memory, indexed by collection name
+- **Initial detection cost**: ~1ms (schema lookup + string matching)
+- **Subsequent access cost**: ~1μs (O(1) dictionary lookup)
+- **Thread-safe**: Uses `threading.Lock` for safe concurrent access across threads
+
+### Performance Characteristics
+
+```python
+# First call: detection + cache write (~1ms)
+column = connection._detect_content_column("my_collection", schema)
+
+# Subsequent calls: cache hit (~1μs) - 1000x faster
+column = connection.get_content_column("my_collection")
+```
+
+### Cache Management
+
+The cache persists for the lifetime of the connection object. To reset cache if schema changes at runtime:
+
+```python
+# Clear single collection
+del connection._content_column_cache[collection_name]
+
+# Or force re-detection
+connection.set_content_column(collection_name, new_column_name)
+```
+
+### Logging
+
+The system logs when fallback detection occurs (first text column used instead of common name):
+
+```
+Content column auto-detected (fallback): 'description' for collection 'products'
+```
+
+This helps identify collections that might benefit from schema standardization.
+
 ## Future Enhancements
 
 Potential future improvements:

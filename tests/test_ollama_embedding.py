@@ -34,7 +34,7 @@ def test_encode_text_ollama_success():
 
 
 def test_encode_text_ollama_empty_embeddings():
-    """Test encoding with empty embeddings response."""
+    """Test encoding with empty embeddings response raises error."""
     with patch('urllib.request.urlopen') as mock_urlopen:
         mock_response = Mock()
         mock_response.read.return_value = json.dumps({
@@ -44,8 +44,8 @@ def test_encode_text_ollama_empty_embeddings():
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
 
-        result = encode_text("test", "nomic-embed-text", "ollama")
-        assert result == []
+        with pytest.raises(RuntimeError, match="Ollama returned no embeddings"):
+            encode_text("test", "nomic-embed-text", "ollama")
 
 
 def test_encode_text_ollama_connection_error():
@@ -135,7 +135,7 @@ def test_encode_text_ollama_malformed_json():
 
 
 def test_encode_text_ollama_missing_embeddings_key():
-    """Test handling of response without 'embeddings' key."""
+    """Test handling of response without 'embeddings' key raises error."""
     with patch('urllib.request.urlopen') as mock_urlopen:
         mock_response = Mock()
         mock_response.read.return_value = json.dumps({"error": "model not found"}).encode('utf-8')
@@ -143,9 +143,9 @@ def test_encode_text_ollama_missing_embeddings_key():
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
 
-        # When embeddings key is missing, it returns empty list
-        result = encode_text("test", "unknown-model", "ollama")
-        assert result == []
+        # When embeddings key is missing, it raises an error
+        with pytest.raises(RuntimeError, match="Ollama returned no embeddings"):
+            encode_text("test", "unknown-model", "ollama")
 
 
 def test_encode_text_ollama_http_error():

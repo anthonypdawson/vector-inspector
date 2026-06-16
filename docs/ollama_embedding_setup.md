@@ -63,6 +63,26 @@ ollama list
 2. **Endpoint**: `POST http://localhost:11434/api/embed`
 3. **Request**: `{"model": "model-name", "input": "text"}`
 4. **Response**: `{"embeddings": [[...]]}`
+5. **Timeout**: 30 seconds default (configurable via `OLLAMA_TIMEOUT` environment variable)
+
+## Configuration Options
+
+### Timeout
+
+The default timeout for Ollama embedding requests is 30 seconds. You can override this using an environment variable:
+
+```bash
+# Set custom timeout (in seconds)
+export OLLAMA_TIMEOUT=60
+
+# Run Vector Inspector with custom timeout
+./scripts/run.sh
+```
+
+This is useful for:
+- **Large models**: Some Ollama models take longer to generate embeddings
+- **Slow hardware**: Adjust for CPU-only or older systems
+- **Network latency**: If Ollama is running on a remote machine
 
 ## Troubleshooting
 
@@ -92,6 +112,28 @@ ollama list
 - Make sure your Ollama model produces vectors of the same dimension as your collection
 - Check model dimension: Different models produce different dimensions
 - If migrating from HuggingFace model, ensure dimensions match
+
+### Timeout Errors
+
+**Cause**: Ollama embedding request exceeds 30-second timeout
+
+**Symptoms**:
+```
+URLError: <urlopen error [Errno 60] Operation timed out>
+```
+
+**Solutions**:
+1. **Increase timeout**: Set `OLLAMA_TIMEOUT` environment variable
+   ```bash
+   export OLLAMA_TIMEOUT=60  # 60 seconds
+   ```
+2. **Check model performance**: Some large models are slower
+   ```bash
+   # Test embedding speed manually
+   time curl -X POST http://localhost:11434/api/embed \
+     -d '{"model": "mxbai-embed-large", "input": "test"}'
+   ```
+3. **Use faster model**: Consider switching to a smaller model like `all-minilm`
 
 ## Example Workflow
 

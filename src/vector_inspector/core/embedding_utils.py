@@ -175,6 +175,7 @@ def encode_text(text: str, model: SentenceTransformer | tuple | str, model_type:
     """
     if model_type == "ollama":
         import json
+        import os
         import urllib.request
 
         # model is the model name string for Ollama
@@ -182,14 +183,19 @@ def encode_text(text: str, model: SentenceTransformer | tuple | str, model_type:
         base_url = "http://localhost:11434"
         url = f"{base_url}/api/embed"
 
+        # Allow timeout override via environment variable (default: 30s)
+        timeout = int(os.getenv("OLLAMA_TIMEOUT", "30"))
+
         data = json.dumps({"model": model, "input": text}).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
 
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
                 result = json.loads(response.read().decode("utf-8"))
                 embeddings = result.get("embeddings", [])
-                return embeddings[0] if embeddings else []
+                if not embeddings:
+                    raise RuntimeError(f"Ollama returned no embeddings for model {model}")
+                return embeddings[0]
         except Exception as e:
             from vector_inspector.core.logging import log_tracked_error
             log_tracked_error(

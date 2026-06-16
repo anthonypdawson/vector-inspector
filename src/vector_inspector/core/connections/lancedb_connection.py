@@ -530,8 +530,15 @@ class LanceDBConnection(VectorDBConnection):
                 metadatas = self._parse_metadata_list(raw_meta)
 
                 # Ensure metadatas has same length as ids
-                while len(metadatas) < result_count:
-                    metadatas.append({})
+                if len(metadatas) < result_count:
+                    padding_count = result_count - len(metadatas)
+                    log_info(
+                        "Padding %d missing metadata entries in collection '%s' (sparse metadata detected)",
+                        padding_count,
+                        collection_name,
+                    )
+                    while len(metadatas) < result_count:
+                        metadatas.append({})
 
                 # Get documents from content column (auto-detect)
                 schema = {col: str(dtype) for col, dtype in results.dtypes.items()}
@@ -598,8 +605,15 @@ class LanceDBConnection(VectorDBConnection):
             metadatas = self._parse_metadata_list(raw_meta)
 
             # Ensure metadatas has same length as result count
-            while len(metadatas) < result_count:
-                metadatas.append({})
+            if len(metadatas) < result_count:
+                padding_count = result_count - len(metadatas)
+                log_info(
+                    "Padding %d missing metadata entries in collection '%s' (sparse metadata detected)",
+                    padding_count,
+                    collection_name,
+                )
+                while len(metadatas) < result_count:
+                    metadatas.append({})
 
             # Get documents from content column (auto-detect)
             schema = {col: str(dtype) for col, dtype in df.dtypes.items()}

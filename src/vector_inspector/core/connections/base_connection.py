@@ -1,5 +1,6 @@
 """Abstract base class for vector database connections."""
 
+import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -19,6 +20,7 @@ class VectorDBConnection(ABC):
     def __init__(self):
         """Initialize the connection with content column cache."""
         self._content_column_cache: dict[str, str] = {}
+        self._cache_lock = threading.Lock()
 
     @abstractmethod
     def connect(self) -> bool:
@@ -119,39 +121,46 @@ class VectorDBConnection(ABC):
         Returns:
             The detected content column name (defaults to "document" if not found)
         """
-        # Check cache first
-        if collection_name in self._content_column_cache:
-            return self._content_column_cache[collection_name]
+        with self._cache_lock:
+            # Check cache first
+            if collection_name in self._content_column_cache:
+                return self._content_column_cache[collection_name]
 
-        # Use override if provided
-        if override:
-            self._content_column_cache[collection_name] = override
-            return override
+            # Use override if provided
+            if override:
+                self._content_column_cache[collection_name] = override
+                return override
 
-        # Common content column names, in order of preference
-        common_names = ["document", "text", "content", "text_content", "doc", "body"]
+            # Common content column names, in order of preference
+            common_names = ["document", "text", "content", "text_content", "doc", "body"]
 
-        if schema:
-            # Check for common names in schema
-            for name in common_names:
-                if name in schema:
-                    self._content_column_cache[collection_name] = name
-                    return name
+            if schema:
+                # Check for common names in schema
+                for name in common_names:
+                    if name in schema:
+                        self._content_column_cache[collection_name] = name
+                        return name
 
-            # Fallback: find first text-type column (excluding id, embedding, metadata)
-            text_types = ["text", "varchar", "character varying", "string", "str"]
-            reserved = {"id", "embedding", "metadata", "vector"}
+                # Fallback: find first text-type column (excluding id, embedding, metadata)
+                text_types = ["text", "varchar", "character varying", "string", "str"]
+                reserved = {"id", "embedding", "metadata", "vector"}
 
-            for col_name, col_type in schema.items():
-                if col_name.lower() not in reserved:
-                    if any(t in col_type.lower() for t in text_types):
-                        self._content_column_cache[collection_name] = col_name
-                        return col_name
+                for col_name, col_type in schema.items():
+                    if col_name.lower() not in reserved:
+                        if any(t in col_type.lower() for t in text_types):
+                            from vector_inspector.core.logging import log_info
+                            log_info(
+                                "Content column auto-detected (fallback): '%s' for collection '%s'",
+                                col_name,
+                                collection_name,
+                            )
+                            self._content_column_cache[collection_name] = col_name
+                            return col_name
 
-        # Default fallback
-        default = "document"
-        self._content_column_cache[collection_name] = default
-        return default
+            # Default fallback
+            default = "document"
+            self._content_column_cache[collection_name] = default
+            return default
 
     def set_content_column(self, collection_name: str, column_name: str) -> None:
         """Set a custom content column name for a collection.
@@ -164,7 +173,8 @@ class VectorDBConnection(ABC):
             This override is stored in memory cache only. For persistent storage,
             implementations should store in collection metadata.
         """
-        self._content_column_cache[collection_name] = column_name
+        with self._cache_lock:
+            self._content_column_cache[collection_name] = column_name
 
     def get_content_column(self, collection_name: str) -> str:
         """Get the content column name for a collection.
@@ -175,8 +185,10 @@ class VectorDBConnection(ABC):
         Returns:
             The content column name (uses cache or detection)
         """
-        if collection_name in self._content_column_cache:
-            return self._content_column_cache[collection_name]
+        with self._cache_lock:
+            if collection_name in self._content_column_cache:
+                return self._content_column_cache[collection_name]
+        # Detection has its own lock
         return self._detect_content_column(collection_name)
 
     @abstractmethod
