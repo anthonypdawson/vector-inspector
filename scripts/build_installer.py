@@ -98,7 +98,9 @@ def main() -> int:
         "nuitka",
         "--onefile",
         "--assume-yes-for-downloads",
+        "--include-package=vi_installer",  # Include our installer package
         "--include-package=questionary",
+        "--follow-imports",  # Auto-discover imports
         f"--output-dir={OUTPUT_DIR}",
         f"--output-filename={exe_name}",
         *extra_args,

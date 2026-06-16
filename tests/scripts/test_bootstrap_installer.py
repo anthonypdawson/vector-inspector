@@ -15,7 +15,50 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import bootstrap_installer as bi
+# Import from vi_installer package modules
+from vi_installer import platform, python, venv, shortcuts, state, ui
+
+# For compatibility with existing tests, create a simple namespace object
+class MockBI:
+    pass
+
+bi = MockBI()
+
+# Populate with module references
+# Platform
+bi.PLATFORM = platform.PLATFORM
+bi.get_default_install_root = platform.get_default_install_root
+bi._detect_shell_rc = platform.detect_shell_rc
+bi.STATE_FILE_NAME = state.STATE_FILE_NAME
+bi.APP_NAME = ui.APP_NAME
+bi.APP_NAME_SLUG = ui.APP_NAME_SLUG
+
+# Python
+bi.parse_min_version = python.parse_min_version
+bi.read_python_version = python.read_python_version
+bi.discover_python_candidates = python.discover_python_candidates
+bi.run_command = python.run_command
+
+# Venv
+bi.build_package_spec = venv.build_package_spec
+bi.venv_python_path = venv.venv_python_path
+bi.venv_app_entry_path = venv.venv_app_entry_path
+
+# State
+bi.write_state_file = state.write_state_file
+bi.add_to_path_unix = state.add_to_path_unix
+bi.write_launchers = state.write_launchers
+
+# Shortcuts
+bi.get_desktop_shortcut_path = shortcuts.get_desktop_shortcut_path
+bi._get_desktop_shortcut_path = shortcuts.get_desktop_shortcut_path  # alias for old tests
+
+# UI
+bi.ensure_questionary = ui.ensure_questionary
+bi.check_existing_install = ui.check_existing_install
+bi.run_uninstall = ui.run_uninstall
+bi.run_interactive_menu = ui.run_interactive_menu
+bi.parse_args = ui.parse_args
 
 
 # ---------------------------------------------------------------------------
@@ -91,14 +134,14 @@ def test_detect_shell_rc_unknown_falls_back_to_bash():
 
 
 def test_get_default_install_root_darwin(tmp_path):
-    with patch.object(bi, "PLATFORM", "darwin"), patch("pathlib.Path.home", return_value=tmp_path):
+    with patch.object(platform, "PLATFORM", "darwin"), patch("pathlib.Path.home", return_value=tmp_path):
         root = bi.get_default_install_root()
     assert root == tmp_path / "Library" / "Application Support" / "VectorInspector"
 
 
 def test_get_default_install_root_linux(tmp_path):
     with (
-        patch.object(bi, "PLATFORM", "linux"),
+        patch.object(platform, "PLATFORM", "linux"),
         patch("pathlib.Path.home", return_value=tmp_path),
         patch.dict("os.environ", {}, clear=True),
     ):
@@ -109,7 +152,7 @@ def test_get_default_install_root_linux(tmp_path):
 def test_get_default_install_root_linux_respects_xdg(tmp_path):
     xdg = tmp_path / "custom_xdg"
     with (
-        patch.object(bi, "PLATFORM", "linux"),
+        patch.object(platform, "PLATFORM", "linux"),
         patch.dict("os.environ", {"XDG_DATA_HOME": str(xdg)}),
     ):
         root = bi.get_default_install_root()
@@ -119,7 +162,7 @@ def test_get_default_install_root_linux_respects_xdg(tmp_path):
 def test_get_default_install_root_windows(tmp_path):
     local_appdata = tmp_path / "LocalAppData"
     with (
-        patch.object(bi, "PLATFORM", "win32"),
+        patch.object(platform, "PLATFORM", "win32"),
         patch.dict("os.environ", {"LOCALAPPDATA": str(local_appdata)}),
     ):
         root = bi.get_default_install_root()
@@ -132,22 +175,22 @@ def test_get_default_install_root_windows(tmp_path):
 
 
 def test_venv_python_path_unix(tmp_path):
-    with patch.object(bi, "PLATFORM", "linux"):
+    with patch.object(platform, "PLATFORM", "linux"):
         assert bi.venv_python_path(tmp_path) == tmp_path / "bin" / "python"
 
 
 def test_venv_python_path_windows(tmp_path):
-    with patch.object(bi, "PLATFORM", "win32"):
+    with patch.object(venv, "PLATFORM", "win32"):
         assert bi.venv_python_path(tmp_path) == tmp_path / "Scripts" / "python.exe"
 
 
 def test_venv_app_entry_path_unix(tmp_path):
-    with patch.object(bi, "PLATFORM", "linux"):
+    with patch.object(venv, "PLATFORM", "linux"):
         assert bi.venv_app_entry_path(tmp_path) == tmp_path / "bin" / "vector-inspector"
 
 
 def test_venv_app_entry_path_windows(tmp_path):
-    with patch.object(bi, "PLATFORM", "win32"):
+    with patch.object(venv, "PLATFORM", "win32"):
         assert bi.venv_app_entry_path(tmp_path) == tmp_path / "Scripts" / "vector-inspector.exe"
 
 
@@ -159,31 +202,31 @@ def test_venv_app_entry_path_windows(tmp_path):
 def test_read_python_version_success():
     fake_result = MagicMock()
     fake_result.stdout = "3.11\n"
-    with patch.object(bi, "run_command", return_value=fake_result):
+    with patch.object(python, "run_command", return_value=fake_result):
         assert bi.read_python_version(["python3"]) == (3, 11)
 
 
 def test_read_python_version_command_not_found():
-    with patch.object(bi, "run_command", side_effect=FileNotFoundError):
+    with patch.object(python, "run_command", side_effect=FileNotFoundError):
         assert bi.read_python_version(["no-such-python"]) is None
 
 
 def test_read_python_version_subprocess_error():
-    with patch.object(bi, "run_command", side_effect=subprocess.CalledProcessError(1, "python")):
+    with patch.object(python, "run_command", side_effect=subprocess.CalledProcessError(1, "python")):
         assert bi.read_python_version(["python"]) is None
 
 
 def test_read_python_version_unexpected_output():
     fake_result = MagicMock()
     fake_result.stdout = "not-a-version"
-    with patch.object(bi, "run_command", return_value=fake_result):
+    with patch.object(python, "run_command", return_value=fake_result):
         assert bi.read_python_version(["python"]) is None
 
 
 def test_read_python_version_empty_output():
     fake_result = MagicMock()
     fake_result.stdout = ""
-    with patch.object(bi, "run_command", return_value=fake_result):
+    with patch.object(python, "run_command", return_value=fake_result):
         assert bi.read_python_version(["python"]) is None
 
 
@@ -193,7 +236,7 @@ def test_read_python_version_empty_output():
 
 
 def test_discover_python_candidates_no_duplicates():
-    with patch.object(bi, "PLATFORM", "linux"):
+    with patch.object(platform, "PLATFORM", "linux"):
         candidates = bi.discover_python_candidates()
     seen: set[tuple[str, ...]] = set()
     for c in candidates:
@@ -217,7 +260,7 @@ def test_write_state_file_creates_valid_json(tmp_path):
     install_root.mkdir()
 
     with (
-        patch.object(bi, "PLATFORM", "linux"),
+        patch.object(platform, "PLATFORM", "linux"),
         # Prevent the side-effect of writing to ~/.vector-inspector
         patch("pathlib.Path.home", return_value=tmp_path),
     ):
@@ -238,7 +281,7 @@ def test_write_state_file_writes_install_path_config(tmp_path):
     install_root.mkdir()
 
     with (
-        patch.object(bi, "PLATFORM", "linux"),
+        patch.object(platform, "PLATFORM", "linux"),
         patch("pathlib.Path.home", return_value=tmp_path),
     ):
         bi.write_state_file(install_root, package_spec="vector-inspector", min_python_version=(3, 11))
@@ -283,7 +326,7 @@ def test_check_existing_install_replace(tmp_path):
 
     with (
         patch("pathlib.Path.home", return_value=tmp_path),
-        patch.object(bi, "ensure_questionary", return_value=None),
+        patch.object(ui, "ensure_questionary", return_value=None),
         patch("builtins.input", return_value="1"),
         patch.object(sys, "argv", ["bootstrap_installer.py"]),
         patch("sys.stdin") as mock_stdin,
@@ -304,7 +347,7 @@ def test_check_existing_install_update(tmp_path):
 
     with (
         patch("pathlib.Path.home", return_value=tmp_path),
-        patch.object(bi, "ensure_questionary", return_value=None),
+        patch.object(ui, "ensure_questionary", return_value=None),
         patch("builtins.input", return_value="2"),
         patch.object(sys, "argv", ["bootstrap_installer.py"]),
         patch("sys.stdin") as mock_stdin,
@@ -325,7 +368,7 @@ def test_check_existing_install_uninstall(tmp_path):
 
     with (
         patch("pathlib.Path.home", return_value=tmp_path),
-        patch.object(bi, "ensure_questionary", return_value=None),
+        patch.object(ui, "ensure_questionary", return_value=None),
         patch("builtins.input", return_value="3"),
         patch.object(sys, "argv", ["bootstrap_installer.py"]),
         patch("sys.stdin") as mock_stdin,
@@ -346,7 +389,7 @@ def test_check_existing_install_cancel(tmp_path):
 
     with (
         patch("pathlib.Path.home", return_value=tmp_path),
-        patch.object(bi, "ensure_questionary", return_value=None),
+        patch.object(ui, "ensure_questionary", return_value=None),
         patch("builtins.input", return_value="4"),
         patch.object(sys, "argv", ["bootstrap_installer.py"]),
         patch("sys.stdin") as mock_stdin,
@@ -391,8 +434,8 @@ def test_run_uninstall_removes_install_root(tmp_path):
 
     with (
         patch("pathlib.Path.home", return_value=tmp_path),
-        patch.object(bi, "ensure_questionary", return_value=None),
-        patch.object(bi, "_get_desktop_shortcut_path", return_value=tmp_path / "nonexistent.shortcut"),
+        patch.object(ui, "ensure_questionary", return_value=None),
+        patch.object(shortcuts, "get_desktop_shortcut_path", return_value=tmp_path / "nonexistent.shortcut"),
         patch("builtins.input", return_value="y"),
     ):
         rc = bi.run_uninstall(install_root)
@@ -408,8 +451,8 @@ def test_run_uninstall_cancelled(tmp_path):
 
     with (
         patch("pathlib.Path.home", return_value=tmp_path),
-        patch.object(bi, "ensure_questionary", return_value=None),
-        patch.object(bi, "_get_desktop_shortcut_path", return_value=tmp_path / "nonexistent.shortcut"),
+        patch.object(ui, "ensure_questionary", return_value=None),
+        patch.object(shortcuts, "get_desktop_shortcut_path", return_value=tmp_path / "nonexistent.shortcut"),
         patch("builtins.input", return_value="n"),
     ):
         rc = bi.run_uninstall(install_root)
@@ -432,8 +475,8 @@ def test_run_uninstall_removes_desktop_shortcut(tmp_path):
 
     with (
         patch("pathlib.Path.home", return_value=tmp_path),
-        patch.object(bi, "ensure_questionary", return_value=None),
-        patch.object(bi, "_get_desktop_shortcut_path", return_value=shortcut),
+        patch.object(ui, "ensure_questionary", return_value=None),
+        patch.object(ui, "get_desktop_shortcut_path", return_value=shortcut),
         patch("builtins.input", return_value="y"),
     ):
         bi.run_uninstall(install_root)
@@ -473,7 +516,7 @@ def test_run_interactive_menu_lock_install_root_does_not_change_path():
     mock_q.confirm.return_value.ask.return_value = True
 
     with (
-        patch.object(bi, "ensure_questionary", return_value=mock_q),
+        patch.object(ui, "ensure_questionary", return_value=mock_q),
         patch("sys.stdin.isatty", return_value=True),
         patch("sys.argv", ["bootstrap_installer.py"]),
     ):
@@ -493,7 +536,7 @@ def test_add_to_path_unix_appends_export(tmp_path):
     rc_file.write_text("# existing\n", encoding="utf-8")
     bin_dir = tmp_path / "bin"
 
-    with patch.object(bi, "_detect_shell_rc", return_value=str(rc_file)):
+    with patch.object(state, "detect_shell_rc", return_value=str(rc_file)):
         bi.add_to_path_unix(bin_dir)
 
     content = rc_file.read_text()
@@ -506,7 +549,7 @@ def test_add_to_path_unix_does_not_duplicate(tmp_path):
     rc_file = tmp_path / ".bashrc"
     rc_file.write_text(f'export PATH="{bin_dir}:$PATH"\n', encoding="utf-8")
 
-    with patch.object(bi, "_detect_shell_rc", return_value=str(rc_file)):
+    with patch.object(state, "detect_shell_rc", return_value=str(rc_file)):
         bi.add_to_path_unix(bin_dir)
 
     # Should still appear exactly once
@@ -520,7 +563,7 @@ def test_add_to_path_unix_does_not_duplicate(tmp_path):
 
 def test_write_launchers_unix(tmp_path):
     install_root = tmp_path / "vi"
-    with patch.object(bi, "PLATFORM", "linux"):
+    with patch.object(platform, "PLATFORM", "linux"):
         launcher = bi.write_launchers(install_root)
 
     assert launcher.exists()
@@ -532,7 +575,7 @@ def test_write_launchers_unix(tmp_path):
 
 def test_write_launchers_windows(tmp_path):
     install_root = tmp_path / "vi"
-    with patch.object(bi, "PLATFORM", "win32"):
+    with patch.object(state, "PLATFORM", "win32"):
         launcher = bi.write_launchers(install_root)
 
     assert launcher.exists()
