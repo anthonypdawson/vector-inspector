@@ -1,23 +1,14 @@
-# Release Notes (0.8.1) — May 23, 2026
+# Release Notes (0.8.2) — May 25, 2026
 
-Full Milvus support and developer-facing type system improvements.
+Bootstrap installer for systems without Python installed, or for users who prefer not to use the command line.
 
-## Providers
+## Packaging & Distribution
 
-- Implemented full `MilvusConnection` supporting both Milvus Lite (file-based, local) and remote Milvus server (HTTP). Milvus Lite is now available on Windows, macOS, and Linux; remote Milvus server is available on all platforms.
-- Fixed provider factory to properly instantiate Milvus connections in both modes.
-- Fixed connection UI to show appropriate connection type options for Milvus (Persistent/HTTP only; no in-memory ephemeral mode).
-
-## Infrastructure & Type Safety
-
-- Added proper return type annotation to `get_connection_class()` for better IDE support.
-- Implemented `@overload` type hints for `get_connection_class()` so Pylance correctly infers constructor parameters for each provider. This enables full type checking without runtime overhead.
-- Connection factory methods now have proper type validation while maintaining optional dependency architecture.
+- Added a pip-enabled Windows bootstrap installer flow via `scripts/bootstrap_installer.py`. It creates an app-local virtual environment, installs `vector-inspector` from pip, and writes app/pip launchers so users can install extras after setup.
+- Added `scripts/build_installer.py` to build the bootstrap installer executable with Nuitka.
 
 ## Docs
 
-- Added provider compatibility matrix to README — lists minimum tested library versions, install extras, and platform support for each database provider (ChromaDB, Qdrant, Pinecone, LanceDB, PgVector, Weaviate, Milvus).
-- Updated README to reflect that Milvus is now fully supported with dual connection modes (Lite file-based or remote HTTP server).
-- Updated ROADMAP: marked Milvus support as complete.
+- Added `docs/BOOTSTRAP_INSTALLER.md` documenting end-to-end build, install, update, pip usage, and troubleshooting for the new bootstrap installer flow.
 
 ---
