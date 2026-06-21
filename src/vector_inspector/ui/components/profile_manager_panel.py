@@ -90,7 +90,7 @@ PROVIDER_SUPPORTED_TYPES = {
     "pgvector": ["http"],
     "chromadb": ["persistent", "http", "ephemeral"],
     "qdrant": ["persistent", "http", "ephemeral"],
-    "milvus": ["persistent", "http", "ephemeral"],
+    "milvus": ["persistent", "http"],
 }
 
 # Default supported types for unknown providers
@@ -823,14 +823,21 @@ class ProfileEditorDialog(QDialog):
             self.database_input.setEnabled(False)
             self.db_refresh_btn.setEnabled(False)
 
-        # Special handling for Weaviate checkboxes
-        if provider == "weaviate":
-            is_http = connection_type == "http"
-            try:
-                self.grpc_checkbox.setEnabled(is_http)
-                self.weaviate_cloud_checkbox.setEnabled(is_http)
-            except Exception:
-                pass
+        # Special handling for Weaviate-only controls (gRPC + Cloud)
+        is_weaviate_http = provider == "weaviate" and connection_type == "http"
+        self._set_form_row_visible(self.grpc_checkbox, is_weaviate_http)
+        self._set_form_row_visible(self.weaviate_cloud_checkbox, is_weaviate_http)
+
+        # Keep behavior consistent with visibility state.
+        self.grpc_checkbox.setEnabled(is_weaviate_http)
+        self.weaviate_cloud_checkbox.setEnabled(is_weaviate_http)
+
+        if not is_weaviate_http:
+            # Reset cloud-specific UI when switching away from Weaviate HTTP.
+            self.weaviate_cloud_checkbox.setChecked(False)
+            self.host_input.setPlaceholderText("localhost")
+            if not self.port_input.text().strip():
+                self.port_input.setText("8080" if provider == "weaviate" else "8000")
 
     def _set_form_row_visible(self, widget_or_layout, visible: bool):
         """Show or hide a form row (field widget/layout and its label) in details_layout."""
@@ -990,6 +997,7 @@ class ProfileEditorDialog(QDialog):
         # Create connection
         from vector_inspector.core.connections.chroma_connection import ChromaDBConnection
         from vector_inspector.core.connections.lancedb_connection import LanceDBConnection
+        from vector_inspector.core.connections.milvus_connection import MilvusConnection
         from vector_inspector.core.connections.pgvector_connection import PgVectorConnection
         from vector_inspector.core.connections.pinecone_connection import PineconeConnection
         from vector_inspector.core.connections.qdrant_connection import QdrantConnection
@@ -1041,6 +1049,14 @@ class ProfileEditorDialog(QDialog):
                             api_key=self.api_key_input.text() if self.api_key_input.text() else None,
                             use_grpc=self.grpc_checkbox.isChecked() if hasattr(self, "grpc_checkbox") else True,
                         )
+            elif provider == "milvus":
+                if config.get("type") == "persistent":
+                    conn = MilvusConnection(path=self.path_input.text())
+                else:
+                    conn = MilvusConnection(
+                        host=config.get("host", "localhost"),
+                        port=config.get("port", 19530),
+                    )
             else:
                 conn = QdrantConnection(**self._get_connection_kwargs(config))
         except Exception as e:
@@ -1096,7 +1112,10 @@ class ProfileEditorDialog(QDialog):
             config["type"] = "cloud"
         elif provider == "lancedb" or self.persistent_radio.isChecked():
             config["type"] = "persistent"
-            config["path"] = self.path_input.text()
+            path_text = self.path_input.text().strip()
+            if provider == "milvus" and not path_text:
+                path_text = "./milvus.db"
+            config["path"] = path_text
         elif self.http_radio.isChecked():
             config["type"] = "http"
             config["host"] = self.host_input.text()
@@ -1129,7 +1148,9 @@ class ProfileEditorDialog(QDialog):
                 config["use_grpc"] = bool(self.grpc_checkbox.isChecked())
             except Exception:
                 pass
-        else:
+
+        # Only default to ephemeral if no explicit connection type was selected.
+        if "type" not in config:
             config["type"] = "ephemeral"
 
         return config

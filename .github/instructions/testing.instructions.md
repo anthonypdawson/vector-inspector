@@ -9,7 +9,7 @@ These rules apply when working in the `tests/` directory.
 ## Running Tests
 
 ```
-pdm run pytest --cov=vector_inspector --cov-report=html
+pdm run pytest
 pdm run pytest tests/test_metadata_navigation.py
 pdm run pytest -n auto
 QT_QPA_PLATFORM=offscreen pdm run pytest
@@ -20,10 +20,16 @@ Always run tests using `pdm run pytest`. Do not run tests directly with
 the `pdm` environment and dependency isolation to produce consistent test
 results across developer machines and CI.
 
-- Tests use `pytest` with `pytest-qt` for Qt widget testing.
-- `tests/conftest.py` provides `fake_provider` fixture — a mock vector DB for isolated testing.
-- To get the report of which files need coverage you can use the command line
-    `pdm run pytest -q --cov=vector_inspector --cov-report term-missing`
+**Coverage:** Do NOT use `--cov` / `pytest-cov` — it causes
+`ImportError: cannot load module more than once per process` due to a numpy
+interaction. Use `coverage` directly instead:
+
+```
+pdm run coverage run -m pytest
+pdm run coverage report --show-missing
+pdm run coverage report --include="*/some_module.py" --show-missing
+pdm run coverage html  # optional HTML report
+```
 
 **Coverage target:** Aim for 80% on new code. This is a guideline, not an absolute requirement — if a code path is only reachable through excessive mocking or is genuinely impractical to test (e.g., OS-specific crash handlers), skip it and leave a comment explaining why. Do not over-engineer test fixtures or add fragile tests just to hit the number.
  - For non-UI code, prefer pure unit tests with mocks/fakes to keep them fast and deterministic. Aim for 100% coverage on critical logic (e.g., provider interactions, data transformations) and at least 80% on new code paths. Target a per-file average of 90% for business-logic modules (services, core).

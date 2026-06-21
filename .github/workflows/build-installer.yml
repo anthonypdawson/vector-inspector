@@ -1,0 +1,112 @@
+name: Build Installers
+
+# Runs after a GitHub Release is published (triggered by release-and-publish.yml).
+# Builds the Nuitka bootstrap installer for each platform and attaches the
+# platform-specific binaries to the release as downloadable assets.
+#
+# Can also be triggered manually via workflow_dispatch to re-attach installers
+# to an existing release (e.g. after a partial failure or hotfix).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to attach installers to (e.g. v0.8.1)'
+        required: true
+        type: string
+      test_mode:
+        description: 'Test mode: build but do not upload to release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-installer:
+    name: Build installer (${{ matrix.platform }})
+    strategy:
+      fail-fast: false  # let other platforms finish even if one fails
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write  # required to upload assets to the release
+
+    steps:
+      - name: Check release branch
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          # For release events, ensure it came from master branch
+          BASE_BRANCH="${{ github.event.release.target_commitish }}"
+          if [[ "$BASE_BRANCH" != "master" ]]; then
+            echo "⚠️  Release was created from branch: $BASE_BRANCH"
+            echo "⚠️  Installers should only be built from 'master' branch"
+            echo "⚠️  Skipping installer build for safety"
+            exit 1
+          fi
+          echo "✓ Release from master branch - proceeding with build"
+
+      - name: Resolve ref to check out
+        id: resolve_ref
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+            # Ensure tag has refs/tags/ prefix for checkout action
+            if [[ "$TAG" =~ ^refs/ ]]; then
+              echo "ref=$TAG" >> "$GITHUB_OUTPUT"
+            elif [[ "$TAG" =~ ^v ]]; then
+              echo "ref=refs/tags/$TAG" >> "$GITHUB_OUTPUT"
+            else
+              echo "ref=refs/tags/v$TAG" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve_ref.outputs.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build installer
+        # build_installer.py auto-installs nuitka and questionary if missing,
+        # then compiles bootstrap_installer.py to a single-file native executable.
+        run: python scripts/build_installer.py
+
+      - name: Determine release tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload installer to release
+        if: github.event.inputs.test_mode != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: build/bootstrap-installer/vector-inspector-*-installer*
+
+      - name: Test mode - show what would be uploaded
+        if: github.event.inputs.test_mode == 'true'
+        shell: bash
+        run: |
+          echo "🧪 TEST MODE: Would upload these files:"
+          ls -lh build/bootstrap-installer/vector-inspector-*-installer* || true

@@ -5,7 +5,20 @@ when database providers are not installed. Use get_connection_class() to
 retrieve a connection class safely.
 """
 
+from typing import TYPE_CHECKING, Literal, overload
+
 from .base_connection import VectorDBConnection
+
+if TYPE_CHECKING:
+    from typing import Type
+
+    from .chroma_connection import ChromaDBConnection
+    from .lancedb_connection import LanceDBConnection
+    from .milvus_connection import MilvusConnection
+    from .pgvector_connection import PgVectorConnection
+    from .pinecone_connection import PineconeConnection
+    from .qdrant_connection import QdrantConnection
+    from .weaviate_connection import WeaviateConnection
 
 __all__ = [
     "VectorDBConnection",
@@ -13,7 +26,35 @@ __all__ = [
 ]
 
 
-def get_connection_class(provider: str):
+@overload
+def get_connection_class(provider: Literal["chromadb"]) -> "type[ChromaDBConnection]": ...
+
+
+@overload
+def get_connection_class(provider: Literal["qdrant"]) -> "type[QdrantConnection]": ...
+
+
+@overload
+def get_connection_class(provider: Literal["pinecone"]) -> "type[PineconeConnection]": ...
+
+
+@overload
+def get_connection_class(provider: Literal["lancedb"]) -> "type[LanceDBConnection]": ...
+
+
+@overload
+def get_connection_class(provider: Literal["pgvector"]) -> "type[PgVectorConnection]": ...
+
+
+@overload
+def get_connection_class(provider: Literal["weaviate"]) -> "type[WeaviateConnection]": ...
+
+
+@overload
+def get_connection_class(provider: Literal["milvus"]) -> "type[MilvusConnection]": ...
+
+
+def get_connection_class(provider: str) -> "type[VectorDBConnection]":
     """Get connection class for a provider, with lazy import.
 
     Args:
@@ -31,27 +72,27 @@ def get_connection_class(provider: str):
         from .chroma_connection import ChromaDBConnection
 
         return ChromaDBConnection
-    elif provider == "qdrant":
+    if provider == "qdrant":
         from .qdrant_connection import QdrantConnection
 
         return QdrantConnection
-    elif provider == "pinecone":
+    if provider == "pinecone":
         from .pinecone_connection import PineconeConnection
 
         return PineconeConnection
-    elif provider == "lancedb":
+    if provider == "lancedb":
         from .lancedb_connection import LanceDBConnection
 
         return LanceDBConnection
-    elif provider == "pgvector":
+    if provider == "pgvector":
         from .pgvector_connection import PgVectorConnection
 
         return PgVectorConnection
-    elif provider == "weaviate":
+    if provider == "weaviate":
         from .weaviate_connection import WeaviateConnection
 
         return WeaviateConnection
-    elif provider == "milvus":
+    if provider == "milvus":
         # Milvus is experimental: wrap ImportError explicitly to give a clear
         # user-facing message.  All other providers let ImportError propagate
         # naturally — do not mimic this pattern for new providers.
@@ -60,8 +101,6 @@ def get_connection_class(provider: str):
 
             return MilvusConnection
         except ImportError:
-            raise ImportError(
-                "Milvus provider is not installed. Install with: pip install vector-inspector[milvus]"
-            )
+            raise ImportError("Milvus provider is not installed. Install with: pip install vector-inspector[milvus]")
     else:
         raise ValueError(f"Unsupported provider: {provider}")
