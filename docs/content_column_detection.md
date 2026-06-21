@@ -130,7 +130,7 @@ Comprehensive test coverage in `tests/test_content_column_detection.py`:
 Run tests with:
 
 ```bash
-python -m pytest tests/test_content_column_detection.py -v
+pdm run pytest tests/test_content_column_detection.py -v
 ```
 
 ## Migration Guide
