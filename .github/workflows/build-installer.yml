@@ -102,7 +102,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          files: build/bootstrap-installer/vector-inspector-*-installer*
+          files: build/bootstrap-installer/vector-inspector-installer-*
 
       - name: Test mode - show what would be uploaded
         if: github.event.inputs.test_mode == 'true'
