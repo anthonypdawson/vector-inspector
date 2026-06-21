@@ -1,5 +1,6 @@
 """Information panel for displaying database and collection metadata."""
 
+import sys
 from typing import Any, Optional
 
 from PySide6.QtCore import Qt, QThread, Signal
@@ -13,6 +14,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+# Platform-specific monospace font for stylesheets
+_MONO_FONT = "Menlo" if sys.platform == "darwin" else ("Consolas" if sys.platform == "win32" else "monospace")
 
 from vector_inspector.core.connection_manager import ConnectionInstance
 from vector_inspector.core.logging import log_info
@@ -662,7 +666,7 @@ class InfoPanel(QWidget):
                 is_override = backend.is_content_column_overridden(self.current_collection) if hasattr(backend, "is_content_column_overridden") else False
                 label_suffix = "(manual override)" if is_override else "(auto-detected)"
                 self.content_col_label.setText(f"<code>{content_col}</code> {label_suffix}")
-                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: monospace;")
+                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";")
                 self.configure_content_col_btn.setEnabled(True)
             except Exception:
                 self.content_col_label.setText("N/A")
@@ -685,7 +689,7 @@ class InfoPanel(QWidget):
         if metadata_fields:
             schema_text = "\n".join([f"• {field}" for field in sorted(metadata_fields)])
             self.schema_label.setText(schema_text)
-            self.schema_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
+            self.schema_label.setStyleSheet("color: white; padding-left: 20px; font-family: " + _MONO_FONT + ";")
         else:
             self.schema_label.setText("No metadata fields found")
             self.schema_label.setStyleSheet("color: gray; padding-left: 20px;")
@@ -745,7 +749,7 @@ class InfoPanel(QWidget):
 
         if details_list:
             self.provider_details_label.setText("\n".join(details_list))
-            self.provider_details_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
+            self.provider_details_label.setStyleSheet("color: white; padding-left: 20px; font-family: " + _MONO_FONT + ";")
         else:
             self.provider_details_label.setText("No additional details available")
             self.provider_details_label.setStyleSheet("color: gray; padding-left: 20px;")
@@ -1020,7 +1024,7 @@ class InfoPanel(QWidget):
 
                 # Update display
                 self.content_col_label.setText(f"<code>{selected_column}</code>")
-                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: monospace;")
+                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";")
 
                 from PySide6.QtWidgets import QMessageBox
                 QMessageBox.information(

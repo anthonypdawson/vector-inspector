@@ -8,6 +8,7 @@ Emits ``provider_installed(provider_id)`` after a successful install so
 callers can trigger a provider-list refresh.
 """
 
+import sys
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QDialog,
@@ -95,7 +96,9 @@ class ProviderInstallDialog(QDialog):
         instructions_edit.setReadOnly(True)
         instructions_edit.setPlainText(self._build_instructions())
         instructions_edit.setMaximumHeight(160)
-        instructions_edit.setStyleSheet("font-family: monospace; font-size: 11px;")
+        # Use platform-specific monospace font
+        mono_font = "Menlo" if sys.platform == "darwin" else ("Consolas" if sys.platform == "win32" else "monospace")
+        instructions_edit.setStyleSheet(f"font-family: {mono_font}; font-size: 11px;")
         instructions_layout.addWidget(instructions_edit)
 
         layout.addWidget(instructions_group)
@@ -130,7 +133,7 @@ class ProviderInstallDialog(QDialog):
         self._output_edit = QPlainTextEdit()
         self._output_edit.setReadOnly(True)
         self._output_edit.setMinimumHeight(160)
-        self._output_edit.setStyleSheet("font-family: monospace; font-size: 11px;")
+        self._output_edit.setStyleSheet(f"font-family: {mono_font}; font-size: 11px;")
         self._output_edit.hide()
         layout.addWidget(self._output_edit)
 
