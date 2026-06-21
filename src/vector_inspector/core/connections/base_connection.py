@@ -1,5 +1,6 @@
 """Abstract base class for vector database connections."""
 
+import hashlib
 import threading
 import time
 import uuid
@@ -120,7 +121,6 @@ class VectorDBConnection(ABC):
         if not schema:
             return ""
         # Sort items for consistent hash across dict iteration orders
-        import hashlib
         schema_str = ",".join(sorted(f"{k}:{v}" for k, v in schema.items()))
         return hashlib.md5(schema_str.encode()).hexdigest()[:8]
 
