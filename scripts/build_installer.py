@@ -82,8 +82,19 @@ def main() -> int:
     _ensure_nuitka()
 
     version = _read_version()
-    suffix = ".exe" if sys.platform == "win32" else ""
-    exe_name = f"vector-inspector-v{version}-installer{suffix}"
+
+    # Determine platform suffix
+    if sys.platform == "win32":
+        platform_suffix = "-windows"
+        file_ext = ".exe"
+    elif sys.platform == "darwin":
+        platform_suffix = "-macos"
+        file_ext = ""
+    else:
+        platform_suffix = "-linux"
+        file_ext = ""
+
+    exe_name = f"vector-inspector-v{version}{platform_suffix}-installer{file_ext}"
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
