@@ -89,6 +89,7 @@ class ChromaDBConnection(VectorDBConnection):
             host: Host for HTTP client
             port: Port for HTTP client
         """
+        super().__init__()
         self.path = path
         self.host = host
         self.port = port

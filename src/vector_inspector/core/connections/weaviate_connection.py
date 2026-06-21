@@ -67,6 +67,7 @@ class WeaviateConnection(VectorDBConnection):
             persistence_directory: Directory for embedded instance data
             embedded_version: Weaviate version for embedded instance (e.g., "1.28.0")
         """
+        super().__init__()
         self.url = url
         self.host = host
         # allow port to be None (no port configured)

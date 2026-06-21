@@ -1,14 +1,24 @@
-# Release Notes (0.8.2) — May 25, 2026
+# Release Notes (0.8.3) — June 21, 2026
 
-Bootstrap installer for systems without Python installed, or for users who prefer not to use the command line.
+Content column detection improvements and local embedding support.
 
-## Packaging & Distribution
+## Features
 
-- Added a pip-enabled Windows bootstrap installer flow via `scripts/bootstrap_installer.py`. It creates an app-local virtual environment, installs `vector-inspector` from pip, and writes app/pip launchers so users can install extras after setup.
-- Added `scripts/build_installer.py` to build the bootstrap installer executable with Nuitka.
+- **Dynamic content column detection**: Automatically detects the best content column for each collection based on schema analysis (text/string fields, common naming patterns). Manual override support with persistence across sessions.
+- **Ollama embedding integration**: Local embedding generation via Ollama HTTP API for environments where HuggingFace is blocked or unavailable.
 
-## Docs
+## Improvements
 
-- Added `docs/BOOTSTRAP_INSTALLER.md` documenting end-to-end build, install, update, pip usage, and troubleshooting for the new bootstrap installer flow.
+- Content column configuration UI shows both auto-detected recommendation and currently active column
+- Settings persistence for content column overrides per collection
+- Fixed LanceDB schema detection to use PyArrow schema instead of pandas DataFrame conversion (performance improvement)
+- Fixed threading deadlock in content column detection (switched from Lock to RLock)
+- Platform-specific monospace fonts in UI dialogs (Menlo on macOS, Consolas on Windows)
+
+## Bug Fixes
+
+- Fixed LanceDB metadata array length mismatch in search results
+- Fixed QThread leak in embedding configuration dialog
+- Fixed content column cache poisoning when schema unavailable
 
 ---

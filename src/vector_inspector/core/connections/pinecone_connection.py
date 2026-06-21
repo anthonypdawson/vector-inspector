@@ -39,6 +39,7 @@ class PineconeConnection(VectorDBConnection):
             environment: Pinecone environment (optional, auto-detected)
             index_host: Specific index host URL (optional)
         """
+        super().__init__()
         self.api_key = api_key
         self.environment = environment
         self.index_host = index_host

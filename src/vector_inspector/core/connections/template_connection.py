@@ -25,6 +25,7 @@ class TemplateConnection(VectorDBConnection):
             **kwargs: Provider-specific connection parameters
                       (e.g., api_key, host, port, credentials, etc.)
         """
+        super().__init__()
         # Store your connection parameters here
         self._client = None
         # Add your provider-specific attributes

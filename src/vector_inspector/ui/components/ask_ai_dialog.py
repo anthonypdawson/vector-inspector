@@ -223,7 +223,13 @@ class AskAIDialog(QDialog):
         layout.addLayout(status_row)
         self._refresh_status_label()
 
-        mono = QFont("Consolas" if sys.platform == "win32" else "Monospace", 9)
+        # Use platform-appropriate monospace fonts to avoid Qt font lookup warnings
+        if sys.platform == "win32":
+            mono = QFont("Consolas", 9)
+        elif sys.platform == "darwin":
+            mono = QFont("Menlo", 9)  # macOS system monospace
+        else:
+            mono = QFont("monospace", 9)  # Linux/generic
         mono.setStyleHint(QFont.StyleHint.Monospace)
 
         # Result selection group — only shown when all_results was provided

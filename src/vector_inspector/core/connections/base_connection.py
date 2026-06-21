@@ -1,5 +1,7 @@
 """Abstract base class for vector database connections."""
 
+import hashlib
+import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -15,6 +17,14 @@ class VectorDBConnection(ABC):
     This class defines the interface that all vector database providers
     must implement to be compatible with Vector Inspector.
     """
+
+    def __init__(self):
+        """Initialize the connection with content column cache."""
+        self._content_column_cache: dict[str, str] = {}
+        self._content_column_overrides: dict[str, bool] = {}  # Track manual overrides
+        self._schema_fingerprints: dict[str, str] = {}  # Track schema state for cache invalidation
+        self._cache_lock = threading.RLock()  # RLock allows re-entrant locking
+        self._load_persisted_overrides()
 
     @abstractmethod
     def connect(self) -> bool:
@@ -98,6 +108,201 @@ class VectorDBConnection(ABC):
         Backends like Qdrant, Milvus, and pgvector *require* the size upfront and return True.
         """
         return True
+
+    def _compute_schema_fingerprint(self, schema: dict[str, str] | None) -> str:
+        """Compute a fingerprint of the schema for cache invalidation.
+
+        Args:
+            schema: Column name -> type mapping
+
+        Returns:
+            Hash string representing the schema structure
+        """
+        if not schema:
+            return ""
+        # Sort items for consistent hash across dict iteration orders
+        schema_str = ",".join(sorted(f"{k}:{v}" for k, v in schema.items()))
+        return hashlib.md5(schema_str.encode()).hexdigest()[:8]
+
+    def _detect_content_column(
+        self,
+        collection_name: str,
+        schema: dict[str, str] | None = None,
+        override: str | None = None,
+        skip_cache: bool = False
+    ) -> str:
+        """Detect the content/text column name for a collection.
+
+        Args:
+            collection_name: Name of the collection
+            schema: Optional schema dict mapping column names to types
+            override: Optional manual override for content column name
+            skip_cache: If True, perform fresh detection ignoring cache
+
+        Returns:
+            The detected content column name (defaults to "document" if not found)
+        """
+        with self._cache_lock:
+            # Compute schema fingerprint for cache invalidation
+            current_fingerprint = self._compute_schema_fingerprint(schema) if schema else ""
+
+            # Check cache first (unless skip_cache is True)
+            if not skip_cache and collection_name in self._content_column_cache:
+                # Invalidate cache if schema changed (but keep manual overrides)
+                cached_fingerprint = self._schema_fingerprints.get(collection_name, "")
+                is_override = self._content_column_overrides.get(collection_name, False)
+
+                if is_override or cached_fingerprint == current_fingerprint or not current_fingerprint:
+                    # Use cached value if: manually overridden, schema unchanged, or no schema to compare
+                    return self._content_column_cache[collection_name]
+                else:
+                    # Schema changed - invalidate cache for this collection
+                    del self._content_column_cache[collection_name]
+                    if collection_name in self._schema_fingerprints:
+                        del self._schema_fingerprints[collection_name]
+
+            # Use override if provided
+            if override:
+                self._content_column_cache[collection_name] = override
+                return override
+
+            # Common content column names, in order of preference
+            common_names = ["document", "text", "content", "text_content", "doc", "body"]
+
+            detected_column = None
+
+            if schema:
+                # Check for common names in schema
+                for name in common_names:
+                    if name in schema:
+                        detected_column = name
+                        break
+
+                # Fallback: use priority order for common text column names
+                if not detected_column:
+                    fallback_priority = [
+                        "description", "summary", "title", "name",
+                        "message", "comment", "note", "snippet"
+                    ]
+
+                    for fallback_name in fallback_priority:
+                        if fallback_name in schema:
+                            detected_column = fallback_name
+                            break
+
+                # Last resort: find first text-type column (excluding id, embedding, metadata)
+                if not detected_column:
+                    text_types = ["text", "varchar", "character varying", "string", "str"]
+                    reserved = {"id", "embedding", "metadata", "vector"}
+
+                    for col_name, col_type in schema.items():
+                        if col_name.lower() not in reserved:
+                            if any(t in col_type.lower() for t in text_types):
+                                from vector_inspector.core.logging import log_info
+                                log_info(
+                                    "Content column auto-detected (last resort): '%s' for collection '%s'",
+                                    col_name,
+                                    collection_name,
+                                )
+                                detected_column = col_name
+                                break
+
+            # Default fallback if nothing found
+            if not detected_column:
+                detected_column = "document"
+
+            # Only cache if not skipping cache and we had a schema to analyze
+            if not skip_cache and schema is not None:
+                self._content_column_cache[collection_name] = detected_column
+                # Store schema fingerprint for cache invalidation
+                if current_fingerprint:
+                    self._schema_fingerprints[collection_name] = current_fingerprint
+
+            return detected_column
+
+    def set_content_column(self, collection_name: str, column_name: str) -> None:
+        """Set a custom content column name for a collection.
+
+        Args:
+            collection_name: Name of the collection
+            column_name: Name of the content column to use
+
+        Note:
+            This override is persisted to settings and will survive application restarts.
+        """
+        with self._cache_lock:
+            self._content_column_cache[collection_name] = column_name
+            self._content_column_overrides[collection_name] = True  # Mark as manually set
+        self._persist_overrides()  # Save to disk
+
+    def get_content_column(self, collection_name: str) -> str:
+        """Get the content column name for a collection.
+
+        Args:
+            collection_name: Name of the collection
+
+        Returns:
+            The content column name (uses cache or detection)
+        """
+        with self._cache_lock:
+            if collection_name in self._content_column_cache:
+                return self._content_column_cache[collection_name]
+        # Detection has its own lock
+        return self._detect_content_column(collection_name)
+
+    def is_content_column_overridden(self, collection_name: str) -> bool:
+        """Check if content column was manually set for a collection.
+
+        Args:
+            collection_name: Name of the collection
+
+        Returns:
+            True if column was manually set via set_content_column(), False otherwise
+        """
+        with self._cache_lock:
+            return self._content_column_overrides.get(collection_name, False)
+
+    def _get_override_key(self) -> str:
+        """Get settings key for this connection's content column overrides.
+
+        Returns:
+            Settings key like "content_column_overrides.chromadb" or "content_column_overrides.pgvector"
+        """
+        return f"content_column_overrides.{self.provider_type}"
+
+    def _load_persisted_overrides(self) -> None:
+        """Load persisted content column overrides from settings."""
+        try:
+            from vector_inspector.services.settings_service import SettingsService
+            settings = SettingsService()
+            overrides_data = settings.get(self._get_override_key(), {})
+
+            with self._cache_lock:
+                # Load both the column names and override flags
+                for collection_name, column_name in overrides_data.items():
+                    self._content_column_cache[collection_name] = column_name
+                    self._content_column_overrides[collection_name] = True
+        except Exception:
+            # Fail silently - settings may not be available yet
+            pass
+
+    def _persist_overrides(self) -> None:
+        """Persist content column overrides to settings."""
+        try:
+            from vector_inspector.services.settings_service import SettingsService
+            settings = SettingsService()
+
+            with self._cache_lock:
+                # Only persist manually set overrides
+                overrides_data = {
+                    collection: column
+                    for collection, column in self._content_column_cache.items()
+                    if self._content_column_overrides.get(collection, False)
+                }
+                settings.set(self._get_override_key(), overrides_data)
+        except Exception:
+            # Fail silently - don't break functionality if settings save fails
+            pass
 
     @abstractmethod
     def add_items(
@@ -404,7 +609,12 @@ class VectorDBConnection(ABC):
             )
 
             # Use batch encoding when available (sentence-transformer), otherwise per-doc
-            if model_type != "clip":
+            if model_type == "ollama":
+                # Ollama - use encode_text helper for each document
+                from vector_inspector.core.embedding_utils import encode_text
+
+                result = [encode_text(d, model, model_type) for d in documents]
+            elif model_type != "clip":
                 # sentence-transformer-like models support batch encode
                 result = model.encode(documents, show_progress_bar=False).tolist()
             else:

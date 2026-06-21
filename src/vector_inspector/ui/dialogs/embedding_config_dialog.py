@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QFormLayout,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 
 from vector_inspector.core.embedding_utils import get_available_models_for_dimension
 from vector_inspector.core.model_registry import get_model_registry
@@ -48,6 +48,7 @@ class EmbeddingConfigDialog(QDialog):
             type_names = {
                 "sentence-transformer": "Sentence Transformers",
                 "clip": "CLIP Models",
+                "ollama": "Ollama",
                 "openai": "OpenAI API",
                 "cohere": "Cohere API",
                 "vertex-ai": "Google Vertex AI",
@@ -66,8 +67,8 @@ class EmbeddingConfigDialog(QDialog):
         """Setup dialog UI."""
         layout = QVBoxLayout(self)
 
-        # Handle custom model entry case
-        if self.provider_type == "custom":
+        # Handle custom model entry case (including Ollama)
+        if self.provider_type in ("custom", "ollama"):
             self._setup_custom_ui(layout)
             return
 
@@ -208,14 +209,32 @@ class EmbeddingConfigDialog(QDialog):
         custom_group = QGroupBox("Enter Custom Model Details")
         custom_layout = QFormLayout()
 
-        self.custom_name_input = QLineEdit()
-        self.custom_name_input.setPlaceholderText("e.g., sentence-transformers/all-mpnet-base-v2")
-        custom_layout.addRow("Model Name:", self.custom_name_input)
+        # For Ollama, use a combo box that fetches available models
+        if self.provider_type == "ollama":
+            self.custom_name_combo = QComboBox()
+            self.custom_name_combo.setEditable(True)
+            self.custom_name_combo.setPlaceholderText("Loading models...")
+            self.custom_name_combo.lineEdit().setPlaceholderText("e.g., nomic-embed-text")
+            custom_layout.addRow("Model Name:", self.custom_name_combo)
+            self.custom_name_input = None  # Not used for Ollama
+
+            # Fetch Ollama models in background
+            self._fetch_ollama_models()
+        else:
+            self.custom_name_input = QLineEdit()
+            self.custom_name_input.setPlaceholderText("e.g., sentence-transformers/all-mpnet-base-v2")
+            custom_layout.addRow("Model Name:", self.custom_name_input)
+            self.custom_name_combo = None  # Not used for non-Ollama
 
         self.custom_type_combo = QComboBox()
         self.custom_type_combo.addItems(
-            ["sentence-transformer", "clip", "openai", "cohere", "vertex-ai", "voyage", "custom"]
+            ["sentence-transformer", "clip", "ollama", "openai", "cohere", "vertex-ai", "voyage", "custom"]
         )
+        # Pre-select the provider type if specified
+        if self.provider_type and self.provider_type != "custom":
+            index = self.custom_type_combo.findText(self.provider_type)
+            if index >= 0:
+                self.custom_type_combo.setCurrentIndex(index)
         custom_layout.addRow("Model Type:", self.custom_type_combo)
 
         self.custom_desc_input = QLineEdit()
@@ -253,7 +272,14 @@ class EmbeddingConfigDialog(QDialog):
 
     def _save_custom_model(self):
         """Save custom model entry."""
-        custom_name = self.custom_name_input.text().strip()
+        # Get model name from appropriate input (combo for Ollama, input for others)
+        if self.provider_type == "ollama" and self.custom_name_combo:
+            custom_name = self.custom_name_combo.currentText().strip()
+        elif self.custom_name_input:
+            custom_name = self.custom_name_input.text().strip()
+        else:
+            custom_name = ""
+
         custom_desc = self.custom_desc_input.text().strip()
         custom_type = self.custom_type_combo.currentText()
 
@@ -334,3 +360,56 @@ class EmbeddingConfigDialog(QDialog):
         if self.selected_model and self.selected_type:
             return (self.selected_model, self.selected_type)
         return None
+
+    def _fetch_ollama_models(self):
+        """Fetch available Ollama models in background."""
+        self._ollama_thread = _OllamaModelFetchThread(self)
+        self._ollama_thread.models_ready.connect(self._on_ollama_models_loaded)
+        self._ollama_thread.error.connect(self._on_ollama_models_error)
+        # Connect finished to deleteLater to prevent thread leaks
+        self._ollama_thread.finished.connect(self._ollama_thread.deleteLater)
+        self._ollama_thread.start()
+
+    def _on_ollama_models_loaded(self, models: list[str]):
+        """Handle Ollama models loaded."""
+        if self.custom_name_combo:
+            self.custom_name_combo.clear()
+            if models:
+                self.custom_name_combo.addItems(models)
+                self.custom_name_combo.setPlaceholderText("Select or enter model name")
+            else:
+                self.custom_name_combo.setPlaceholderText("No models found - enter manually")
+            # Allow manual entry even if models were found
+            self.custom_name_combo.setEditable(True)
+
+    def _on_ollama_models_error(self, error: str):
+        """Handle error fetching Ollama models."""
+        if self.custom_name_combo:
+            self.custom_name_combo.setPlaceholderText("Ollama unavailable - enter manually")
+            self.custom_name_combo.setEditable(True)
+
+
+class _OllamaModelFetchThread(QThread):
+    """Background thread to fetch available Ollama models."""
+
+    models_ready = Signal(list)  # list[str]
+    error = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def run(self):
+        """Fetch models from Ollama API."""
+        try:
+            import json
+            import urllib.request
+
+            url = "http://localhost:11434/api/tags"
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+
+            with urllib.request.urlopen(req, timeout=2) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                models = [m["name"] for m in data.get("models", [])]
+                self.models_ready.emit(models)
+        except Exception as e:
+            self.error.emit(str(e))

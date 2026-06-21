@@ -42,6 +42,7 @@ class QdrantConnection(VectorDBConnection):
             api_key: API key for authentication (Qdrant Cloud)
             prefer_grpc: Use gRPC instead of REST
         """
+        super().__init__()
         self.path = path
         self.url = url
         self.host = host

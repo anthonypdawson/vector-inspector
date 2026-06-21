@@ -104,22 +104,27 @@ def get_available_models_for_dimension(dimension: int) -> list:
 
 def load_embedding_model(model_name: str, model_type: str) -> SentenceTransformer | Any:
     """
-    Load an embedding model (sentence-transformer or CLIP).
+    Load an embedding model (sentence-transformer, CLIP, or Ollama).
 
     Uses disk cache when available to speed up repeated loads.
 
     Args:
         model_name: Name of the model to load
-        model_type: Type of model ("sentence-transformer" or "clip")
+        model_type: Type of model ("sentence-transformer", "clip", or "ollama")
 
     Returns:
-        Loaded model (SentenceTransformer or CLIP model)
+        Loaded model (SentenceTransformer, CLIP model, or Ollama client stub)
     """
     from vector_inspector.core.model_cache import (
         is_cache_enabled,
         load_cached_path,
         save_model_to_cache,
     )
+
+    # Ollama models don't need loading - just return the model name
+    if model_type == "ollama":
+        log_info(f"Using Ollama model: {model_name}")
+        return model_name  # Return model name as-is for Ollama
 
     # Try to load from cache first
     cached_path = load_cached_path(model_name)
@@ -156,18 +161,53 @@ def load_embedding_model(model_name: str, model_type: str) -> SentenceTransforme
     return model
 
 
-def encode_text(text: str, model: SentenceTransformer | tuple, model_type: str) -> list:
+def encode_text(text: str, model: SentenceTransformer | tuple | str, model_type: str) -> list:
     """
     Encode text using the appropriate model.
 
     Args:
         text: Text to encode
-        model: The loaded model (SentenceTransformer or (CLIPModel, CLIPProcessor) tuple)
-        model_type: Type of model ("sentence-transformer" or "clip")
+        model: The loaded model (SentenceTransformer, (CLIPModel, CLIPProcessor) tuple, or Ollama model name)
+        model_type: Type of model ("sentence-transformer", "clip", or "ollama")
 
     Returns:
         Embedding vector as a list
     """
+    if model_type == "ollama":
+        import json
+        import os
+        import urllib.request
+
+        # model is the model name string for Ollama
+        # Use HTTP API directly (no extra dependencies needed)
+        base_url = "http://localhost:11434"
+        url = f"{base_url}/api/embed"
+
+        # Allow timeout override via environment variable (default: 30s)
+        timeout = int(os.getenv("OLLAMA_TIMEOUT", "30"))
+
+        data = json.dumps({"model": model, "input": text}).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                result = json.loads(response.read().decode("utf-8"))
+                embeddings = result.get("embeddings", [])
+                if not embeddings:
+                    raise RuntimeError(f"Ollama returned no embeddings for model {model}")
+                return embeddings[0]
+        except Exception as e:
+            from vector_inspector.core.logging import log_tracked_error
+            log_tracked_error(
+                "Ollama embedding failed: %s. Ensure Ollama is running (http://localhost:11434)",
+                e,
+                category="embedding",
+                operation="ollama_embed",
+                error_type=type(e).__name__,
+                exc_info=True,
+            )
+            raise RuntimeError(f"Failed to get embedding from Ollama: {e}") from e
+
     if model_type == "clip":
         import torch
 

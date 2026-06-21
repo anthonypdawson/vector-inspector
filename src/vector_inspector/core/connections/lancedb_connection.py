@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import lancedb
-from vector_inspector.core.logging import log_tracked_error
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 from .base_connection import VectorDBConnection
 
@@ -19,6 +19,7 @@ class LanceDBConnection(VectorDBConnection):
                 uri: Path or URI to LanceDB database
                 **kwargs: Additional LanceDB options
         """
+        super().__init__()
         self._uri = uri
         self._client = None
         self._db = None
@@ -162,11 +163,12 @@ class LanceDBConnection(VectorDBConnection):
             # Creating with only a schema (no data) prevents LanceDB from auto-detecting
             # which column is the vector for search operations.
             # The dummy row will remain but can be filtered out in queries if needed.
+            # Use "document" as default content column for new tables
             dummy_data = [
                 {
                     "vector": [0.0] * vector_size,
                     "id": "__dummy_init__",
-                    "document": "",
+                    "document": "",  # Default content column name for new tables
                     "metadata": "{}",
                 }
             ]
@@ -230,11 +232,16 @@ class LanceDBConnection(VectorDBConnection):
             id_list = ids if ids else [str(i) for i in range(len(documents))]
             doc_list = documents if documents else [""] * len(vectors)
 
+            # Detect content column from existing table schema (use schema property, not to_pandas())
+            arrow_schema = tbl.schema
+            schema = {field.name: str(field.type) for field in arrow_schema}
+            content_col = self._detect_content_column(collection_name, schema)
+
             arr = pa.table(
                 {
                     "vector": vectors,
                     "id": id_list,
-                    "document": doc_list,
+                    content_col: doc_list,
                     "metadata": [str(m) for m in meta],
                 }
             )
@@ -272,9 +279,12 @@ class LanceDBConnection(VectorDBConnection):
                 else:
                     metadatas.append(m)
 
-            # Get documents from 'document' column if present
-            if "document" in filtered.columns:
-                documents = filtered["document"].tolist()
+            # Get documents from content column (auto-detect)
+            schema = {col: str(dtype) for col, dtype in filtered.dtypes.items()}
+            content_col = self._detect_content_column(name, schema)
+
+            if content_col in filtered.columns:
+                documents = filtered[content_col].tolist()
             else:
                 # Fallback to metadata column for older tables
                 documents = filtered["metadata"].tolist()
@@ -512,21 +522,38 @@ class LanceDBConnection(VectorDBConnection):
                             exc_info=True,
                         )
                         return None
+                # Get IDs first to know result count
+                ids = results["id"].tolist() if "id" in results.columns else []
+                result_count = len(ids)
+
                 raw_meta = results["metadata"].tolist() if "metadata" in results.columns else []
                 metadatas = self._parse_metadata_list(raw_meta)
 
-                # Get documents from 'document' column if present, else fall back to metadata extraction
-                if "document" in results.columns:
-                    documents = results["document"].tolist()
+                # Ensure metadatas has same length as ids
+                if len(metadatas) < result_count:
+                    padding_count = result_count - len(metadatas)
+                    log_info(
+                        "Padding %d missing metadata entries in collection '%s' (sparse metadata detected)",
+                        padding_count,
+                        collection_name,
+                    )
+                    while len(metadatas) < result_count:
+                        metadatas.append({})
+
+                # Get documents from content column (auto-detect)
+                schema = {col: str(dtype) for col, dtype in results.dtypes.items()}
+                content_col = self._detect_content_column(collection_name, schema)
+
+                if content_col in results.columns:
+                    documents = results[content_col].tolist()
                 else:
-                    # Fallback: try to use a 'document' key if present in metadata, else raw metadata
+                    # Fallback: try to use a 'document' key if present in metadata, else empty string
                     documents = [
-                        m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
-                        for raw, m in zip(raw_meta, metadatas)
+                        m.get(content_col, "") if isinstance(m, dict) and content_col in m else ""
+                        for m in metadatas
                     ]
 
                 # LanceDB returns '_distance' not 'score'
-                ids = results["id"].tolist() if "id" in results.columns else []
                 distances = results["_distance"].tolist() if "_distance" in results.columns else []
                 vectors = results["vector"].tolist() if "vector" in results.columns else []
 
@@ -571,17 +598,34 @@ class LanceDBConnection(VectorDBConnection):
                 df = df[offset:]
             if limit:
                 df = df[:limit]
+            # Get result count first
+            result_count = len(df)
+
             raw_meta = df["metadata"].tolist() if "metadata" in df.columns else []
             metadatas = self._parse_metadata_list(raw_meta)
 
-            # Get documents from 'document' column if present, else from metadata
-            if "document" in df.columns:
-                documents = df["document"].tolist()
+            # Ensure metadatas has same length as result count
+            if len(metadatas) < result_count:
+                padding_count = result_count - len(metadatas)
+                log_info(
+                    "Padding %d missing metadata entries in collection '%s' (sparse metadata detected)",
+                    padding_count,
+                    collection_name,
+                )
+                while len(metadatas) < result_count:
+                    metadatas.append({})
+
+            # Get documents from content column (auto-detect)
+            schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
+            content_col = self._detect_content_column(collection_name, schema)
+
+            if content_col in df.columns:
+                documents = df[content_col].tolist()
             else:
-                # Fallback: prefer 'document' key inside metadata if present
+                # Fallback: prefer content_col key inside metadata if present, else empty string
                 documents = [
-                    m.get("document") if isinstance(m, dict) and "document" in m else str(raw)
-                    for raw, m in zip(raw_meta, metadatas)
+                    m.get(content_col, "") if isinstance(m, dict) and content_col in m else ""
+                    for m in metadatas
                 ]
 
             return {
@@ -665,10 +709,10 @@ class LanceDBConnection(VectorDBConnection):
             if ids:
                 df = df[~df["id"].isin(ids)]
 
+            # Preserve all existing columns (auto-detect content column)
             table_dict: dict[str, list] = {}
-            for col in ("vector", "id", "document", "metadata"):
-                if col in df.columns:
-                    table_dict[col] = df[col].tolist()
+            for col in df.columns:
+                table_dict[col] = df[col].tolist()
 
             arr = pa.table(table_dict)
             self._db.drop_table(collection_name)

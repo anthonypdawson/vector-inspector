@@ -31,6 +31,13 @@ class ProviderTypeDialog(QDialog):
             "icon": "🎨"
         },
         {
+            "id": "ollama",
+            "name": "🦙 Ollama",
+            "description": "Local models via Ollama server\nNo API key required, requires Ollama running",
+            "filter_type": "ollama",
+            "icon": "💻"
+        },
+        {
             "id": "openai",
             "name": "☁️ OpenAI API",
             "description": "Cloud-based embeddings\nRequires OpenAI API key",
@@ -114,15 +121,18 @@ class ProviderTypeDialog(QDialog):
             # Count available models for this type + dimension
             if provider_id == "custom":
                 count_text = "Enter manually"
+            elif provider_id in ("ollama", "openai", "cohere", "vertex-ai", "voyage"):
+                # API-based providers don't use registry, always show them
+                count_text = "Enter model name"
             else:
                 filter_type = category["filter_type"]
                 models = registry.get_models_by_dimension(self.vector_dimension)
                 matching = [m for m in models if m.type == filter_type]
                 count = len(matching)
-                
+
                 if count == 0:
                     continue  # Skip categories with no models for this dimension
-                
+
                 count_text = f"{count} model{'s' if count != 1 else ''} available"
             
             # Create group box for this option

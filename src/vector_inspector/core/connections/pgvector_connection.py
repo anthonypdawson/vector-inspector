@@ -32,6 +32,7 @@ class PgVectorConnection(VectorDBConnection):
             user: Username
             password: Password
         """
+        super().__init__()
         self.host = host
         self.port = port
         self.database = database
@@ -197,9 +198,10 @@ class PgVectorConnection(VectorDBConnection):
                 result = cur.fetchone()
                 count = result[0] if result else 0
 
-                # Get schema to identify metadata columns (exclude id, document, embedding)
+                # Get schema to identify metadata columns
                 schema = self._get_table_schema(name)
-                metadata_fields = [col for col in schema.keys() if col not in ["id", "document", "embedding"]]
+                content_col = self._detect_content_column(name, schema)
+                metadata_fields = [col for col in schema.keys() if col not in ["id", content_col, "embedding"]]
 
                 # Try to determine vector dimension and detect stored embedding model from a sample row
                 vector_dimension = "Unknown"
@@ -369,6 +371,7 @@ class PgVectorConnection(VectorDBConnection):
             # Get table schema to determine column structure
             schema = self._get_table_schema(collection_name)
             has_metadata_col = "metadata" in schema
+            content_col = self._detect_content_column(collection_name, schema)
 
             with self._client.cursor() as cur:
                 for i, emb in enumerate(embeddings):
@@ -382,8 +385,8 @@ class PgVectorConnection(VectorDBConnection):
                         metadata_json = json.dumps(metadata) if metadata else None
                         cur.execute(
                             sql.SQL(
-                                "INSERT INTO {} (id, document, metadata, embedding) VALUES (%s, %s, %s, %s)"
-                            ).format(sql.Identifier(collection_name)),
+                                "INSERT INTO {} (id, {}, metadata, embedding) VALUES (%s, %s, %s, %s)"
+                            ).format(sql.Identifier(collection_name), sql.Identifier(content_col)),
                             (item_id, doc, metadata_json, emb),
                         )
                     else:
@@ -391,8 +394,8 @@ class PgVectorConnection(VectorDBConnection):
                         columns = ["id", "embedding"]
                         values = [item_id, emb]
 
-                        if "document" in schema and doc is not None:
-                            columns.append("document")
+                        if content_col in schema and doc is not None:
+                            columns.append(content_col)
                             values.append(doc)
 
                         # Add metadata fields that exist as columns
@@ -443,6 +446,7 @@ class PgVectorConnection(VectorDBConnection):
         try:
             schema = self._get_table_schema(name)
             has_metadata_col = "metadata" in schema
+            content_col = self._detect_content_column(name, schema)
 
             with self._client.cursor() as cur:
                 # Select all columns
@@ -462,7 +466,7 @@ class PgVectorConnection(VectorDBConnection):
             for row in rows:
                 row_dict = dict(zip(colnames, row))
                 result_ids.append(str(row_dict.get("id", "")))
-                result_docs.append(row_dict.get("document", ""))
+                result_docs.append(row_dict.get(content_col, ""))
 
                 # Handle metadata
                 if has_metadata_col:
@@ -479,7 +483,7 @@ class PgVectorConnection(VectorDBConnection):
                     result_metas.append(parsed_meta)
                 else:
                     # Reconstruct metadata from columns
-                    metadata = {k: v for k, v in row_dict.items() if k not in ["id", "document", "embedding"]}
+                    metadata = {k: v for k, v in row_dict.items() if k not in ["id", content_col, "embedding"]}
                     result_metas.append(metadata)
 
                 # Handle embedding
@@ -598,8 +602,10 @@ class PgVectorConnection(VectorDBConnection):
                 # Use inherited method to resolve and load the embedding model
                 loaded_model, model_name, model_type = self.load_embedding_model_for_collection(collection_name)
 
-                # Compute embeddings for the provided query_texts (use helper for CLIP)
-                if model_type != "clip":
+                # Compute embeddings for the provided query_texts (use helper for CLIP and Ollama)
+                if model_type == "ollama":
+                    computed = [encode_text(t, loaded_model, model_type) for t in query_texts]
+                elif model_type != "clip":
                     computed = loaded_model.encode(query_texts, show_progress_bar=False).tolist()
                 else:
                     computed = [encode_text(t, loaded_model, model_type) for t in query_texts]
@@ -620,6 +626,7 @@ class PgVectorConnection(VectorDBConnection):
         try:
             schema = self._get_table_schema(collection_name)
             has_metadata_col = "metadata" in schema
+            content_col = self._detect_content_column(collection_name, schema)
 
             # For each query embedding, run a separate SELECT ordered by distance
             # so callers receive the top-N results per query (matching SearchView expectations).
@@ -673,7 +680,7 @@ class PgVectorConnection(VectorDBConnection):
                     for row in rows:
                         row_dict = dict(zip(colnames, row))
                         ids_q.append(str(row_dict.get("id", "")))
-                        docs_q.append(row_dict.get("document", ""))
+                        docs_q.append(row_dict.get(content_col, ""))
 
                         # Handle metadata
                         if has_metadata_col:
@@ -692,7 +699,7 @@ class PgVectorConnection(VectorDBConnection):
                             metadata = {
                                 k: v
                                 for k, v in row_dict.items()
-                                if k not in ["id", "document", "embedding", "distance"]
+                                if k not in ["id", content_col, "embedding", "distance"]
                             }
                             metas_q.append(metadata)
 
@@ -751,6 +758,7 @@ class PgVectorConnection(VectorDBConnection):
         try:
             schema = self._get_table_schema(collection_name)
             has_metadata_col = "metadata" in schema
+            content_col = self._detect_content_column(collection_name, schema)
 
             with self._client.cursor() as cur:
                 query_parts = [sql.SQL("SELECT * FROM {}").format(sql.Identifier(collection_name))]
@@ -794,7 +802,7 @@ class PgVectorConnection(VectorDBConnection):
             for row in rows:
                 row_dict = dict(zip(colnames, row))
                 result_ids.append(str(row_dict.get("id", "")))
-                result_docs.append(row_dict.get("document", ""))
+                result_docs.append(row_dict.get(content_col, ""))
 
                 # Handle metadata
                 if has_metadata_col:
@@ -811,7 +819,7 @@ class PgVectorConnection(VectorDBConnection):
                     result_metas.append(parsed_meta)
                 else:
                     # Reconstruct metadata from columns
-                    metadata = {k: v for k, v in row_dict.items() if k not in ["id", "document", "embedding"]}
+                    metadata = {k: v for k, v in row_dict.items() if k not in ["id", content_col, "embedding"]}
                     result_metas.append(metadata)
 
                 # Handle embedding

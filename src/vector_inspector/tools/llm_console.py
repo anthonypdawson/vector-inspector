@@ -149,7 +149,13 @@ class LLMConsoleWindow(QMainWindow):
         # Chat history (read-only)
         self._history = QTextEdit()
         self._history.setReadOnly(True)
-        mono = QFont("Consolas" if sys.platform == "win32" else "Monospace", 10)
+        # Use platform-appropriate monospace fonts to avoid Qt font lookup warnings
+        if sys.platform == "win32":
+            mono = QFont("Consolas", 10)
+        elif sys.platform == "darwin":
+            mono = QFont("Menlo", 10)  # macOS system monospace
+        else:
+            mono = QFont("monospace", 10)  # Linux/generic
         mono.setStyleHint(QFont.StyleHint.Monospace)
         self._history.setFont(mono)
         layout.addWidget(self._history, stretch=1)

@@ -1,5 +1,6 @@
 """Information panel for displaying database and collection metadata."""
 
+import sys
 from typing import Any, Optional
 
 from PySide6.QtCore import Qt, QThread, Signal
@@ -13,6 +14,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+# Platform-specific monospace font for stylesheets
+_MONO_FONT = "Menlo" if sys.platform == "darwin" else ("Consolas" if sys.platform == "win32" else "monospace")
 
 from vector_inspector.core.connection_manager import ConnectionInstance
 from vector_inspector.core.logging import log_info
@@ -241,6 +245,25 @@ class InfoPanel(QWidget):
         self.schema_label.setWordWrap(True)
         self.schema_label.setStyleSheet("color: gray; padding-left: 20px;")
         collection_layout.addWidget(self.schema_label)
+
+        # Content Column subsection
+        content_col_header_layout = QHBoxLayout()
+        content_col_label = QLabel("<b>Content Column:</b>")
+        content_col_header_layout.addWidget(content_col_label)
+        content_col_header_layout.addStretch()
+
+        self.configure_content_col_btn = QPushButton("Configure...")
+        self.configure_content_col_btn.setMaximumWidth(100)
+        self.configure_content_col_btn.clicked.connect(self._configure_content_column)
+        self.configure_content_col_btn.setEnabled(False)
+        content_col_header_layout.addWidget(self.configure_content_col_btn)
+
+        collection_layout.addLayout(content_col_header_layout)
+
+        self.content_col_label = QLabel("N/A")
+        self.content_col_label.setWordWrap(True)
+        self.content_col_label.setStyleSheet("color: gray; padding-left: 20px;")
+        collection_layout.addWidget(self.content_col_label)
 
         # Provider-specific details
         provider_details_label = QLabel("<b>Provider-Specific Details:</b>")
@@ -634,6 +657,25 @@ class InfoPanel(QWidget):
         # Update clear button state
         self._update_clear_button_state()
 
+        # Update content column display
+        backend = getattr(self.connection, "database", self.connection)
+        if backend and hasattr(backend, "get_content_column"):
+            try:
+                content_col = backend.get_content_column(self.current_collection)
+                # Check if manually overridden or auto-detected
+                is_override = backend.is_content_column_overridden(self.current_collection) if hasattr(backend, "is_content_column_overridden") else False
+                label_suffix = "(manual override)" if is_override else "(auto-detected)"
+                self.content_col_label.setText(f"<code>{content_col}</code> {label_suffix}")
+                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";")
+                self.configure_content_col_btn.setEnabled(True)
+            except Exception:
+                self.content_col_label.setText("N/A")
+                self.content_col_label.setStyleSheet("color: gray; padding-left: 20px;")
+                self.configure_content_col_btn.setEnabled(False)
+        else:
+            self.content_col_label.setText("N/A")
+            self.configure_content_col_btn.setEnabled(False)
+
         # Distance metric
         distance = collection_info.get("distance_metric", "Unknown")
         self._update_label(self.distance_metric_label, distance)
@@ -647,7 +689,7 @@ class InfoPanel(QWidget):
         if metadata_fields:
             schema_text = "\n".join([f"• {field}" for field in sorted(metadata_fields)])
             self.schema_label.setText(schema_text)
-            self.schema_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
+            self.schema_label.setStyleSheet("color: white; padding-left: 20px; font-family: " + _MONO_FONT + ";")
         else:
             self.schema_label.setText("No metadata fields found")
             self.schema_label.setStyleSheet("color: gray; padding-left: 20px;")
@@ -707,7 +749,7 @@ class InfoPanel(QWidget):
 
         if details_list:
             self.provider_details_label.setText("\n".join(details_list))
-            self.provider_details_label.setStyleSheet("color: white; padding-left: 20px; font-family: monospace;")
+            self.provider_details_label.setStyleSheet("color: white; padding-left: 20px; font-family: " + _MONO_FONT + ";")
         else:
             self.provider_details_label.setText("No additional details available")
             self.provider_details_label.setStyleSheet("color: gray; padding-left: 20px;")
@@ -927,3 +969,66 @@ class InfoPanel(QWidget):
         from PySide6.QtWidgets import QMessageBox
 
         QMessageBox.warning(self, "Error", error_message)
+
+    def _configure_content_column(self):
+        """Open dialog to configure content column for current collection."""
+        if not self.current_collection or not self.connection:
+            return
+
+        # Get backend connection
+        backend = getattr(self.connection, "database", self.connection)
+
+        # Get schema from backend - try different methods depending on provider
+        schema = None
+        try:
+            if hasattr(backend, "_get_table_schema"):
+                # PostgreSQL/pgvector
+                schema = backend._get_table_schema(self.current_collection)
+            elif hasattr(backend, "_db"):
+                # LanceDB
+                tbl = backend._db.open_table(self.current_collection)
+                df = tbl.to_pandas()
+                schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Error", f"Could not load schema: {e}")
+            return
+
+        if not schema:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "No Schema", "Could not determine collection schema.")
+            return
+
+        # Get currently selected column (might be auto-detected or user override)
+        current_column = backend.get_content_column(self.current_collection)
+
+        # Get what VI would auto-detect (fresh detection, ignoring cache and overrides)
+        auto_detected = backend._detect_content_column(self.current_collection, schema, skip_cache=True)
+
+        # Show dialog
+        from vector_inspector.ui.dialogs import ContentColumnDialog
+
+        dialog = ContentColumnDialog(
+            self.current_collection,
+            schema,
+            current_column,
+            self,
+            auto_detected_column=auto_detected
+        )
+
+        if dialog.exec():
+            selected_column = dialog.get_selected_column()
+            if selected_column and selected_column != current_column:
+                # Save the new content column
+                backend.set_content_column(self.current_collection, selected_column)
+
+                # Update display
+                self.content_col_label.setText(f"<code>{selected_column}</code>")
+                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";")
+
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    self,
+                    "Content Column Updated",
+                    f"Content column set to: {selected_column}"
+                )
