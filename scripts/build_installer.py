@@ -58,17 +58,19 @@ def _ensure_questionary() -> None:
 
 
 def _ensure_nuitka() -> None:
-    """Install nuitka into the current environment if missing.
+    """Install nuitka with onefile extras into the current environment if missing.
 
     We use 'python -m nuitka' (same interpreter as this script) instead of
     'pipx run nuitka' so that Nuitka compiles against the same site-packages
     where questionary and other build-time deps are installed.
+
+    The [onefile] extra includes zstandard for compressed executables.
     """
     try:
         import nuitka  # noqa: F401
     except ImportError:
-        print("Installing 'nuitka' into build environment...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "nuitka"])
+        print("Installing 'nuitka[onefile]' into build environment (includes zstandard for compression)...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "nuitka[onefile]"])
 
 
 def main() -> int:
