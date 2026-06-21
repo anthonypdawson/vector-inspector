@@ -83,18 +83,18 @@ def main() -> int:
 
     version = _read_version()
 
-    # Determine platform suffix
+    # Determine platform identifier and file extension
     if sys.platform == "win32":
-        platform_suffix = "-windows"
+        platform = "windows"
         file_ext = ".exe"
     elif sys.platform == "darwin":
-        platform_suffix = "-macos"
+        platform = "macos"
         file_ext = ""
     else:
-        platform_suffix = "-linux"
+        platform = "linux"
         file_ext = ""
 
-    exe_name = f"vector-inspector-v{version}{platform_suffix}-installer{file_ext}"
+    exe_name = f"vector-inspector-installer-{platform}-v{version}{file_ext}"
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
