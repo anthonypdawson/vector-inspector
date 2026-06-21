@@ -149,6 +149,14 @@ def populate_table(
     # Re-pin preview column after resizeColumnsToContents
     table.setColumnWidth(PREVIEW_COL, 28)
 
+    # Apply max width constraints to prevent excessively wide columns
+    MAX_COLUMN_WIDTH = 600  # Maximum width in pixels
+    for col in range(table.columnCount()):
+        if col != PREVIEW_COL:  # Skip preview column (already fixed)
+            current_width = table.columnWidth(col)
+            if current_width > MAX_COLUMN_WIDTH:
+                table.setColumnWidth(col, MAX_COLUMN_WIDTH)
+
 
 def copy_vectors_to_json(
     table: QTableWidget,
