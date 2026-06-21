@@ -20,7 +20,8 @@ class VectorDBConnection(ABC):
     def __init__(self):
         """Initialize the connection with content column cache."""
         self._content_column_cache: dict[str, str] = {}
-        self._cache_lock = threading.Lock()
+        self._content_column_overrides: dict[str, bool] = {}  # Track manual overrides
+        self._cache_lock = threading.RLock()  # RLock allows re-entrant locking
 
     @abstractmethod
     def connect(self) -> bool:
@@ -157,9 +158,12 @@ class VectorDBConnection(ABC):
                             self._content_column_cache[collection_name] = col_name
                             return col_name
 
-            # Default fallback
+            # Default fallback - don't cache when no schema was provided
+            # to avoid poisoning cache before schema-based detection
             default = "document"
-            self._content_column_cache[collection_name] = default
+            if schema is not None:
+                # Only cache if we had a schema to analyze
+                self._content_column_cache[collection_name] = default
             return default
 
     def set_content_column(self, collection_name: str, column_name: str) -> None:
@@ -175,6 +179,7 @@ class VectorDBConnection(ABC):
         """
         with self._cache_lock:
             self._content_column_cache[collection_name] = column_name
+            self._content_column_overrides[collection_name] = True  # Mark as manually set
 
     def get_content_column(self, collection_name: str) -> str:
         """Get the content column name for a collection.
@@ -190,6 +195,18 @@ class VectorDBConnection(ABC):
                 return self._content_column_cache[collection_name]
         # Detection has its own lock
         return self._detect_content_column(collection_name)
+
+    def is_content_column_overridden(self, collection_name: str) -> bool:
+        """Check if content column was manually set for a collection.
+
+        Args:
+            collection_name: Name of the collection
+
+        Returns:
+            True if column was manually set via set_content_column(), False otherwise
+        """
+        with self._cache_lock:
+            return self._content_column_overrides.get(collection_name, False)
 
     @abstractmethod
     def add_items(

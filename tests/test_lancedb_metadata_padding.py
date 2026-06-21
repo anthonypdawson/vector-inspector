@@ -2,7 +2,7 @@
 
 import pandas as pd
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from vector_inspector.core.connections.lancedb_connection import LanceDBConnection
 
 

@@ -658,7 +658,10 @@ class InfoPanel(QWidget):
         if backend and hasattr(backend, "get_content_column"):
             try:
                 content_col = backend.get_content_column(self.current_collection)
-                self.content_col_label.setText(f"<code>{content_col}</code> (auto-detected)")
+                # Check if manually overridden or auto-detected
+                is_override = backend.is_content_column_overridden(self.current_collection) if hasattr(backend, "is_content_column_overridden") else False
+                label_suffix = "(manual override)" if is_override else "(auto-detected)"
+                self.content_col_label.setText(f"<code>{content_col}</code> {label_suffix}")
                 self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: monospace;")
                 self.configure_content_col_btn.setEnabled(True)
             except Exception:

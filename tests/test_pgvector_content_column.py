@@ -1,7 +1,6 @@
 """Tests for PgVector-specific content column detection and schema introspection."""
 
-import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock
 from vector_inspector.core.connections.pgvector_connection import PgVectorConnection
 
 
@@ -71,7 +70,7 @@ def test_get_table_schema_empty_result():
     mock_db_conn = Mock()
     mock_db_conn.cursor.return_value.__enter__ = Mock(return_value=mock_cursor)
     mock_db_conn.cursor.return_value.__exit__ = Mock(return_value=None)
-    conn.conn = mock_db_conn
+    conn._client = mock_db_conn  # Fixed: use _client instead of conn
 
     schema = conn._get_table_schema("nonexistent_table")
 

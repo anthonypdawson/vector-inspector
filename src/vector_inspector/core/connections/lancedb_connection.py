@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import lancedb
-from vector_inspector.core.logging import log_tracked_error
+from vector_inspector.core.logging import log_info, log_tracked_error
 
 from .base_connection import VectorDBConnection
 
@@ -232,9 +232,9 @@ class LanceDBConnection(VectorDBConnection):
             id_list = ids if ids else [str(i) for i in range(len(documents))]
             doc_list = documents if documents else [""] * len(vectors)
 
-            # Detect content column from existing table schema
-            existing_df = tbl.to_pandas()
-            schema = {col: str(existing_df.dtypes[col]) for col in existing_df.columns}
+            # Detect content column from existing table schema (use schema property, not to_pandas())
+            arrow_schema = tbl.schema
+            schema = {field.name: str(field.type) for field in arrow_schema}
             content_col = self._detect_content_column(collection_name, schema)
 
             arr = pa.table(

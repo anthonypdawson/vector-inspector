@@ -366,6 +366,8 @@ class EmbeddingConfigDialog(QDialog):
         self._ollama_thread = _OllamaModelFetchThread(self)
         self._ollama_thread.models_ready.connect(self._on_ollama_models_loaded)
         self._ollama_thread.error.connect(self._on_ollama_models_error)
+        # Connect finished to deleteLater to prevent thread leaks
+        self._ollama_thread.finished.connect(self._ollama_thread.deleteLater)
         self._ollama_thread.start()
 
     def _on_ollama_models_loaded(self, models: list[str]):

@@ -93,7 +93,6 @@ def test_encode_text_with_sentence_transformer():
 def test_encode_text_with_tuple_model():
     """Test encoding with tuple (model, processor) format for CLIP."""
     import torch
-    import numpy as np
 
     mock_model = Mock()
     mock_processor = Mock()
