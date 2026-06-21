@@ -22,6 +22,7 @@ class VectorDBConnection(ABC):
         self._content_column_cache: dict[str, str] = {}
         self._content_column_overrides: dict[str, bool] = {}  # Track manual overrides
         self._cache_lock = threading.RLock()  # RLock allows re-entrant locking
+        self._load_persisted_overrides()
 
     @abstractmethod
     def connect(self) -> bool:
@@ -174,12 +175,12 @@ class VectorDBConnection(ABC):
             column_name: Name of the content column to use
 
         Note:
-            This override is stored in memory cache only. For persistent storage,
-            implementations should store in collection metadata.
+            This override is persisted to settings and will survive application restarts.
         """
         with self._cache_lock:
             self._content_column_cache[collection_name] = column_name
             self._content_column_overrides[collection_name] = True  # Mark as manually set
+        self._persist_overrides()  # Save to disk
 
     def get_content_column(self, collection_name: str) -> str:
         """Get the content column name for a collection.
@@ -207,6 +208,48 @@ class VectorDBConnection(ABC):
         """
         with self._cache_lock:
             return self._content_column_overrides.get(collection_name, False)
+
+    def _get_override_key(self) -> str:
+        """Get settings key for this connection's content column overrides.
+
+        Returns:
+            Settings key like "content_column_overrides.chromadb" or "content_column_overrides.pgvector"
+        """
+        return f"content_column_overrides.{self.provider_type}"
+
+    def _load_persisted_overrides(self) -> None:
+        """Load persisted content column overrides from settings."""
+        try:
+            from vector_inspector.services.settings_service import SettingsService
+            settings = SettingsService()
+            overrides_data = settings.get(self._get_override_key(), {})
+
+            with self._cache_lock:
+                # Load both the column names and override flags
+                for collection_name, column_name in overrides_data.items():
+                    self._content_column_cache[collection_name] = column_name
+                    self._content_column_overrides[collection_name] = True
+        except Exception:
+            # Fail silently - settings may not be available yet
+            pass
+
+    def _persist_overrides(self) -> None:
+        """Persist content column overrides to settings."""
+        try:
+            from vector_inspector.services.settings_service import SettingsService
+            settings = SettingsService()
+
+            with self._cache_lock:
+                # Only persist manually set overrides
+                overrides_data = {
+                    collection: column
+                    for collection, column in self._content_column_cache.items()
+                    if self._content_column_overrides.get(collection, False)
+                }
+                settings.set(self._get_override_key(), overrides_data)
+        except Exception:
+            # Fail silently - don't break functionality if settings save fails
+            pass
 
     @abstractmethod
     def add_items(
