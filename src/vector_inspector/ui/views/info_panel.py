@@ -995,8 +995,11 @@ class InfoPanel(QWidget):
             QMessageBox.information(self, "No Schema", "Could not determine collection schema.")
             return
 
-        # Get currently detected/configured column
+        # Get currently selected column (might be auto-detected or user override)
         current_column = backend.get_content_column(self.current_collection)
+
+        # Get what VI would auto-detect (fresh detection, ignoring cache)
+        auto_detected = backend._detect_content_column(self.current_collection, schema)
 
         # Show dialog
         from vector_inspector.ui.dialogs import ContentColumnDialog
@@ -1005,7 +1008,8 @@ class InfoPanel(QWidget):
             self.current_collection,
             schema,
             current_column,
-            self
+            self,
+            auto_detected_column=auto_detected
         )
 
         if dialog.exec():

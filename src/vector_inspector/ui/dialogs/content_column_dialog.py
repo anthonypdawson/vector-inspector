@@ -23,14 +23,17 @@ class ContentColumnDialog(QDialog):
         self,
         collection_name: str,
         schema: dict[str, str],
-        detected_column: str,
+        current_column: str,
         parent=None,
+        auto_detected_column: Optional[str] = None,
     ):
         super().__init__(parent)
         self.collection_name = collection_name
         self.schema = schema
-        self.detected_column = detected_column
-        self.selected_column = detected_column
+        self.current_column = current_column
+        # If auto_detected not provided, assume current is auto-detected
+        self.auto_detected_column = auto_detected_column or current_column
+        self.selected_column = current_column
 
         self.setWindowTitle("Select Content Column")
         self.setMinimumWidth(500)
@@ -45,11 +48,18 @@ class ContentColumnDialog(QDialog):
         header = QLabel("<h3>Select Content Column</h3>")
         layout.addWidget(header)
 
-        info = QLabel(
-            f"<b>Collection:</b> {self.collection_name}<br>"
-            f"<b>Auto-detected:</b> <code>{self.detected_column}</code><br><br>"
-            "Select the column that contains the document text/content:"
-        )
+        # Show both auto-detected and currently selected
+        is_override = self.current_column != self.auto_detected_column
+        info_lines = [
+            f"<b>Collection:</b> {self.collection_name}",
+            f"<b>VI recommends:</b> <code>{self.auto_detected_column}</code> (auto-detected)",
+        ]
+        if is_override:
+            info_lines.append(f"<b>Currently using:</b> <code>{self.current_column}</code> (your choice)")
+        info_lines.append("")
+        info_lines.append("Select the column that contains the document text/content:")
+
+        info = QLabel("<br>".join(info_lines))
         info.setWordWrap(True)
         layout.addWidget(info)
 
@@ -88,11 +98,16 @@ class ContentColumnDialog(QDialog):
             type_label.setStyleSheet("color: gray; margin-left: 25px; font-size: 11px;")
             group_layout.addWidget(type_label)
 
-            # Mark if this is the detected column
-            if col_name == self.detected_column:
-                detected_label = QLabel("✓ Auto-detected as content column")
-                detected_label.setStyleSheet("color: green; margin-left: 25px; font-size: 11px;")
+            # Mark special columns
+            if col_name == self.auto_detected_column:
+                detected_label = QLabel("✓ VI recommends this column (auto-detected)")
+                detected_label.setStyleSheet("color: #4CAF50; margin-left: 25px; font-size: 11px;")
                 group_layout.addWidget(detected_label)
+
+            if col_name == self.current_column:
+                current_label = QLabel("● Currently selected")
+                current_label.setStyleSheet("color: #2196F3; margin-left: 25px; font-size: 11px; font-weight: bold;")
+                group_layout.addWidget(current_label)
                 radio.setChecked(True)
 
             group.setLayout(group_layout)
