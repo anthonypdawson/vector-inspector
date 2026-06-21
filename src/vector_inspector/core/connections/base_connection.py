@@ -111,7 +111,8 @@ class VectorDBConnection(ABC):
         self,
         collection_name: str,
         schema: dict[str, str] | None = None,
-        override: str | None = None
+        override: str | None = None,
+        skip_cache: bool = False
     ) -> str:
         """Detect the content/text column name for a collection.
 
@@ -119,13 +120,14 @@ class VectorDBConnection(ABC):
             collection_name: Name of the collection
             schema: Optional schema dict mapping column names to types
             override: Optional manual override for content column name
+            skip_cache: If True, perform fresh detection ignoring cache
 
         Returns:
             The detected content column name (defaults to "document" if not found)
         """
         with self._cache_lock:
-            # Check cache first
-            if collection_name in self._content_column_cache:
+            # Check cache first (unless skip_cache is True)
+            if not skip_cache and collection_name in self._content_column_cache:
                 return self._content_column_cache[collection_name]
 
             # Use override if provided
@@ -136,36 +138,41 @@ class VectorDBConnection(ABC):
             # Common content column names, in order of preference
             common_names = ["document", "text", "content", "text_content", "doc", "body"]
 
+            detected_column = None
+
             if schema:
                 # Check for common names in schema
                 for name in common_names:
                     if name in schema:
-                        self._content_column_cache[collection_name] = name
-                        return name
+                        detected_column = name
+                        break
 
                 # Fallback: find first text-type column (excluding id, embedding, metadata)
-                text_types = ["text", "varchar", "character varying", "string", "str"]
-                reserved = {"id", "embedding", "metadata", "vector"}
+                if not detected_column:
+                    text_types = ["text", "varchar", "character varying", "string", "str"]
+                    reserved = {"id", "embedding", "metadata", "vector"}
 
-                for col_name, col_type in schema.items():
-                    if col_name.lower() not in reserved:
-                        if any(t in col_type.lower() for t in text_types):
-                            from vector_inspector.core.logging import log_info
-                            log_info(
-                                "Content column auto-detected (fallback): '%s' for collection '%s'",
-                                col_name,
-                                collection_name,
-                            )
-                            self._content_column_cache[collection_name] = col_name
-                            return col_name
+                    for col_name, col_type in schema.items():
+                        if col_name.lower() not in reserved:
+                            if any(t in col_type.lower() for t in text_types):
+                                from vector_inspector.core.logging import log_info
+                                log_info(
+                                    "Content column auto-detected (fallback): '%s' for collection '%s'",
+                                    col_name,
+                                    collection_name,
+                                )
+                                detected_column = col_name
+                                break
 
-            # Default fallback - don't cache when no schema was provided
-            # to avoid poisoning cache before schema-based detection
-            default = "document"
-            if schema is not None:
-                # Only cache if we had a schema to analyze
-                self._content_column_cache[collection_name] = default
-            return default
+            # Default fallback if nothing found
+            if not detected_column:
+                detected_column = "document"
+
+            # Only cache if not skipping cache and we had a schema to analyze
+            if not skip_cache and schema is not None:
+                self._content_column_cache[collection_name] = detected_column
+
+            return detected_column
 
     def set_content_column(self, collection_name: str, column_name: str) -> None:
         """Set a custom content column name for a collection.

@@ -998,8 +998,8 @@ class InfoPanel(QWidget):
         # Get currently selected column (might be auto-detected or user override)
         current_column = backend.get_content_column(self.current_collection)
 
-        # Get what VI would auto-detect (fresh detection, ignoring cache)
-        auto_detected = backend._detect_content_column(self.current_collection, schema)
+        # Get what VI would auto-detect (fresh detection, ignoring cache and overrides)
+        auto_detected = backend._detect_content_column(self.current_collection, schema, skip_cache=True)
 
         # Show dialog
         from vector_inspector.ui.dialogs import ContentColumnDialog
