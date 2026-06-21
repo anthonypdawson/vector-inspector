@@ -21,6 +21,7 @@ class VectorDBConnection(ABC):
         """Initialize the connection with content column cache."""
         self._content_column_cache: dict[str, str] = {}
         self._content_column_overrides: dict[str, bool] = {}  # Track manual overrides
+        self._schema_fingerprints: dict[str, str] = {}  # Track schema state for cache invalidation
         self._cache_lock = threading.RLock()  # RLock allows re-entrant locking
         self._load_persisted_overrides()
 
@@ -107,6 +108,22 @@ class VectorDBConnection(ABC):
         """
         return True
 
+    def _compute_schema_fingerprint(self, schema: dict[str, str] | None) -> str:
+        """Compute a fingerprint of the schema for cache invalidation.
+
+        Args:
+            schema: Column name -> type mapping
+
+        Returns:
+            Hash string representing the schema structure
+        """
+        if not schema:
+            return ""
+        # Sort items for consistent hash across dict iteration orders
+        import hashlib
+        schema_str = ",".join(sorted(f"{k}:{v}" for k, v in schema.items()))
+        return hashlib.md5(schema_str.encode()).hexdigest()[:8]
+
     def _detect_content_column(
         self,
         collection_name: str,
@@ -126,9 +143,23 @@ class VectorDBConnection(ABC):
             The detected content column name (defaults to "document" if not found)
         """
         with self._cache_lock:
+            # Compute schema fingerprint for cache invalidation
+            current_fingerprint = self._compute_schema_fingerprint(schema) if schema else ""
+
             # Check cache first (unless skip_cache is True)
             if not skip_cache and collection_name in self._content_column_cache:
-                return self._content_column_cache[collection_name]
+                # Invalidate cache if schema changed (but keep manual overrides)
+                cached_fingerprint = self._schema_fingerprints.get(collection_name, "")
+                is_override = self._content_column_overrides.get(collection_name, False)
+
+                if is_override or cached_fingerprint == current_fingerprint or not current_fingerprint:
+                    # Use cached value if: manually overridden, schema unchanged, or no schema to compare
+                    return self._content_column_cache[collection_name]
+                else:
+                    # Schema changed - invalidate cache for this collection
+                    del self._content_column_cache[collection_name]
+                    if collection_name in self._schema_fingerprints:
+                        del self._schema_fingerprints[collection_name]
 
             # Use override if provided
             if override:
@@ -147,7 +178,19 @@ class VectorDBConnection(ABC):
                         detected_column = name
                         break
 
-                # Fallback: find first text-type column (excluding id, embedding, metadata)
+                # Fallback: use priority order for common text column names
+                if not detected_column:
+                    fallback_priority = [
+                        "description", "summary", "title", "name",
+                        "message", "comment", "note", "snippet"
+                    ]
+
+                    for fallback_name in fallback_priority:
+                        if fallback_name in schema:
+                            detected_column = fallback_name
+                            break
+
+                # Last resort: find first text-type column (excluding id, embedding, metadata)
                 if not detected_column:
                     text_types = ["text", "varchar", "character varying", "string", "str"]
                     reserved = {"id", "embedding", "metadata", "vector"}
@@ -157,7 +200,7 @@ class VectorDBConnection(ABC):
                             if any(t in col_type.lower() for t in text_types):
                                 from vector_inspector.core.logging import log_info
                                 log_info(
-                                    "Content column auto-detected (fallback): '%s' for collection '%s'",
+                                    "Content column auto-detected (last resort): '%s' for collection '%s'",
                                     col_name,
                                     collection_name,
                                 )
@@ -171,6 +214,9 @@ class VectorDBConnection(ABC):
             # Only cache if not skipping cache and we had a schema to analyze
             if not skip_cache and schema is not None:
                 self._content_column_cache[collection_name] = detected_column
+                # Store schema fingerprint for cache invalidation
+                if current_fingerprint:
+                    self._schema_fingerprints[collection_name] = current_fingerprint
 
             return detected_column
 
