@@ -12,7 +12,14 @@ on:
           - '["3.11", "3.12"]'
           - '["3.11"]'
           - '["3.12"]'
+  pull_request:
+    branches:
+      - master
+      - main
   push:
+    branches:
+      - master
+      - main
     paths:
       - 'pyproject.toml'
       - '.github/workflows/ci-tests.yml'
