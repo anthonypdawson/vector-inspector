@@ -25,7 +25,7 @@ class TestCreateChroma:
         with patch("vector_inspector.core.provider_factory.get_connection_class") as mock_get_class:
             MockChroma = MagicMock()
             mock_get_class.return_value = MockChroma
-            conn = ProviderFactory.create("chromadb", {})
+            ProviderFactory.create("chromadb", {})
             mock_get_class.assert_called_once_with("chromadb")
             MockChroma.assert_called_once_with()
 
@@ -33,7 +33,7 @@ class TestCreateChroma:
         with patch("vector_inspector.core.provider_factory.get_connection_class") as mock_get_class:
             MockChroma = MagicMock()
             mock_get_class.return_value = MockChroma
-            conn = ProviderFactory.create("chromadb", {"type": "persistent", "path": "/data"})
+            ProviderFactory.create("chromadb", {"type": "persistent", "path": "/data"})
             mock_get_class.assert_called_once_with("chromadb")
             MockChroma.assert_called_once_with(path="/data")
 
@@ -41,7 +41,7 @@ class TestCreateChroma:
         with patch("vector_inspector.core.provider_factory.get_connection_class") as mock_get_class:
             MockChroma = MagicMock()
             mock_get_class.return_value = MockChroma
-            conn = ProviderFactory.create("chromadb", {"type": "http", "host": "localhost", "port": 8000})
+            ProviderFactory.create("chromadb", {"type": "http", "host": "localhost", "port": 8000})
             mock_get_class.assert_called_once_with("chromadb")
             MockChroma.assert_called_once_with(host="localhost", port=8000)
 

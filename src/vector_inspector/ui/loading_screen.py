@@ -26,9 +26,7 @@ class LoadingScreen(QWidget):
 
         # Logo
         if os.path.exists(logo_path):
-            pixmap = QPixmap(logo_path).scaled(
-                128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
+            pixmap = QPixmap(logo_path).scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             logo_label = QLabel()
             logo_label.setPixmap(pixmap)
             logo_label.setAlignment(Qt.AlignCenter)
@@ -105,9 +103,7 @@ class LoadingScreen(QWidget):
         self._fade_animation = animation  # Prevent garbage collection
 
 
-def show_loading_screen(
-    app_name, version, tagline, loading_text="Initializing providers…", logo_path=None
-):
+def show_loading_screen(app_name, version, tagline, loading_text="Initializing providers…", logo_path=None):
     """Show the loading screen if not disabled in settings.
 
     This is a convenience function that handles checking settings, finding the logo,

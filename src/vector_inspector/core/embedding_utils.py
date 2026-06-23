@@ -198,6 +198,7 @@ def encode_text(text: str, model: SentenceTransformer | tuple | str, model_type:
                 return embeddings[0]
         except Exception as e:
             from vector_inspector.core.logging import log_tracked_error
+
             log_tracked_error(
                 "Ollama embedding failed: %s. Ensure Ollama is running (http://localhost:11434)",
                 e,

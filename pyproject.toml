@@ -204,7 +204,26 @@ select = [
     "ARG",
     "RUF",
 ]
-ignore = ["E501", "I001", "UP045", "SIM105", "SIM108", "SIM117"]
+ignore = [
+    "E501",    # Line too long (black handles this)
+    "I001",    # Import block unsorted
+    "UP045",   # Use Union[X, Y] instead of X | Y for py3.9 compat
+    "SIM105",  # Use contextlib.suppress instead of try/except pass
+    "SIM108",  # Use ternary operator
+    "SIM117",  # Use single with statement
+    # Unused arguments - often required for interface compliance (Qt signals, abstract methods)
+    "ARG001",  # Unused function argument
+    "ARG002",  # Unused method argument
+    "ARG003",  # Unused class method argument
+    "ARG004",  # Unused static method argument
+    "ARG005",  # Unused lambda argument
+    # Test-specific tolerances
+    "E741",    # Ambiguous variable name (l, O, I) - common in math/test code
+    "RUF003",  # Ambiguous unicode in comments (×, −) - intentional in documentation
+    "RUF002",  # Ambiguous unicode in docstrings
+    "DTZ005",  # datetime.now() without tz - not critical for cache timestamps
+    "B904",    # raise without from - acceptable for wrapped import errors
+]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

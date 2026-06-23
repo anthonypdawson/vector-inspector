@@ -56,8 +56,9 @@ def test_flat_schema_metadata_extraction(tmp_path):
     metadata_fields = info["metadata_fields"]
     # "document" is the content column and should be excluded from metadata
     expected_fields = {"project", "filename", "heading", "type", "chunk_index"}
-    assert expected_fields.issubset(set(metadata_fields)), \
+    assert expected_fields.issubset(set(metadata_fields)), (
         f"Missing fields in metadata_fields. Expected {expected_fields}, got {set(metadata_fields)}"
+    )
     # Verify document is NOT in metadata_fields (it's the content column)
     assert "document" not in metadata_fields, "Content column 'document' should not be in metadata_fields"
 

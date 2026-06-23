@@ -75,9 +75,7 @@ def export_data(
     settings_service = SettingsService()
     last_dir = settings_service.get("last_import_export_dir", "")
     default_path = (
-        f"{last_dir}/{current_collection}.{format_type}"
-        if last_dir
-        else f"{current_collection}.{format_type}"
+        f"{last_dir}/{current_collection}.{format_type}" if last_dir else f"{current_collection}.{format_type}"
     )
 
     file_path, _ = QFileDialog.getSaveFileName(
@@ -196,9 +194,7 @@ def import_data(
 
         settings_service.set("last_import_export_dir", str(Path(file_path).parent))
 
-        QMessageBox.information(
-            parent, "Import Successful", f"Imported {len(imported_data['ids'])} items."
-        )
+        QMessageBox.information(parent, "Import Successful", f"Imported {len(imported_data['ids'])} items.")
         return imported_data
     QMessageBox.warning(parent, "Import Failed", "Failed to import data.")
     return None

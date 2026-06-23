@@ -634,8 +634,6 @@ def test_show_connection_dialog_accepted(monkeypatch, qtbot):
     mod = __import__("vector_inspector.ui.views.connection_view", fromlist=["*"])
     _make_fake_connection_view_dependencies(monkeypatch, mod)
 
-    captured_config = {}
-
     class FakeDialog:
         def __init__(self, parent=None):
             pass

@@ -25,11 +25,7 @@ def test_get_table_schema_basic():
     schema = conn._get_table_schema("test_table")
 
     # Uses data_type for standard types, udt_name for USER-DEFINED
-    assert schema == {
-        "id": "integer",
-        "content": "text",
-        "embedding": "vector"
-    }
+    assert schema == {"id": "integer", "content": "text", "embedding": "vector"}
 
 
 def test_get_table_schema_varchar_variations():
@@ -115,12 +111,7 @@ def test_content_column_with_vector_dimensions():
     """Test that vector columns with dimensions are handled."""
     conn = PgVectorConnection()
 
-    schema = {
-        "id": "integer",
-        "content": "text",
-        "embedding_768": "vector(768)",
-        "embedding_384": "vector(384)"
-    }
+    schema = {"id": "integer", "content": "text", "embedding_768": "vector(768)", "embedding_384": "vector(384)"}
     result = conn._detect_content_column("test", schema)
     assert result == "content"
 
@@ -177,11 +168,7 @@ def test_detect_with_mixed_case_columns():
     """Test detection with mixed-case column names."""
     conn = PgVectorConnection()
 
-    schema = {
-        "Id": "integer",
-        "Content": "text",
-        "Embedding": "vector"
-    }
+    schema = {"Id": "integer", "Content": "text", "Embedding": "vector"}
 
     # Case-sensitive match should not find 'content' but should find 'Content'
     result = conn._detect_content_column("test", schema)

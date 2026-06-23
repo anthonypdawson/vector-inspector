@@ -526,7 +526,7 @@ class MilvusConnection(VectorDBConnection):
         query_embeddings: list[list[float]] | None = None,
         n_results: int = 10,
         where: dict[str, Any] | None = None,
-        where_document: dict[str, Any] | None = None,  # noqa: ARG002
+        where_document: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         """
         Query a collection for similar vectors.

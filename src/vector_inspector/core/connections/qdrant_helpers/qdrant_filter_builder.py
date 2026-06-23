@@ -1,8 +1,8 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Any
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchText, MatchAny, MatchExcept, Range
 
 
-def build_filter(where: Optional[Dict[str, Any]] = None) -> Optional[Filter]:
+def build_filter(where: Optional[dict[str, Any]] = None) -> Optional[Filter]:
     """Build a Qdrant `Filter` from a Chroma-style `where` dict.
 
     This mirrors the previous inline logic in `QdrantConnection._build_qdrant_filter`.
@@ -11,8 +11,8 @@ def build_filter(where: Optional[Dict[str, Any]] = None) -> Optional[Filter]:
         return None
 
     try:
-        must_conditions: List[FieldCondition] = []
-        must_not_conditions: List[FieldCondition] = []
+        must_conditions: list[FieldCondition] = []
+        must_not_conditions: list[FieldCondition] = []
 
         for key, value in where.items():
             if isinstance(value, dict):
@@ -44,8 +44,10 @@ def build_filter(where: Optional[Dict[str, Any]] = None) -> Optional[Filter]:
                 must_conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
 
         if must_conditions or must_not_conditions:
-            return Filter(must=must_conditions if must_conditions else None,
-                          must_not=must_not_conditions if must_not_conditions else None)
+            return Filter(
+                must=must_conditions if must_conditions else None,
+                must_not=must_not_conditions if must_not_conditions else None,
+            )
         return None
     except Exception:
         return None

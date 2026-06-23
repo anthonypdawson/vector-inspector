@@ -78,7 +78,7 @@ class TestGenerateWorkerNonStreaming:
 
         provider = FakeLLMProvider(mode="echo")  # echo mode; streaming=False
         # Patch capabilities to report non-streaming
-        caps = provider.get_capabilities()
+        provider.get_capabilities()
         caps_no_stream = MagicMock()
         caps_no_stream.supports_streaming = False
         with patch.object(provider, "get_capabilities", return_value=caps_no_stream):

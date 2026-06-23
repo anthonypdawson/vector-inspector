@@ -63,7 +63,10 @@ def test_settings_panel_hook_no_duplicate_registration():
     hook.clear()
 
     calls = []
-    handler = lambda l, s, d=None: calls.append(1)
+
+    def handler(l, s, d=None):
+        return calls.append(1)
+
     hook.register(handler)
     hook.register(handler)  # second registration should be ignored
     hook.trigger(MagicMock(), MagicMock())
@@ -76,7 +79,10 @@ def test_settings_panel_hook_unregister():
     hook.clear()
 
     calls = []
-    handler = lambda l, s, d=None: calls.append(1)
+
+    def handler(l, s, d=None):
+        return calls.append(1)
+
     hook.register(handler)
     hook.unregister(handler)
     hook.trigger(MagicMock(), MagicMock())
@@ -130,7 +136,10 @@ def test_table_context_menu_hook_no_duplicate():
     hook.clear()
 
     calls = []
-    h = lambda m, t, r, d=None: calls.append(1)
+
+    def h(m, t, r, d=None):
+        return calls.append(1)
+
     hook.register(h)
     hook.register(h)
     hook.trigger(MagicMock(), MagicMock(), 0)

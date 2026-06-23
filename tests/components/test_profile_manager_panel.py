@@ -436,7 +436,7 @@ def test_test_finished_and_error_and_db_fetch(qtbot, fake_service, mock_provider
 
 
 def test_provider_ui_branches_and_browse_and_load(qtbot, fake_service, mock_providers, monkeypatch):
-    panel_mod = __import__("vector_inspector.ui.components.profile_manager_panel", fromlist=["*"])
+    __import__("vector_inspector.ui.components.profile_manager_panel", fromlist=["*"])
 
     dlg = ProfileEditorDialog(fake_service)
     qtbot.addWidget(dlg)
@@ -744,13 +744,13 @@ def test_show_context_menu_and_create_and_double_click(qtbot, fake_service, mock
 
 
 def test_save_profile_create_and_update_and_config_kwargs(qtbot, fake_service, mock_providers, monkeypatch):
-    panel_mod = __import__("vector_inspector.ui.components.profile_manager_panel", fromlist=["*"])
+    __import__("vector_inspector.ui.components.profile_manager_panel", fromlist=["*"])
 
     # New profile create (pinecone requires api_key)
     created = {}
 
     def fake_create(name, provider, config, credentials=None):
-        created["args"] = dict(name=name, provider=provider, config=config, credentials=credentials)
+        created["args"] = {"name": name, "provider": provider, "config": config, "credentials": credentials}
         return "id-new"
 
     fake_service.create_profile = fake_create
@@ -772,7 +772,7 @@ def test_save_profile_create_and_update_and_config_kwargs(qtbot, fake_service, m
     updated = {}
 
     def fake_update(pid, name=None, config=None, credentials=None):
-        updated["args"] = dict(pid=pid, name=name, config=config, credentials=credentials)
+        updated["args"] = {"pid": pid, "name": name, "config": config, "credentials": credentials}
         return True
 
     fake_service.update_profile = fake_update

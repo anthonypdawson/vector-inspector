@@ -1,14 +1,17 @@
 ---
 name: version-bump-workflow
-description: How to bump release version in vector-inspector - files that need updating
+description: Version bump checklist - always update pyproject.toml, src/vector_inspector/__init__.py __version__, and docs/RELEASE_REASON.md together when changing release version numbers
 metadata:
   type: reference
-  tags: [release, versioning, workflow]
+  tags: [release, versioning, workflow, version-bump, release-prep, changelog, pyproject, __init__, RELEASE_REASON]
+  trigger_files: [pyproject.toml, src/vector_inspector/__init__.py, docs/RELEASE_REASON.md]
 ---
 
 # Version Bump Workflow
 
-When bumping a release version in vector-inspector, **three files** must be updated to stay in sync:
+When bumping a release version in vector-inspector (changing version numbers, updating pyproject.toml version field, preparing for release), **three files** must be updated to stay in sync:
+
+**Critical**: Never update just pyproject.toml or just __init__.py alone — all three files must change together or the release will be incomplete.
 
 ## Files to Update
 
@@ -76,8 +79,13 @@ def get_version():
 ❌ Only updating `pyproject.toml` → `__version__` out of sync for dev mode
 ❌ Only updating `__init__.py` → Release workflow won't trigger
 ❌ Forgetting `docs/RELEASE_REASON.md` → Release has no description
+❌ Updating pyproject.toml version without checking __init__.py
+❌ Changing version in code but not updating release notes
+❌ Editing CHANGELOG.md but forgetting to sync __version__
 
-✅ Update all three files together
+✅ Update all three files together — pyproject.toml, __init__.py, and RELEASE_REASON.md
+✅ Always check __init__.py when pyproject.toml version changes
+✅ Version numbers must match across all three files
 
 ## Related
 

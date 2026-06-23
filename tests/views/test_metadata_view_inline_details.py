@@ -135,7 +135,7 @@ def test_open_full_details_from_inline_pane(qtbot, metadata_view):
     metadata_view.table.selectRow(0)
     metadata_view._on_selection_changed()
 
-    with patch("vector_inspector.ui.views.metadata_view._show_item_details") as mock_show:
+    with patch("vector_inspector.ui.views.metadata_view._show_item_details"):
         # Click "Open full details" button in inline pane
         metadata_view.details_pane.full_details_btn.click()
 

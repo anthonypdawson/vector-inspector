@@ -118,7 +118,7 @@ class TestResolveEmbeddingModel:
             lambda name, mtype: mock_model,
         )
 
-        model, model_name, model_type = resolve_embedding_model(mock_conn, "my_col")
+        _model, model_name, model_type = resolve_embedding_model(mock_conn, "my_col")
         assert model_name == DEFAULT_MODEL[0]
         assert model_type == DEFAULT_MODEL[1]
 
@@ -139,7 +139,7 @@ class TestResolveEmbeddingModel:
             lambda name, mtype: mock_model,
         )
 
-        model, name, mtype = resolve_embedding_model(mock_conn, "col")
+        _model, name, mtype = resolve_embedding_model(mock_conn, "col")
         assert name == "custom-model"
         assert mtype == "clip"
 
@@ -161,7 +161,7 @@ class TestResolveEmbeddingModel:
             lambda dim: ("dim-model", "sentence-transformer"),
         )
 
-        model, name, mtype = resolve_embedding_model(mock_conn, "col")
+        _model, name, _mtype = resolve_embedding_model(mock_conn, "col")
         assert name == "dim-model"
 
     def test_unknown_dimension_uses_default(self, monkeypatch):
@@ -179,5 +179,5 @@ class TestResolveEmbeddingModel:
             lambda name, mtype: mock_model,
         )
 
-        model, name, mtype = resolve_embedding_model(mock_conn, "col")
+        _model, name, _mtype = resolve_embedding_model(mock_conn, "col")
         assert name == DEFAULT_MODEL[0]

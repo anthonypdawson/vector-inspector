@@ -296,7 +296,7 @@ class PlotPanel(QWidget):
                                 return;
                             }
                             var pointIndex = point.pointIndex;
-                            
+
                             // Toggle: if clicking same point, deselect
                             if (selectedPointIndex === pointIndex) {
                                 selectedPointIndex = -1;
@@ -305,9 +305,9 @@ class PlotPanel(QWidget):
                                 }
                                 return;
                             }
-                            
+
                             selectedPointIndex = pointIndex;
-                            
+
                             // Extract ID from hover text
                             var pointId = String(pointIndex);
                             if (point.text) {
@@ -326,7 +326,7 @@ class PlotPanel(QWidget):
                             }
                         }
                     });
-                    
+
                     // Handle explicit deselection
                     plotDiv.on('plotly_deselect', function() {
                         selectedPointIndex = -1;
@@ -337,7 +337,7 @@ class PlotPanel(QWidget):
                             plotBridge.onInteraction('select', 0);
                         }
                     });
-                    
+
                     // Handle zoom / pan via relayout event
                     plotDiv.on('plotly_relayout', function(layout) {
                         // Basic heuristic: presence of axis range keys indicates zoom

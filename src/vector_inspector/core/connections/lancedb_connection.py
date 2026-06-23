@@ -34,7 +34,6 @@ class LanceDBConnection(VectorDBConnection):
             if isinstance(self._uri, str) and "://" not in self._uri:
                 self._uri = os.path.abspath(os.path.expanduser(self._uri))
             self._db = lancedb.connect(self._uri)
-            print(f"LanceDB connect: uri={self._uri}")
             self._client = self._db
             self._connected = True
             return True
@@ -103,7 +102,8 @@ class LanceDBConnection(VectorDBConnection):
                 if schema:
                     # All non-reserved columns (excluding content) are metadata fields
                     metadata_fields = [
-                        field.name for field in schema
+                        field.name
+                        for field in schema
                         if field.name not in reserved_columns and not field.name.startswith("_")
                     ]
 
@@ -142,8 +142,7 @@ class LanceDBConnection(VectorDBConnection):
                     if not metadata_fields:
                         # First check for flat schema columns
                         metadata_fields = [
-                            col for col in df.columns
-                            if col not in reserved_columns and not col.startswith("_")
+                            col for col in df.columns if col not in reserved_columns and not col.startswith("_")
                         ]
 
                         # Also check for nested metadata column (legacy format)
@@ -153,20 +152,17 @@ class LanceDBConnection(VectorDBConnection):
                             first_meta = df.iloc[0].get("metadata")
                             if isinstance(first_meta, str):
                                 import ast
+
                                 try:
                                     parsed = ast.literal_eval(first_meta)
                                     if isinstance(parsed, dict):
                                         # Add nested metadata keys as separate fields
-                                        metadata_fields.extend(
-                                            f"metadata.{k}" for k in parsed.keys()
-                                        )
+                                        metadata_fields.extend(f"metadata.{k}" for k in parsed)
                                 except Exception:
                                     # If parsing fails, keep "metadata" as a column
                                     metadata_fields.append("metadata")
                             elif isinstance(first_meta, dict):
-                                metadata_fields.extend(
-                                    f"metadata.{k}" for k in first_meta.keys()
-                                )
+                                metadata_fields.extend(f"metadata.{k}" for k in first_meta)
                             else:
                                 # Not a dict, keep "metadata" as a column
                                 metadata_fields.append("metadata")
@@ -233,17 +229,14 @@ class LanceDBConnection(VectorDBConnection):
                     "metadata": "{}",
                 }
             ]
-            print(f"LanceDB create_collection: Creating table '{name}' with vector_size={vector_size}")
             self._db.create_table(name, data=dummy_data)
-            print(f"LanceDB create_collection: Table '{name}' created successfully")
             # Cache the declared vector size for this collection
             try:
                 self._collection_meta[name] = int(vector_size)
             except Exception:
                 pass
             return True
-        except Exception as e:
-            print(f"LanceDB create_collection failed: {e}")
+        except Exception:
             return False
 
     def add_items(
@@ -610,8 +603,7 @@ class LanceDBConnection(VectorDBConnection):
                 else:
                     # Fallback: try to use a 'document' key if present in metadata, else empty string
                     documents = [
-                        m.get(content_col, "") if isinstance(m, dict) and content_col in m else ""
-                        for m in metadatas
+                        m.get(content_col, "") if isinstance(m, dict) and content_col in m else "" for m in metadatas
                     ]
 
                 # LanceDB returns '_distance' not 'score'
@@ -675,19 +667,19 @@ class LanceDBConnection(VectorDBConnection):
             else:
                 # Flat schema format: all non-reserved columns are metadata
                 metadata_columns = [
-                    col for col in df.columns
-                    if col not in reserved_columns and not col.startswith("_")
+                    col for col in df.columns if col not in reserved_columns and not col.startswith("_")
                 ]
 
                 if metadata_columns:
                     # Build metadata dicts from the flat columns
                     # Use .to_dict('records') for efficient row-wise conversion
-                    records = df[metadata_columns].to_dict('records')
+                    records = df[metadata_columns].to_dict("records")
                     metadatas = []
                     for record in records:
                         # Filter out NaN/None values
                         meta = {
-                            k: v for k, v in record.items()
+                            k: v
+                            for k, v in record.items()
                             if v is not None and (not isinstance(v, float) or not math.isnan(v))
                         }
                         metadatas.append(meta)
@@ -711,8 +703,7 @@ class LanceDBConnection(VectorDBConnection):
             else:
                 # Fallback: prefer content_col key inside metadata if present, else empty string
                 documents = [
-                    m.get(content_col, "") if isinstance(m, dict) and content_col in m else ""
-                    for m in metadatas
+                    m.get(content_col, "") if isinstance(m, dict) and content_col in m else "" for m in metadatas
                 ]
 
             return {

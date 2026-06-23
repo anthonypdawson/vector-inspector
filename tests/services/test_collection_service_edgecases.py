@@ -68,7 +68,7 @@ def test_weaviate_ids_are_uuids(monkeypatch):
             return True
 
     conn = WeaviateConn()
-    success, msg = svc.populate_with_sample_data(conn, "colW", 2, SampleDataType.TEXT, "m")
+    success, _msg = svc.populate_with_sample_data(conn, "colW", 2, SampleDataType.TEXT, "m")
     assert success is True
     assert "ids" in captured
     # ensure ids are UUIDs
@@ -93,7 +93,7 @@ def test_numpy_embeddings_converted_to_list(monkeypatch):
             return True
 
     conn = Conn()
-    success, msg = svc.populate_with_sample_data(conn, "colN", 3, SampleDataType.TEXT, "m")
+    success, _msg = svc.populate_with_sample_data(conn, "colN", 3, SampleDataType.TEXT, "m")
     assert success is True
     assert captured["embeddings_type"] is list
     assert captured["inner_len"] == 5
@@ -140,7 +140,7 @@ def test_settings_save_failure_does_not_fail_operation(monkeypatch):
     monkeypatch.setattr(settings_mod, "SettingsService", BadSettings)
 
     conn = FakeConnection(add_success=True)
-    success, msg = svc.populate_with_sample_data(conn, "colS", 2, SampleDataType.TEXT, "m")
+    success, _msg = svc.populate_with_sample_data(conn, "colS", 2, SampleDataType.TEXT, "m")
     assert success is True
 
 
@@ -168,7 +168,7 @@ def test_signals_emitted_in_sequence(monkeypatch):
     svc.operation_completed.connect(on_completed)
 
     conn = FakeConnection(add_success=True)
-    success, msg = svc.populate_with_sample_data(conn, "colSig", 2, SampleDataType.TEXT, "m")
+    success, _msg = svc.populate_with_sample_data(conn, "colSig", 2, SampleDataType.TEXT, "m")
     assert success is True
     # basic checks for recorded sequences
     assert any(s[0] == "started" for s in seq)
@@ -210,7 +210,7 @@ def test_populate_with_profile_name_saves_settings(monkeypatch):
 
     # connection WITH a profile_name
     conn = FakeConnection(add_success=True, profile_name="my-profile")
-    success, msg = svc.populate_with_sample_data(conn, "colP", 2, SampleDataType.TEXT, "my-model")
+    success, _msg = svc.populate_with_sample_data(conn, "colP", 2, SampleDataType.TEXT, "my-model")
     assert success is True
     # The settings save should have been called since profile_name was set
     assert len(saved) == 1

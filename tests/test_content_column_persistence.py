@@ -1,4 +1,5 @@
 """Tests for content column persistence across sessions."""
+
 from vector_inspector.core.connections.lancedb_connection import LanceDBConnection
 
 

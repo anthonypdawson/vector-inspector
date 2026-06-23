@@ -203,8 +203,7 @@ class LLMProviderInstance:
             raise RuntimeError("No LLM provider is available.")
         messages = [{"role": "user", "content": prompt}]
         model = opts.pop("model", self._provider.get_model_name())
-        result = self._provider.generate_messages(messages, model=model, stream=False, **opts)
-        return result  # type: ignore[return-value]
+        return self._provider.generate_messages(messages, model=model, stream=False, **opts)
 
     def is_available(self) -> bool:
         self._ensure()

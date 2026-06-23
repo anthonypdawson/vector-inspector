@@ -60,7 +60,7 @@ def test_exception_decorator_sends_telemetry_and_reraises(monkeypatch):
         will_raise(1)
 
     assert "sent" in recorded
-    msg, event, extra = recorded["sent"]
+    _msg, event, extra = recorded["sent"]
     assert event == "TestEvent"
     assert extra.get("function") == "will_raise"
 

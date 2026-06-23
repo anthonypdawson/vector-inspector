@@ -31,9 +31,7 @@ class SplashWindow(QDialog):
 
         about = QTextBrowser()
         version = get_app_version()
-        version_html = (
-            f"<h2>Vector Inspector {version}</h2>" if version else "<h2>Vector Inspector</h2>"
-        )
+        version_html = f"<h2>Vector Inspector {version}</h2>" if version else "<h2>Vector Inspector</h2>"
         about_text = (
             version_html + "<p>A comprehensive desktop application for visualizing, "
             "querying, and managing multiple vector databases simultaneously.</p>"
