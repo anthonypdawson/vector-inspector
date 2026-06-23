@@ -25,6 +25,9 @@ on:
       - '.github/workflows/ci-tests.yml'
       - 'tests/**'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test on Python ${{ matrix.python-version }}
