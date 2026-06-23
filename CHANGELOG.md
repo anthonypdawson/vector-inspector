@@ -5,6 +5,27 @@ All notable changes to Vector Viewer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] - 2026-06-21
+
+### Fixed
+- **LanceDB flat schema metadata extraction**: Fixed metadata display for LanceDB databases with flat schemas (e.g., Contextus) where metadata is stored as individual columns rather than nested in a 'metadata' column
+- **Duplicate document column**: Prevented content column from appearing twice in data browser (once as content, once as metadata)
+- **Column width limits**: Added 600px max-width constraint to table columns to prevent excessive width
+
+### Changed
+- LanceDB connection now extracts metadata from PyArrow schema first for better performance
+- Content column (e.g., "document") is automatically detected and excluded from metadata fields
+
+### Added
+- Comprehensive tests for flat schema metadata extraction
+- Backward compatibility maintained with nested 'metadata' column format
+
+## [0.8.3] - 2026-06-21
+
+### Changed
+- Moved hashlib import to module level in base_connection.py
+- Improved platform-specific monospace font rendering in provider install dialog
+- Centralized content column detection logic with single return path
 
 ### Added - Phase 1 Implementation
 

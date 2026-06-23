@@ -64,7 +64,9 @@ def test_get_all_items_metadata_padding(lancedb_conn):
     assert len(result["ids"]) == 2
     assert len(result["documents"]) == 2
     assert len(result["metadatas"]) == 2  # Should be padded!
-    assert all(m == {} for m in result["metadatas"])
+    # With flat schema support, but "document" is excluded as it's the content column
+    assert result["metadatas"][0] == {}
+    assert result["metadatas"][1] == {}
 
 
 def test_query_collection_with_sparse_metadata(lancedb_conn):

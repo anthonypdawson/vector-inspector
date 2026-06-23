@@ -1,5 +1,6 @@
 """LanceDB connection implementation for Vector Inspector."""
 
+import math
 import os
 from typing import Any
 
@@ -78,61 +79,121 @@ class LanceDBConnection(VectorDBConnection):
             # Row count (prefer num_rows, fallback to pandas length)
             count = getattr(tbl, "num_rows", None)
 
-            # Pull dataframe sample to infer metadata fields and vector dimension
-            try:
-                df = tbl.to_pandas()
-                # Filter out dummy initialization row
-                if df is not None and "id" in df.columns:
-                    df = df[df["id"] != "__dummy_init__"]
-            except Exception:
-                df = None
-
+            # Extract metadata fields from schema first (more reliable)
             metadata_fields: list[str] = []
             vector_dimension: int | str = "Unknown"
+            reserved_columns = {"id", "vector", "embedding", "_distance"}
 
-            if df is not None and not df.empty:
-                # Determine count if not available
-                if count is None:
+            # Detect content column to exclude it from metadata
+            content_col: str | None = None
+            try:
+                # Try to get schema to detect content column
+                schema = tbl.schema
+                if schema:
+                    # Build a temporary dict for content detection
+                    temp_schema = {field.name: str(field.type) for field in schema}
+                    content_col = self._detect_content_column(name, temp_schema)
+                    reserved_columns.add(content_col)
+            except Exception:
+                pass
+
+            # Try to get schema from PyArrow table schema
+            try:
+                schema = tbl.schema
+                if schema:
+                    # All non-reserved columns (excluding content) are metadata fields
+                    metadata_fields = [
+                        field.name for field in schema
+                        if field.name not in reserved_columns and not field.name.startswith("_")
+                    ]
+
+                    # Get vector dimension from schema if available
+                    for field in schema:
+                        if field.name in ("vector", "embedding"):
+                            try:
+                                # PyArrow FixedSizeListType has list_size attribute
+                                if hasattr(field.type, "list_size"):
+                                    vector_dimension = field.type.list_size
+                            except Exception:
+                                pass
+            except Exception:
+                # If schema access fails, fall back to pandas sampling
+                pass
+
+            # Fallback: Pull dataframe sample if schema extraction didn't work or count is unknown
+            if not metadata_fields or vector_dimension == "Unknown" or count is None:
+                try:
+                    df = tbl.to_pandas()
+                    # Filter out dummy initialization row
+                    if df is not None and "id" in df.columns:
+                        df = df[df["id"] != "__dummy_init__"]
+                except Exception:
+                    df = None
+
+                if df is not None and not df.empty:
+                    # Determine count if not available
+                    if count is None:
+                        try:
+                            count = len(df)
+                        except Exception:
+                            count = 0
+
+                    # If we didn't get metadata fields from schema, extract from columns
+                    if not metadata_fields:
+                        # First check for flat schema columns
+                        metadata_fields = [
+                            col for col in df.columns
+                            if col not in reserved_columns and not col.startswith("_")
+                        ]
+
+                        # Also check for nested metadata column (legacy format)
+                        if "metadata" in df.columns and "metadata" in metadata_fields:
+                            # Remove "metadata" from the list and try to extract its keys
+                            metadata_fields.remove("metadata")
+                            first_meta = df.iloc[0].get("metadata")
+                            if isinstance(first_meta, str):
+                                import ast
+                                try:
+                                    parsed = ast.literal_eval(first_meta)
+                                    if isinstance(parsed, dict):
+                                        # Add nested metadata keys as separate fields
+                                        metadata_fields.extend(
+                                            f"metadata.{k}" for k in parsed.keys()
+                                        )
+                                except Exception:
+                                    # If parsing fails, keep "metadata" as a column
+                                    metadata_fields.append("metadata")
+                            elif isinstance(first_meta, dict):
+                                metadata_fields.extend(
+                                    f"metadata.{k}" for k in first_meta.keys()
+                                )
+                            else:
+                                # Not a dict, keep "metadata" as a column
+                                metadata_fields.append("metadata")
+
+                    # Infer vector dimension from the first vector entry if still unknown
+                    if vector_dimension == "Unknown" and "vector" in df.columns:
+                        first_vec = df.iloc[0].get("vector")
+                        if first_vec is not None:
+                            try:
+                                vector_dimension = len(first_vec)
+                            except Exception:
+                                vector_dimension = "Unknown"
+
+                    # Cache vector dimension if known
                     try:
-                        count = len(df)
+                        if isinstance(vector_dimension, int):
+                            self._collection_meta[name] = vector_dimension
                     except Exception:
+                        pass
+                else:
+                    # No dataframe available, try to get count from attribute
+                    if count is None:
                         count = 0
 
-                # Infer metadata fields from the first row
-                first_meta = df.iloc[0].get("metadata") if "metadata" in df.columns else None
-                if isinstance(first_meta, str):
-                    import ast
-
-                    try:
-                        parsed = ast.literal_eval(first_meta)
-                        if isinstance(parsed, dict):
-                            metadata_fields = list(parsed.keys())
-                    except Exception:
-                        # treat as raw string field
-                        metadata_fields = []
-                elif isinstance(first_meta, dict):
-                    metadata_fields = list(first_meta.keys())
-
-                # Infer vector dimension from the first vector entry
-                if "vector" in df.columns:
-                    first_vec = df.iloc[0].get("vector")
-                    if first_vec is not None:
-                        try:
-                            vector_dimension = len(first_vec)
-                        except Exception:
-                            vector_dimension = "Unknown"
-
-                # Cache vector dimension if known
-                try:
-                    if isinstance(vector_dimension, int):
-                        self._collection_meta[name] = vector_dimension
-                except Exception:
-                    pass
-
-            else:
-                # No dataframe available, try to get count from attribute
-                if count is None:
-                    count = 0
+            # Final fallback for count
+            if count is None:
+                count = 0
 
             distance_metric = "Unknown"
 
@@ -601,8 +662,37 @@ class LanceDBConnection(VectorDBConnection):
             # Get result count first
             result_count = len(df)
 
-            raw_meta = df["metadata"].tolist() if "metadata" in df.columns else []
-            metadatas = self._parse_metadata_list(raw_meta)
+            # Extract metadata - support both nested "metadata" column and flat schema
+            # Get content column first to exclude it from metadata
+            schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
+            content_col = self._detect_content_column(collection_name, schema)
+            reserved_columns = {"id", "vector", "embedding", "_distance", content_col}
+
+            if "metadata" in df.columns:
+                # Legacy format: nested metadata column
+                raw_meta = df["metadata"].tolist()
+                metadatas = self._parse_metadata_list(raw_meta)
+            else:
+                # Flat schema format: all non-reserved columns are metadata
+                metadata_columns = [
+                    col for col in df.columns
+                    if col not in reserved_columns and not col.startswith("_")
+                ]
+
+                if metadata_columns:
+                    # Build metadata dicts from the flat columns
+                    # Use .to_dict('records') for efficient row-wise conversion
+                    records = df[metadata_columns].to_dict('records')
+                    metadatas = []
+                    for record in records:
+                        # Filter out NaN/None values
+                        meta = {
+                            k: v for k, v in record.items()
+                            if v is not None and (not isinstance(v, float) or not math.isnan(v))
+                        }
+                        metadatas.append(meta)
+                else:
+                    metadatas = [{} for _ in range(result_count)]
 
             # Ensure metadatas has same length as result count
             if len(metadatas) < result_count:
@@ -615,10 +705,7 @@ class LanceDBConnection(VectorDBConnection):
                 while len(metadatas) < result_count:
                     metadatas.append({})
 
-            # Get documents from content column (auto-detect)
-            schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
-            content_col = self._detect_content_column(collection_name, schema)
-
+            # Get documents from content column (already detected above)
             if content_col in df.columns:
                 documents = df[content_col].tolist()
             else:
