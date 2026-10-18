@@ -76,7 +76,7 @@ def test_weaviate_connection_with_api_key():
 
 def test_weaviate_connect_success(mock_weaviate_client):
     """Test successful connection to Weaviate."""
-    _mock_weaviate, mock_client = mock_weaviate_client
+    _mock_weaviate, _mock_client = mock_weaviate_client
 
     conn = WeaviateConnection(host="localhost", port=8080)
     result = conn.connect()
@@ -380,7 +380,7 @@ def test_weaviate_delete_items_by_id(mock_weaviate_client):
 
 def test_weaviate_add_items_handles_exception(mock_weaviate_client):
     """If batch add raises, add_items should return False."""
-    mock_weaviate, mock_client = mock_weaviate_client
+    _mock_weaviate, mock_client = mock_weaviate_client
 
     mock_collection = MagicMock()
     mock_batch = MagicMock()
@@ -398,7 +398,7 @@ def test_weaviate_add_items_handles_exception(mock_weaviate_client):
 
 
 def test_weaviate_query_handles_exception(mock_weaviate_client):
-    mock_weaviate, mock_client = mock_weaviate_client
+    _mock_weaviate, mock_client = mock_weaviate_client
     mock_collection = MagicMock()
     mock_collection.query.near_vector.side_effect = Exception("query fail")
     mock_client.collections.get.return_value = mock_collection
@@ -410,7 +410,7 @@ def test_weaviate_query_handles_exception(mock_weaviate_client):
 
 
 def test_weaviate_delete_handles_exception(mock_weaviate_client):
-    mock_weaviate, mock_client = mock_weaviate_client
+    _mock_weaviate, mock_client = mock_weaviate_client
     mock_collection = MagicMock()
     mock_collection.data.delete_by_id.side_effect = Exception("delete fail")
     mock_client.collections.get.return_value = mock_collection
@@ -423,7 +423,7 @@ def test_weaviate_delete_handles_exception(mock_weaviate_client):
 
 
 def test_weaviate_get_all_items_handles_exception(mock_weaviate_client):
-    mock_weaviate, mock_client = mock_weaviate_client
+    _mock_weaviate, mock_client = mock_weaviate_client
     mock_collection = MagicMock()
     mock_collection.query.fetch_objects.side_effect = Exception("fetch fail")
     mock_client.collections.get.return_value = mock_collection
@@ -485,7 +485,7 @@ def test_weaviate_embedded_mode_init():
 
 def test_weaviate_embedded_mode_connection(mock_weaviate_client):
     """Test connecting to Weaviate in embedded mode."""
-    mock_weaviate, mock_client = mock_weaviate_client
+    mock_weaviate, _mock_client = mock_weaviate_client
 
     # Mock embedded options
     mock_embedded_options = MagicMock()
@@ -553,7 +553,7 @@ def test_weaviate_embedded_collections(mock_weaviate_client):
 
 def test_weaviate_delete_where_and_ids_precedence(mock_weaviate_client):
     """Ensure Weaviate delete uses delete_many for filters and delete_by_id for ids."""
-    mock_weaviate, mock_client = mock_weaviate_client
+    _mock_weaviate, mock_client = mock_weaviate_client
 
     # Prepare mock collection with data API
     mock_collection = MagicMock()

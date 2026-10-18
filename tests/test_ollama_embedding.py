@@ -15,12 +15,10 @@ def test_load_embedding_model_ollama():
 
 def test_encode_text_ollama_success():
     """Test encoding text with Ollama."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         # Mock HTTP response
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "embeddings": [[0.1, 0.2, 0.3, 0.4]]
-        }).encode('utf-8')
+        mock_response.read.return_value = json.dumps({"embeddings": [[0.1, 0.2, 0.3, 0.4]]}).encode("utf-8")
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -35,11 +33,9 @@ def test_encode_text_ollama_success():
 
 def test_encode_text_ollama_empty_embeddings():
     """Test encoding with empty embeddings response raises error."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "embeddings": []
-        }).encode('utf-8')
+        mock_response.read.return_value = json.dumps({"embeddings": []}).encode("utf-8")
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -50,7 +46,7 @@ def test_encode_text_ollama_empty_embeddings():
 
 def test_encode_text_ollama_connection_error():
     """Test encoding handles connection errors."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         mock_urlopen.side_effect = Exception("Connection refused")
 
         with pytest.raises(RuntimeError, match="Failed to get embedding from Ollama"):
@@ -59,10 +55,9 @@ def test_encode_text_ollama_connection_error():
 
 def test_encode_text_ollama_request_format():
     """Test that Ollama request is formatted correctly."""
-    with patch('urllib.request.Request') as mock_request, \
-         patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.Request") as mock_request, patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({"embeddings": [[0.5]]}).encode('utf-8')
+        mock_response.read.return_value = json.dumps({"embeddings": [[0.5]]}).encode("utf-8")
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -122,7 +117,7 @@ def test_encode_text_with_string_sentence_transformer():
 
 def test_encode_text_ollama_malformed_json():
     """Test handling of malformed JSON response from Ollama."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = Mock()
         mock_response.read.return_value = b"not valid json"
         mock_response.__enter__ = Mock(return_value=mock_response)
@@ -135,9 +130,9 @@ def test_encode_text_ollama_malformed_json():
 
 def test_encode_text_ollama_missing_embeddings_key():
     """Test handling of response without 'embeddings' key raises error."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({"error": "model not found"}).encode('utf-8')
+        mock_response.read.return_value = json.dumps({"error": "model not found"}).encode("utf-8")
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -149,14 +144,11 @@ def test_encode_text_ollama_missing_embeddings_key():
 
 def test_encode_text_ollama_http_error():
     """Test handling of HTTP error responses."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         from urllib.error import HTTPError
+
         mock_urlopen.side_effect = HTTPError(
-            url="http://localhost:11434/api/embed",
-            code=404,
-            msg="Not Found",
-            hdrs={},
-            fp=None
+            url="http://localhost:11434/api/embed", code=404, msg="Not Found", hdrs={}, fp=None
         )
 
         with pytest.raises(RuntimeError, match="Failed to get embedding from Ollama"):
@@ -165,8 +157,9 @@ def test_encode_text_ollama_http_error():
 
 def test_encode_text_ollama_url_error():
     """Test handling of URL/connection errors."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("Connection refused")
 
         with pytest.raises(RuntimeError, match="Failed to get embedding from Ollama"):
@@ -175,11 +168,9 @@ def test_encode_text_ollama_url_error():
 
 def test_encode_text_ollama_multiple_embeddings():
     """Test that only first embedding is returned when multiple are present."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "embeddings": [[0.1, 0.2], [0.3, 0.4]]
-        }).encode('utf-8')
+        mock_response.read.return_value = json.dumps({"embeddings": [[0.1, 0.2], [0.3, 0.4]]}).encode("utf-8")
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -190,11 +181,9 @@ def test_encode_text_ollama_multiple_embeddings():
 
 def test_encode_text_empty_string():
     """Test encoding empty string with Ollama."""
-    with patch('urllib.request.urlopen') as mock_urlopen:
+    with patch("urllib.request.urlopen") as mock_urlopen:
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "embeddings": [[0.0, 0.0, 0.0]]
-        }).encode('utf-8')
+        mock_response.read.return_value = json.dumps({"embeddings": [[0.0, 0.0, 0.0]]}).encode("utf-8")
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response

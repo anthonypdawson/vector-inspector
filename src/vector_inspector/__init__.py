@@ -5,7 +5,7 @@ __version__ = "0.8.4"  # Keep in sync with pyproject.toml for dev mode fallback
 
 def get_version():
     try:
-        from importlib.metadata import PackageNotFoundError, version
+        from importlib.metadata import version
 
         return version("vector-inspector")
     except Exception:

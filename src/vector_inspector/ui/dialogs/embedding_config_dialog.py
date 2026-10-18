@@ -1,6 +1,6 @@
 """Dialog for configuring embedding models for collections (Step 2: Model Selection)."""
 
-from typing import Optional, Tuple
+from typing import Optional
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QFormLayout,
 )
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import QThread, Signal
 
 from vector_inspector.core.embedding_utils import get_available_models_for_dimension
 from vector_inspector.core.model_registry import get_model_registry
@@ -80,9 +80,7 @@ class EmbeddingConfigDialog(QDialog):
         info_layout.addWidget(QLabel(f"<b>Vector Dimension:</b> {self.vector_dimension}"))
 
         if self.current_model:
-            info_layout.addWidget(
-                QLabel(f"<b>Current Model:</b> {self.current_model} ({self.current_type})")
-            )
+            info_layout.addWidget(QLabel(f"<b>Current Model:</b> {self.current_model} ({self.current_type})"))
         else:
             warning = QLabel("⚠️ No embedding model configured - using automatic detection")
             warning.setStyleSheet("color: orange;")
@@ -110,18 +108,14 @@ class EmbeddingConfigDialog(QDialog):
                 custom_models = settings.get_custom_embedding_models(self.vector_dimension)
                 for model in custom_models:
                     if model["type"] == self.provider_type:
-                        available_models.append(
-                            (model["name"], model["type"], f"{model['description']} (custom)")
-                        )
+                        available_models.append((model["name"], model["type"], f"{model['description']} (custom)"))
             except Exception:
                 pass
         else:
             available_models = get_available_models_for_dimension(self.vector_dimension)
 
         if available_models:
-            model_layout.addWidget(
-                QLabel(f"Available models for {self.vector_dimension}-dimensional vectors:")
-            )
+            model_layout.addWidget(QLabel(f"Available models for {self.vector_dimension}-dimensional vectors:"))
 
             self.model_combo = QComboBox()
             for model_name, model_type, description in available_models:
@@ -145,9 +139,7 @@ class EmbeddingConfigDialog(QDialog):
             self.description_text = QTextEdit()
             self.description_text.setReadOnly(True)
             self.description_text.setMaximumHeight(100)
-            self.description_text.setStyleSheet(
-                "background-color: #f5f5f5; border: 1px solid #ccc; color: #000000;"
-            )
+            self.description_text.setStyleSheet("background-color: #f5f5f5; border: 1px solid #ccc; color: #000000;")
             model_layout.addWidget(self.description_text)
 
             # Update description when selection changes
@@ -157,9 +149,7 @@ class EmbeddingConfigDialog(QDialog):
         else:
             # No models for this type + dimension
             type_name = self.provider_type or "any type"
-            warning = QLabel(
-                f"⚠️ No models of type '{type_name}' available for {self.vector_dimension} dimensions."
-            )
+            warning = QLabel(f"⚠️ No models of type '{type_name}' available for {self.vector_dimension} dimensions.")
             warning.setWordWrap(True)
             model_layout.addWidget(warning)
 
@@ -241,9 +231,7 @@ class EmbeddingConfigDialog(QDialog):
         self.custom_desc_input.setPlaceholderText("Brief description (optional)")
         custom_layout.addRow("Description:", self.custom_desc_input)
 
-        custom_note = QLabel(
-            "💡 Custom models will be saved and available for future use with this dimension."
-        )
+        custom_note = QLabel("💡 Custom models will be saved and available for future use with this dimension.")
         custom_note.setWordWrap(True)
         custom_note.setStyleSheet("color: #666; font-size: 10px; padding: 4px;")
         custom_layout.addRow(custom_note)
@@ -355,7 +343,7 @@ class EmbeddingConfigDialog(QDialog):
             self.selected_type = None
             self.done(2)  # Custom code for "clear"
 
-    def get_selection(self) -> Optional[Tuple[str, str]]:
+    def get_selection(self) -> Optional[tuple[str, str]]:
         """Get the selected model and type (from either combo or custom entry)."""
         if self.selected_model and self.selected_type:
             return (self.selected_model, self.selected_type)

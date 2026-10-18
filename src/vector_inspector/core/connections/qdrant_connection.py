@@ -223,7 +223,7 @@ class QdrantConnection(VectorDBConnection):
                 point = sample[0][0]
                 if point.payload:
                     # Extract metadata fields, excluding 'document' if present
-                    metadata_fields = [k for k in point.payload.keys() if k != "document"]
+                    metadata_fields = [k for k in point.payload if k != "document"]
 
             # Extract vector configuration
             vector_dimension = "Unknown"
@@ -523,7 +523,7 @@ class QdrantConnection(VectorDBConnection):
             qdrant_filter = self._build_qdrant_filter(where)
 
             # Use scroll to retrieve items
-            points, next_offset = self._client.scroll(
+            points, _next_offset = self._client.scroll(
                 collection_name=collection_name,
                 scroll_filter=qdrant_filter,
                 limit=limit,
@@ -551,7 +551,7 @@ class QdrantConnection(VectorDBConnection):
                 # Extract embedding
                 if isinstance(point.vector, dict):
                     # Named vectors - use the first one
-                    embeddings.append(list(point.vector.values())[0] if point.vector else [])
+                    embeddings.append(next(iter(point.vector.values())) if point.vector else [])
                 else:
                     embeddings.append(point.vector if point.vector else [])
 
@@ -655,7 +655,7 @@ class QdrantConnection(VectorDBConnection):
 
             # Build points
             points = []
-            for i, (doc_id, document, embedding) in enumerate(zip(ids, documents, embeddings)):
+            for i, (doc_id, document, embedding) in enumerate(zip(ids, documents, embeddings, strict=False)):
                 # Build payload with document and metadata
                 payload = {"document": document}
                 if metadatas and i < len(metadatas):

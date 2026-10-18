@@ -101,7 +101,7 @@ class CacheManager:
             self._cache.clear()
         elif collection is None and database is not None:
             # Clear all collections in the specified database
-            keys_to_remove = [key for key in self._cache.keys() if key[0] == database]
+            keys_to_remove = [key for key in self._cache if key[0] == database]
             for key in keys_to_remove:
                 del self._cache[key]
         elif database is not None and collection is not None:

@@ -270,14 +270,12 @@ class ProfileService(QObject):
         credentials = self.credential_service.get_credentials(profile_id)
 
         # Create new profile
-        new_id = self.create_profile(
+        return self.create_profile(
             name=new_name,
             provider=source_profile.provider,
             config=source_profile.config.copy(),
             credentials=credentials,
         )
-
-        return new_id
 
     def get_profile_with_credentials(self, profile_id: str) -> Optional[dict[str, Any]]:
         """
@@ -411,11 +409,9 @@ class ProfileService(QObject):
             del config["api_key"]  # Remove from config
 
         # Create profile
-        profile_id = self.create_profile(
+        return self.create_profile(
             name=name,
             provider=provider,
             config=config,
             credentials=credentials if credentials else None,
         )
-
-        return profile_id

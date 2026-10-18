@@ -94,10 +94,9 @@ class VectorDBConnection(ABC):
         # removesuffix avoids the blanket .replace("db", "") which would corrupt
         # names like "LanceDBConnection" (would become "lance" instead of "lancedb").
         class_name = type(self).__name__.removesuffix("Connection")
-        provider_name = class_name.lower()
+        return class_name.lower()
         # Return the canonical registry ID (e.g. "chromadb") so that
         # provider_type can be matched directly against ProviderInfo.id.
-        return provider_name
 
     @property
     def supports_configurable_vector_size(self) -> bool:
@@ -129,7 +128,7 @@ class VectorDBConnection(ABC):
         collection_name: str,
         schema: dict[str, str] | None = None,
         override: str | None = None,
-        skip_cache: bool = False
+        skip_cache: bool = False,
     ) -> str:
         """Detect the content/text column name for a collection.
 
@@ -155,11 +154,10 @@ class VectorDBConnection(ABC):
                 if is_override or cached_fingerprint == current_fingerprint or not current_fingerprint:
                     # Use cached value if: manually overridden, schema unchanged, or no schema to compare
                     return self._content_column_cache[collection_name]
-                else:
-                    # Schema changed - invalidate cache for this collection
-                    del self._content_column_cache[collection_name]
-                    if collection_name in self._schema_fingerprints:
-                        del self._schema_fingerprints[collection_name]
+                # Schema changed - invalidate cache for this collection
+                del self._content_column_cache[collection_name]
+                if collection_name in self._schema_fingerprints:
+                    del self._schema_fingerprints[collection_name]
 
             # Use override if provided
             if override:
@@ -181,8 +179,14 @@ class VectorDBConnection(ABC):
                 # Fallback: use priority order for common text column names
                 if not detected_column:
                     fallback_priority = [
-                        "description", "summary", "title", "name",
-                        "message", "comment", "note", "snippet"
+                        "description",
+                        "summary",
+                        "title",
+                        "name",
+                        "message",
+                        "comment",
+                        "note",
+                        "snippet",
                     ]
 
                     for fallback_name in fallback_priority:
@@ -199,6 +203,7 @@ class VectorDBConnection(ABC):
                         if col_name.lower() not in reserved:
                             if any(t in col_type.lower() for t in text_types):
                                 from vector_inspector.core.logging import log_info
+
                                 log_info(
                                     "Content column auto-detected (last resort): '%s' for collection '%s'",
                                     col_name,
@@ -274,6 +279,7 @@ class VectorDBConnection(ABC):
         """Load persisted content column overrides from settings."""
         try:
             from vector_inspector.services.settings_service import SettingsService
+
             settings = SettingsService()
             overrides_data = settings.get(self._get_override_key(), {})
 
@@ -290,6 +296,7 @@ class VectorDBConnection(ABC):
         """Persist content column overrides to settings."""
         try:
             from vector_inspector.services.settings_service import SettingsService
+
             settings = SettingsService()
 
             with self._cache_lock:

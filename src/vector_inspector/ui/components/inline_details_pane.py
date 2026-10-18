@@ -562,7 +562,7 @@ class InlineDetailsPane(QWidget):
         if embedding is not None:
             try:
                 vector_list = embedding.tolist() if hasattr(embedding, "tolist") else list(embedding)
-                json_str = json.dumps(
+                json.dumps(
                     {
                         "id": self._current_item.get("id"),
                         "vector": vector_list,

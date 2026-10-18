@@ -142,7 +142,7 @@ def test_install_feature_success():
     fake_proc = _make_fake_process(0, ["Successfully installed scikit-learn\n"])
     with patch("subprocess.Popen", return_value=fake_proc) as mock_popen:
         with patch(_TELEMETRY_PATH):
-            returncode, output = install("viz")
+            returncode, _output = install("viz")
     assert returncode == 0
     cmd_used = mock_popen.call_args[0][0]
     assert "vector-inspector[viz]" in cmd_used[-1]
@@ -207,7 +207,7 @@ def test_uninstall_feature_success():
     fake_proc = _make_fake_process(0, ["Successfully uninstalled scikit-learn\n"])
     with patch("subprocess.Popen", return_value=fake_proc):
         with patch(_TELEMETRY_PATH):
-            returncode, output = uninstall("viz")
+            returncode, _output = uninstall("viz")
     assert returncode == 0
 
 

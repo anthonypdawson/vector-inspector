@@ -1,6 +1,5 @@
 """Test content column detection across different schemas."""
 
-import pytest
 from vector_inspector.core.connections.pgvector_connection import PgVectorConnection
 
 
@@ -135,7 +134,7 @@ def test_multiple_text_columns_priority():
         "body": "text",
         "document": "text",
         "notes": "text",
-        "embedding": "vector"
+        "embedding": "vector",
     }
     result = conn._detect_content_column("test_col", schema)
     assert result == "document"

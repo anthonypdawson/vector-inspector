@@ -663,10 +663,16 @@ class InfoPanel(QWidget):
             try:
                 content_col = backend.get_content_column(self.current_collection)
                 # Check if manually overridden or auto-detected
-                is_override = backend.is_content_column_overridden(self.current_collection) if hasattr(backend, "is_content_column_overridden") else False
+                is_override = (
+                    backend.is_content_column_overridden(self.current_collection)
+                    if hasattr(backend, "is_content_column_overridden")
+                    else False
+                )
                 label_suffix = "(manual override)" if is_override else "(auto-detected)"
                 self.content_col_label.setText(f"<code>{content_col}</code> {label_suffix}")
-                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";")
+                self.content_col_label.setStyleSheet(
+                    "color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";"
+                )
                 self.configure_content_col_btn.setEnabled(True)
             except Exception:
                 self.content_col_label.setText("N/A")
@@ -749,7 +755,9 @@ class InfoPanel(QWidget):
 
         if details_list:
             self.provider_details_label.setText("\n".join(details_list))
-            self.provider_details_label.setStyleSheet("color: white; padding-left: 20px; font-family: " + _MONO_FONT + ";")
+            self.provider_details_label.setStyleSheet(
+                "color: white; padding-left: 20px; font-family: " + _MONO_FONT + ";"
+            )
         else:
             self.provider_details_label.setText("No additional details available")
             self.provider_details_label.setStyleSheet("color: gray; padding-left: 20px;")
@@ -803,7 +811,6 @@ class InfoPanel(QWidget):
 
         # Ensure we have a valid connection_id for settings lookup
         # Fallback to connection.id if connection_id not set
-        effective_connection_id = self.connection_id or (self.connection.id if self.connection else None)
 
         # Try to get from connection using the helper method
         if self.connection and self.current_collection:
@@ -991,11 +998,13 @@ class InfoPanel(QWidget):
                 schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
         except Exception as e:
             from PySide6.QtWidgets import QMessageBox
+
             QMessageBox.warning(self, "Error", f"Could not load schema: {e}")
             return
 
         if not schema:
             from PySide6.QtWidgets import QMessageBox
+
             QMessageBox.information(self, "No Schema", "Could not determine collection schema.")
             return
 
@@ -1009,11 +1018,7 @@ class InfoPanel(QWidget):
         from vector_inspector.ui.dialogs import ContentColumnDialog
 
         dialog = ContentColumnDialog(
-            self.current_collection,
-            schema,
-            current_column,
-            self,
-            auto_detected_column=auto_detected
+            self.current_collection, schema, current_column, self, auto_detected_column=auto_detected
         )
 
         if dialog.exec():
@@ -1024,11 +1029,10 @@ class InfoPanel(QWidget):
 
                 # Update display
                 self.content_col_label.setText(f"<code>{selected_column}</code>")
-                self.content_col_label.setStyleSheet("color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";")
+                self.content_col_label.setStyleSheet(
+                    "color: #4CAF50; padding-left: 20px; font-family: " + _MONO_FONT + ";"
+                )
 
                 from PySide6.QtWidgets import QMessageBox
-                QMessageBox.information(
-                    self,
-                    "Content Column Updated",
-                    f"Content column set to: {selected_column}"
-                )
+
+                QMessageBox.information(self, "Content Column Updated", f"Content column set to: {selected_column}")

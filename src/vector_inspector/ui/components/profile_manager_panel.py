@@ -697,7 +697,7 @@ class ProfileEditorDialog(QDialog):
 
                 dlg = ProviderInstallDialog(provider_info, parent=self)
                 # Disconnect the auto-populate to control it manually
-                result = dlg.exec()
+                dlg.exec()
 
                 # Repopulate providers list after dialog closes
                 self._populate_providers()

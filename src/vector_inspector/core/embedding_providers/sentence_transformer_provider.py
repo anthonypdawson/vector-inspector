@@ -72,8 +72,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
         except ImportError:
             # sentence-transformers not installed
             raise ImportError(
-                "sentence-transformers library not installed. "
-                "Install with: pip install sentence-transformers"
+                "sentence-transformers library not installed. Install with: pip install sentence-transformers"
             )
         except Exception:
             # Fallback metadata if we can't determine dimension
@@ -95,8 +94,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
             from sentence_transformers import SentenceTransformer
         except ImportError:
             raise ImportError(
-                "sentence-transformers library not installed. "
-                "Install with: pip install sentence-transformers"
+                "sentence-transformers library not installed. Install with: pip install sentence-transformers"
             )
 
         # Try to load from cache first
@@ -112,9 +110,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
         if cached_path:
             try:
                 # Load from cache
-                self._model = SentenceTransformer(
-                    str(cached_path), trust_remote_code=self.trust_remote_code
-                )
+                self._model = SentenceTransformer(str(cached_path), trust_remote_code=self.trust_remote_code)
                 log_info(f"Loaded sentence-transformer from cache: {self.model_name}")
                 return
             except Exception as e:
@@ -127,9 +123,7 @@ class SentenceTransformerProvider(EmbeddingProvider):
         if is_cache_enabled():
             save_model_to_cache(self._model, self.model_name, "sentence-transformer")
 
-    def encode(
-        self, inputs: str | list[str], normalize: bool = True, show_progress: bool = False
-    ) -> np.ndarray:
+    def encode(self, inputs: str | list[str], normalize: bool = True, show_progress: bool = False) -> np.ndarray:
         """Encode text inputs into embeddings.
 
         Args:
@@ -149,14 +143,12 @@ class SentenceTransformerProvider(EmbeddingProvider):
             inputs = [inputs]
 
         # Encode
-        embeddings = self._model.encode(
+        return self._model.encode(
             inputs,
             normalize_embeddings=normalize,
             show_progress_bar=show_progress,
             convert_to_numpy=True,
         )
-
-        return embeddings
 
     def encode_batch(
         self,
@@ -179,15 +171,13 @@ class SentenceTransformerProvider(EmbeddingProvider):
         if not self._is_loaded:
             self.warmup()
 
-        embeddings = self._model.encode(
+        return self._model.encode(
             inputs,
             batch_size=batch_size,
             normalize_embeddings=normalize,
             show_progress_bar=show_progress,
             convert_to_numpy=True,
         )
-
-        return embeddings
 
     def similarity(self, query: str | np.ndarray, corpus: list[str]) -> np.ndarray:
         """Compute similarity between query and corpus.
@@ -211,6 +201,4 @@ class SentenceTransformerProvider(EmbeddingProvider):
         corpus_emb = self.encode(corpus, normalize=True)
 
         # Compute cosine similarity (dot product if normalized)
-        similarities = np.dot(corpus_emb, query_emb.T).squeeze()
-
-        return similarities
+        return np.dot(corpus_emb, query_emb.T).squeeze()

@@ -365,7 +365,6 @@ def test_ask_ai_llm_not_configured_shows_message(sv_with_results, qtbot, monkeyp
         )
         monkeypatch.setattr(_qw.QMessageBox, "show", lambda self: None)
         # Override _check_llm_configured to return False and record call
-        original_check = sv_with_results._check_llm_configured
 
         def _fake_check():
             shown.append(True)

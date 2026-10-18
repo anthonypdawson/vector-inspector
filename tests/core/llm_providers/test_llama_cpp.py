@@ -100,7 +100,7 @@ class TestLlamaCppGenerateMessagesDeep:
         return p, mock_llm
 
     def test_happy_path_returns_stripped_content(self, tmp_path):
-        p, mock_llm = self._make_provider_with_mock_llm(tmp_path, "  hello world  ")
+        p, _mock_llm = self._make_provider_with_mock_llm(tmp_path, "  hello world  ")
         result = p.generate_messages([{"role": "user", "content": "hi"}], model="model.gguf")
         assert result == "hello world"
 

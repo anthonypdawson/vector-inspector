@@ -77,15 +77,13 @@ class ClusterRunner:
             if label >= 0:  # Exclude noise
                 cluster_sizes[int(label)] = int(np.sum(labels == label))
 
-        stats = {
+        return {
             "n_clusters": n_clusters,
             "n_noise": n_noise,
             "n_total": len(labels),
             "cluster_sizes": cluster_sizes,
             "noise_ratio": n_noise / len(labels) if len(labels) > 0 else 0.0,
         }
-
-        return stats
 
     def format_summary(self, labels: np.ndarray, algorithm: str) -> str:
         """

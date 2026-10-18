@@ -136,8 +136,7 @@ class FakeLLMProvider(LLMProvider):
         self._maybe_inject_error(model, request_id)
         if stream or self._mode == _MODE_STREAMING:
             return self.stream_messages(messages, model, **{**kwargs, "request_id": request_id})
-        response = self._build_response(messages)
-        return response
+        return self._build_response(messages)
 
     def stream_messages(
         self,

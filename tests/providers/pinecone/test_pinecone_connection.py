@@ -597,8 +597,7 @@ def test_pinecone_integration():
     assert conn.connect()
 
     # List indexes
-    indexes = conn.list_collections()
-    print(f"Available indexes: {indexes}")
+    conn.list_collections()
 
     conn.disconnect()
     assert not conn.is_connected

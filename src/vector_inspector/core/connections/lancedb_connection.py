@@ -34,7 +34,6 @@ class LanceDBConnection(VectorDBConnection):
             if isinstance(self._uri, str) and "://" not in self._uri:
                 self._uri = os.path.abspath(os.path.expanduser(self._uri))
             self._db = lancedb.connect(self._uri)
-            print(f"LanceDB connect: uri={self._uri}")
             self._client = self._db
             self._connected = True
             return True
@@ -158,14 +157,14 @@ class LanceDBConnection(VectorDBConnection):
                                     if isinstance(parsed, dict):
                                         # Add nested metadata keys as separate fields
                                         metadata_fields.extend(
-                                            f"metadata.{k}" for k in parsed.keys()
+                                            f"metadata.{k}" for k in parsed
                                         )
                                 except Exception:
                                     # If parsing fails, keep "metadata" as a column
                                     metadata_fields.append("metadata")
                             elif isinstance(first_meta, dict):
                                 metadata_fields.extend(
-                                    f"metadata.{k}" for k in first_meta.keys()
+                                    f"metadata.{k}" for k in first_meta
                                 )
                             else:
                                 # Not a dict, keep "metadata" as a column

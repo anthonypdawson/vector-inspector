@@ -1,6 +1,6 @@
 """Factory for creating embedding providers."""
 
-from typing import Optional, Dict, Type
+from typing import Optional
 from .base_provider import EmbeddingProvider
 from .sentence_transformer_provider import SentenceTransformerProvider
 from .clip_provider import CLIPProvider
@@ -11,7 +11,7 @@ class ProviderFactory:
     """Factory for creating appropriate embedding providers based on model type."""
 
     # Registry of provider classes by type
-    _PROVIDER_REGISTRY: Dict[str, Type[EmbeddingProvider]] = {
+    _PROVIDER_REGISTRY: dict[str, type[EmbeddingProvider]] = {
         "sentence-transformer": SentenceTransformerProvider,
         "clip": CLIPProvider,
     }
@@ -37,9 +37,7 @@ class ProviderFactory:
     }
 
     @classmethod
-    def create(
-        cls, model_name: str, model_type: Optional[str] = None, **kwargs
-    ) -> EmbeddingProvider:
+    def create(cls, model_name: str, model_type: Optional[str] = None, **kwargs) -> EmbeddingProvider:
         """Create an embedding provider for the given model.
 
         Args:
@@ -71,11 +69,9 @@ class ProviderFactory:
                     f"Cloud provider '{model_type}' not yet implemented. "
                     f"Currently supported: {', '.join(cls._PROVIDER_REGISTRY.keys())}"
                 )
-            else:
-                raise ValueError(
-                    f"Unknown provider type: {model_type}. "
-                    f"Supported types: {', '.join(cls._PROVIDER_REGISTRY.keys())}"
-                )
+            raise ValueError(
+                f"Unknown provider type: {model_type}. Supported types: {', '.join(cls._PROVIDER_REGISTRY.keys())}"
+            )
 
         # Create and return provider instance
         return provider_class(model_name, **kwargs)
@@ -115,12 +111,11 @@ class ProviderFactory:
             return "sentence-transformer"
 
         raise ValueError(
-            f"Cannot auto-detect provider type for model: {model_name}. "
-            "Please specify model_type explicitly."
+            f"Cannot auto-detect provider type for model: {model_name}. Please specify model_type explicitly."
         )
 
     @classmethod
-    def register_provider(cls, model_type: str, provider_class: Type[EmbeddingProvider]):
+    def register_provider(cls, model_type: str, provider_class: type[EmbeddingProvider]):
         """Register a new provider type.
 
         Args:
@@ -155,9 +150,7 @@ class ProviderFactory:
 
 
 # Convenience function for creating providers
-def create_provider(
-    model_name: str, model_type: Optional[str] = None, **kwargs
-) -> EmbeddingProvider:
+def create_provider(model_name: str, model_type: Optional[str] = None, **kwargs) -> EmbeddingProvider:
     """Create an embedding provider (convenience wrapper around ProviderFactory).
 
     Args:

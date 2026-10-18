@@ -118,8 +118,8 @@ class MainWindow(InspectorShell):
                 splash.activateWindow()
                 if splash.exec() == QDialog.DialogCode.Accepted and splash.should_hide():
                     self.settings_service.set("hide_splash_window", True)
-            except Exception as e:
-                print(f"[SplashWindow] Failed to show splash: {e}")
+            except Exception:
+                pass
 
     def _setup_ui(self):
         """Setup the main UI layout using InspectorShell."""
@@ -372,8 +372,8 @@ class MainWindow(InspectorShell):
             dlg = SettingsDialog(self.settings_service, self)
             if dlg.exec() == QDialog.DialogCode.Accepted:
                 self._apply_settings_to_views()
-        except Exception as e:
-            print(f"Failed to open preferences: {e}")
+        except Exception:
+            pass
 
     def _apply_settings_to_views(self):
         """Apply relevant settings to existing views."""

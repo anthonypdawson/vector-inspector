@@ -16,11 +16,11 @@ class FakeConnection:
         self.last_update_args = {}
 
     def get_all_items(self, collection, limit=None, offset=None, where=None):
-        self.last_get_all_args = dict(collection=collection, limit=limit, offset=offset, where=where)
+        self.last_get_all_args = {"collection": collection, "limit": limit, "offset": offset, "where": where}
         return self._data
 
     def update_items(self, collection, ids, documents=None, metadatas=None, embeddings=None):
-        self.last_update_args = dict(ids=ids, documents=documents, metadatas=metadatas, embeddings=embeddings)
+        self.last_update_args = {"ids": ids, "documents": documents, "metadatas": metadatas, "embeddings": embeddings}
         return self._update_success
 
 

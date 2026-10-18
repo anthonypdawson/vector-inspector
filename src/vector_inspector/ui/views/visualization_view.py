@@ -639,7 +639,7 @@ class VisualizationView(QWidget):
 
             # Update metadata with cluster labels
             updated_metadatas = []
-            for i, (item_id, metadata) in enumerate(zip(ids, metadatas)):
+            for i, (_item_id, metadata) in enumerate(zip(ids, metadatas, strict=False)):
                 if i >= len(self.cluster_labels):
                     break
 
