@@ -60,7 +60,7 @@ dev = [
 # PDM uses [tool.pdm.dev-dependencies] for `pdm install -G`, while pip uses
 # [project.optional-dependencies] for `pip install vector-inspector[<group>]`.
 # Updating one requires updating the other.
-chromadb = ["chromadb>=0.4.22"]
+chromadb = ["chromadb>=1.5.9"]
 qdrant = ["qdrant-client>=1.7.0"]
 pinecone = ["pinecone>=8.0.0"]
 lancedb = ["lancedb>=0.27.0", "pyarrow>=14.0.0"]
@@ -74,7 +74,7 @@ documents = ["pypdf>=4.0.0", "python-docx>=1.1.0"]
 llm = ["llama-cpp-python>=0.3.0"]
 
 recommended = [
-    "chromadb>=0.4.22",
+    "chromadb>=1.5.9",
     "qdrant-client>=1.7.0",
     "sentence-transformers>=2.2.0",
     "fastembed>=0.7.4",
@@ -87,7 +87,7 @@ recommended = [
 ]
 
 all = [
-    "chromadb>=0.4.22",
+    "chromadb>=1.5.9",
     "qdrant-client>=1.7.0",
     "pinecone>=8.0.0",
     "lancedb>=0.27.0",
@@ -111,7 +111,7 @@ all = [
 
 [project.optional-dependencies]
 # Database providers (install only what you use)
-chromadb = ["chromadb>=0.4.22"]
+chromadb = ["chromadb>=1.5.9"]
 qdrant = ["qdrant-client>=1.7.0"]
 pinecone = ["pinecone>=8.0.0"]
 lancedb = ["lancedb>=0.27.0", "pyarrow>=14.0.0"]
@@ -120,9 +120,9 @@ weaviate = ["weaviate-client>=4.19.2"]
 milvus = ["pymilvus[milvus_lite]>=2.6.8"]
 
 # Popular database bundles
-starter = ["chromadb>=0.4.22", "qdrant-client>=1.7.0"]
+starter = ["chromadb>=1.5.9", "qdrant-client>=1.7.0"]
 cloud = ["pinecone>=8.0.0", "weaviate-client>=4.19.2"]
-local = ["chromadb>=0.4.22", "lancedb>=0.27.0", "pyarrow>=14.0.0"]
+local = ["chromadb>=1.5.9", "lancedb>=0.27.0", "pyarrow>=14.0.0"]
 
 # ML/Embedding features
 embeddings = ["sentence-transformers>=2.2.0", "fastembed>=0.7.4", "hf-xet>=1.2.0"]
@@ -140,7 +140,7 @@ llm = ["llama-cpp-python>=0.3.0"]
 
 # Convenience bundles
 recommended = [
-    "chromadb>=0.4.22",
+    "chromadb>=1.5.9",
     "qdrant-client>=1.7.0",
     "sentence-transformers>=2.2.0",
     "fastembed>=0.7.4",
@@ -154,7 +154,7 @@ recommended = [
 
 # Everything (backward compatibility - same as old behavior)
 all = [
-    "chromadb>=0.4.22",
+    "chromadb>=1.5.9",
     "qdrant-client>=1.7.0",
     "pinecone>=8.0.0",
     "lancedb>=0.27.0",
