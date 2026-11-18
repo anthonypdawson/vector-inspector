@@ -109,6 +109,7 @@ all = [
     "Pillow>=10.0.0",
     "pypdf>=4.0.0",
     "python-docx>=1.1.0",
+    "mcp>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -179,6 +180,7 @@ all = [
     "Pillow>=10.0.0",
     "pypdf>=4.0.0",
     "python-docx>=1.1.0",
+    "mcp>=2.0",
 ]
 
 [tool.ruff]
