@@ -30,6 +30,7 @@ Documentation = "https://github.com/anthonypdawson/vector-inspector#readme"
 
 [project.scripts]
 vector-inspector = "vector_inspector._cli:console_entry"
+vector-inspector-mcp = "vector_inspector.mcp.cli:main"
 
 [build-system]
 requires = ["pdm-backend"]
@@ -72,6 +73,7 @@ clip = ["torch>=2.0.0", "transformers>=4.40.0", "Pillow>=10.0.0"]
 viz = ["scikit-learn>=1.3.0", "umap-learn>=0.5.5", "hdbscan>=0.8.41"]
 documents = ["pypdf>=4.0.0", "python-docx>=1.1.0"]
 llm = ["llama-cpp-python>=0.3.0"]
+mcp = ["mcp>=2.0"]
 
 recommended = [
     "chromadb>=0.4.22",
@@ -137,6 +139,9 @@ documents = ["pypdf>=4.0.0", "python-docx>=1.1.0"]
 #   pip install llama-cpp-python --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
 # The llm extra is provided for Linux/macOS where the source build works out-of-the-box.
 llm = ["llama-cpp-python>=0.3.0"]
+
+# MCP server (headless; no Qt required)
+mcp = ["mcp>=2.0"]
 
 # Convenience bundles
 recommended = [
