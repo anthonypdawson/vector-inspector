@@ -3,7 +3,7 @@ import pytest
 pytest.importorskip("pymilvus")
 
 import uuid
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from vector_inspector.core.connections.milvus_connection import MilvusConnection
 
@@ -119,20 +119,40 @@ def test_milvus_add_items_empty_lists(tmp_path):
 
 
 def test_milvus_add_items_without_embeddings(tmp_path):
-    """Test adding items without embeddings."""
+    """Adding items without embeddings computes them with the configured model."""
     collection_name = f"test_collection_{uuid.uuid4().hex[:8]}"
     db_path = str(tmp_path / "milvus_lite_test.db")
     conn = MilvusConnection(path=db_path)
     assert conn.connect()
     assert conn.create_collection(collection_name, vector_size=2)
 
-    result = conn.add_items(
-        collection_name,
-        documents=["doc1", "doc2"],
-        ids=["id1", "id2"],
-        metadatas=[{"a": 1}, {"a": 2}],
-    )
-    assert isinstance(result, bool)
+    with patch.object(
+        conn,
+        "compute_embeddings_for_documents",
+        return_value=[[0.1, 0.2], [0.3, 0.4]],
+    ):
+        result = conn.add_items(
+            collection_name,
+            documents=["doc1", "doc2"],
+            ids=["id1", "id2"],
+            metadatas=[{"a": 1}, {"a": 2}],
+        )
+    assert result is True
+
+    conn.disconnect()
+
+
+def test_milvus_add_items_missing_embeddings_auto_embed_fails(tmp_path):
+    """Embedding failure is a loud failure, never silent zero vectors."""
+    collection_name = f"test_collection_{uuid.uuid4().hex[:8]}"
+    db_path = str(tmp_path / "milvus_lite_test.db")
+    conn = MilvusConnection(path=db_path)
+    assert conn.connect()
+    assert conn.create_collection(collection_name, vector_size=2)
+
+    with patch.object(conn, "compute_embeddings_for_documents", side_effect=Exception("embedding failure")):
+        result = conn.add_items(collection_name, documents=["doc1"], ids=["id1"])
+    assert result is False
 
     conn.disconnect()
 

@@ -374,6 +374,39 @@ class MilvusConnection(VectorDBConnection):
                 )
                 return False
 
+            # No embeddings supplied: compute them with the configured
+            # model for this collection. Never store zero vectors —
+            # they make search ranking meaningless.
+            if not embeddings:
+                try:
+                    embeddings = self.compute_embeddings_for_documents(collection_name, documents)
+                except Exception as e:
+                    log_tracked_error(
+                        "Milvus add_items failed: could not compute embeddings for %s: %s",
+                        collection_name,
+                        e,
+                        category="embedding",
+                        operation="add_items",
+                        provider="milvus",
+                        error_type=type(e).__name__,
+                        summary=f"collection={collection_name} num_items={len(documents)}",
+                        exc_info=True,
+                    )
+                    return False
+                if embeddings and embeddings[0] and len(embeddings[0]) != vector_dimension:
+                    log_tracked_error(
+                        "Milvus add_items failed: computed embedding dimension %d does not match collection %s dimension %d",
+                        len(embeddings[0]),
+                        collection_name,
+                        vector_dimension,
+                        category="embedding",
+                        operation="add_items",
+                        provider="milvus",
+                        error_type="ConfigError",
+                        summary=f"collection={collection_name}",
+                    )
+                    return False
+
             # Prepare data for insertion
             data = []
             for i, doc in enumerate(documents):
@@ -384,11 +417,22 @@ class MilvusConnection(VectorDBConnection):
                     "metadata": metadatas[i] if metadatas and i < len(metadatas) else {},
                 }
 
-                # Add embedding if provided
+                # Add embedding if provided (or computed above); a missing
+                # embedding is an error, never a zero vector.
                 if embeddings and i < len(embeddings):
                     item["vector"] = embeddings[i]
                 else:
-                    item["vector"] = [0.0] * vector_dimension
+                    log_tracked_error(
+                        "Milvus add_items failed: no embedding for item %d in %s",
+                        i,
+                        collection_name,
+                        category="embedding",
+                        operation="add_items",
+                        provider="milvus",
+                        error_type="ConfigError",
+                        summary=f"collection={collection_name}",
+                    )
+                    return False
 
                 data.append(item)
 

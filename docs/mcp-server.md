@@ -194,11 +194,12 @@ model, same dimensions, same results.
   clear error telling the agent to install fastembed
   (`pip install vector-inspector[mcp]`) or pass `query_embeddings`
   instead — it never silently falls back to a different model.
-- **LanceDB caveat**: `add_items` never computes embeddings for
-  LanceDB — a text-only add stores zero vectors and "succeeds", so
-  search over such a collection returns all-tied distances and
-  meaningless ranking. Add explicit embeddings for LanceDB, or use
-  Chroma, until that is fixed.
+- **Text-only add embeds**: `vi_add_items` with documents and no
+  embeddings computes them with the configured model for the
+  collection (LanceDB and Milvus included — they used to store zero
+  vectors). If embedding fails, or the computed dimension does not
+  match the collection, the add fails loudly instead of storing
+  unsearchable data.
 
 ## Safety
 
