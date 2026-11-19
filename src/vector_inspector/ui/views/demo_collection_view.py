@@ -61,9 +61,7 @@ class DemoCollectionView(QWidget):
         view = DemoCollectionView(app_state, task_runner)
     """
 
-    def __init__(
-        self, app_state: AppState, task_runner: ThreadedTaskRunner, parent: Optional[QWidget] = None
-    ) -> None:
+    def __init__(self, app_state: AppState, task_runner: ThreadedTaskRunner, parent: Optional[QWidget] = None) -> None:
         """
         Initialize demo collection view.
 
@@ -278,9 +276,7 @@ class DemoCollectionView(QWidget):
             # Metadata column
             metadata = metadatas[row] if row < len(metadatas) else {}
             metadata_str = str(metadata) if metadata else ""
-            metadata_item = QTableWidgetItem(
-                metadata_str[:50] + "..." if len(metadata_str) > 50 else metadata_str
-            )
+            metadata_item = QTableWidgetItem(metadata_str[:50] + "..." if len(metadata_str) > 50 else metadata_str)
             metadata_item.setFlags(metadata_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(row, 1, metadata_item)
 

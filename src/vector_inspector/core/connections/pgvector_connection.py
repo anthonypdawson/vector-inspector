@@ -117,12 +117,11 @@ class PgVectorConnection(VectorDBConnection):
             with self._client.cursor() as cur:
                 cur.execute("""
                     SELECT DISTINCT table_name FROM information_schema.columns
-                    WHERE data_type = 'USER-DEFINED' 
+                    WHERE data_type = 'USER-DEFINED'
                     AND udt_name = 'vector'
                     AND table_schema = 'public'
                 """)
-                tables = [row[0] for row in cur.fetchall()]
-            return tables
+                return [row[0] for row in cur.fetchall()]
         except Exception as e:
             log_tracked_error(
                 "Failed to list collections: %s",
@@ -201,7 +200,7 @@ class PgVectorConnection(VectorDBConnection):
                 # Get schema to identify metadata columns
                 schema = self._get_table_schema(name)
                 content_col = self._detect_content_column(name, schema)
-                metadata_fields = [col for col in schema.keys() if col not in ["id", content_col, "embedding"]]
+                metadata_fields = [col for col in schema if col not in ["id", content_col, "embedding"]]
 
                 # Try to determine vector dimension and detect stored embedding model from a sample row
                 vector_dimension = "Unknown"
@@ -384,9 +383,9 @@ class PgVectorConnection(VectorDBConnection):
                         # Use JSONB metadata column
                         metadata_json = json.dumps(metadata) if metadata else None
                         cur.execute(
-                            sql.SQL(
-                                "INSERT INTO {} (id, {}, metadata, embedding) VALUES (%s, %s, %s, %s)"
-                            ).format(sql.Identifier(collection_name), sql.Identifier(content_col)),
+                            sql.SQL("INSERT INTO {} (id, {}, metadata, embedding) VALUES (%s, %s, %s, %s)").format(
+                                sql.Identifier(collection_name), sql.Identifier(content_col)
+                            ),
                             (item_id, doc, metadata_json, emb),
                         )
                     else:
@@ -464,7 +463,7 @@ class PgVectorConnection(VectorDBConnection):
             result_embeds = []
 
             for row in rows:
-                row_dict = dict(zip(colnames, row))
+                row_dict = dict(zip(colnames, row, strict=False))
                 result_ids.append(str(row_dict.get("id", "")))
                 result_docs.append(row_dict.get(content_col, ""))
 
@@ -554,8 +553,7 @@ class PgVectorConnection(VectorDBConnection):
             with self._client.cursor() as cur:
                 cur.execute(sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(name)))
                 result = cur.fetchone()
-                count = result[0] if result else 0
-            return count
+                return result[0] if result else 0
         except Exception as e:
             log_tracked_error(
                 "Failed to count collection: %s",
@@ -678,7 +676,7 @@ class PgVectorConnection(VectorDBConnection):
                     dists_q = []
 
                     for row in rows:
-                        row_dict = dict(zip(colnames, row))
+                        row_dict = dict(zip(colnames, row, strict=False))
                         ids_q.append(str(row_dict.get("id", "")))
                         docs_q.append(row_dict.get(content_col, ""))
 
@@ -800,7 +798,7 @@ class PgVectorConnection(VectorDBConnection):
             result_embeds = []
 
             for row in rows:
-                row_dict = dict(zip(colnames, row))
+                row_dict = dict(zip(colnames, row, strict=False))
                 result_ids.append(str(row_dict.get("id", "")))
                 result_docs.append(row_dict.get(content_col, ""))
 
@@ -884,7 +882,7 @@ class PgVectorConnection(VectorDBConnection):
                         docs_to_compute = [documents[i] for i in compute_idxs]
                         computed = self.compute_embeddings_for_documents(collection_name, docs_to_compute)
                         embeddings_local = [None] * len(ids)
-                        for idx, emb in zip(compute_idxs, computed):
+                        for idx, emb in zip(compute_idxs, computed, strict=False):
                             embeddings_local[idx] = emb
                         # Record how many embeddings we generated
                         try:
@@ -1071,8 +1069,8 @@ class PgVectorConnection(VectorDBConnection):
         try:
             with self._client.cursor() as cur:
                 cur.execute(
-                    """SELECT column_name, data_type, udt_name 
-                       FROM information_schema.columns 
+                    """SELECT column_name, data_type, udt_name
+                       FROM information_schema.columns
                        WHERE table_name = %s AND table_schema = 'public'
                        ORDER BY ordinal_position""",
                     (table_name,),

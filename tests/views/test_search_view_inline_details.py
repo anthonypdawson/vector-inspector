@@ -302,7 +302,7 @@ def test_query_section_content_hugs_top(search_view):
             # Last item should be a stretch
             last_item = layout.itemAt(layout.count() - 1)
             # Stretch items have no widget
-            has_stretch = last_item and last_item.widget() is None
+            last_item and last_item.widget() is None
             # This is a proxy check, but indicates stretch was added
             assert layout.count() > 2  # Should have multiple items
 

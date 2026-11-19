@@ -277,7 +277,7 @@ def test_export_profiles_no_credentials(svc):
 
 
 def test_export_profiles_with_credentials(svc):
-    pid = svc.create_profile("DB", "chromadb", {})
+    svc.create_profile("DB", "chromadb", {})
     with patch.object(svc.credential_service, "get_credentials", return_value={"key": "v"}):
         exported = svc.export_profiles(include_credentials=True)
     assert exported[0]["credentials"] == {"key": "v"}

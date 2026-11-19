@@ -65,9 +65,7 @@ class CLIPProvider(EmbeddingProvider):
             )
 
         except ImportError:
-            raise ImportError(
-                "transformers library not installed. Install with: pip install transformers"
-            )
+            raise ImportError("transformers library not installed. Install with: pip install transformers")
         except Exception:
             # Fallback metadata
             self._metadata = EmbeddingMetadata(
@@ -178,9 +176,7 @@ class CLIPProvider(EmbeddingProvider):
         with torch.no_grad():
             if input_type == "text":
                 # Process text
-                processed = self._processor(
-                    text=inputs, return_tensors="pt", padding=True, truncation=True
-                )
+                processed = self._processor(text=inputs, return_tensors="pt", padding=True, truncation=True)
 
                 # Move to same device as model
                 if next(self._model.parameters()).is_cuda:
@@ -276,6 +272,4 @@ class CLIPProvider(EmbeddingProvider):
         corpus_emb = self.encode(corpus, normalize=True, input_type=corpus_type)
 
         # Compute cosine similarity (dot product if normalized)
-        similarities = np.dot(corpus_emb, query_emb.T).squeeze()
-
-        return similarities
+        return np.dot(corpus_emb, query_emb.T).squeeze()

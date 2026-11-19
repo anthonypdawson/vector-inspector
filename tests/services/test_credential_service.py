@@ -87,7 +87,7 @@ def test_get_credentials_exception_returns_none():
 
 def test_delete_credentials_with_keyring():
     """delete_credentials calls keyring.delete_password."""
-    svc, fake_keyring, FakePDE = _make_service_with_keyring()
+    svc, fake_keyring, _FakePDE = _make_service_with_keyring()
 
     result = svc.delete_credentials("profile-1")
 

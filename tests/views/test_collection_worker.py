@@ -78,7 +78,7 @@ def test_worker_emits_creation_complete_false_on_service_failure(qtbot, monkeypa
     with qtbot.waitSignal(worker.creation_complete, timeout=5000) as blocker:
         worker.start()
 
-    success, msg = blocker.args
+    success, _msg = blocker.args
     assert success is False
 
 

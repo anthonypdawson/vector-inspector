@@ -53,7 +53,7 @@ def test_pgvector_add_items(mock_pgvector_conn):
 
 
 def test_pgvector_add_items_missing_embeddings_auto_embed_fails(mock_pgvector_conn):
-    _, mock_cursor = mock_pgvector_conn
+    _, _mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
     # Patch compute_embeddings_for_documents to raise Exception
@@ -94,7 +94,7 @@ def test_pgvector_delete_collection(mock_pgvector_conn):
 
 
 def test_list_collections(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     # Simulate two tables returned
     mock_cursor.fetchall.return_value = [("table1",), ("table2",)]
     conn = PgVectorConnection()
@@ -104,7 +104,7 @@ def test_list_collections(mock_pgvector_conn):
 
 
 def test_list_databases_uses_client_or_tmp(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     # Simulate databases
     mock_cursor.fetchall.return_value = [("postgres",), ("mydb",)]
     conn = PgVectorConnection()
@@ -114,7 +114,7 @@ def test_list_databases_uses_client_or_tmp(mock_pgvector_conn):
 
 
 def test_get_items_parses_metadata_and_embedding(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     # Prepare a single row with metadata JSON and string vector
     row = ("id1", "doc1", json.dumps({"a": 1}), "[0.1,0.2]")
     mock_cursor.fetchall.return_value = [row]
@@ -138,7 +138,7 @@ def test_get_items_parses_metadata_and_embedding(mock_pgvector_conn):
 
 
 def test_count_collection_returns_count(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     mock_cursor.fetchone.return_value = (42,)
     conn = PgVectorConnection()
     conn.connect()
@@ -146,7 +146,7 @@ def test_count_collection_returns_count(mock_pgvector_conn):
 
 
 def test_query_collection_returns_per_query_lists(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     # Simulate one query embedding; rows returned per query
     # Provide metadata as JSON string and embedding string
     row = ("id1", "doc1", json.dumps({"k": "v"}), "[0.5,0.6]", 0.123)
@@ -178,7 +178,7 @@ def test_query_collection_returns_per_query_lists(mock_pgvector_conn):
 
 
 def test_get_all_items_with_limit_offset_and_where(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     row1 = ("id1", "doc1", json.dumps({"t": "x"}), "[1,2]")
     row2 = ("id2", "doc2", json.dumps({"t": "y"}), "[3,4]")
     mock_cursor.fetchall.return_value = [row1, row2]
@@ -203,7 +203,7 @@ def test_get_all_items_with_limit_offset_and_where(mock_pgvector_conn):
 
 
 def test_update_items_generates_embeddings_when_needed(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, _mock_cursor = mock_pgvector_conn
 
     conn = PgVectorConnection()
     conn.connect()
@@ -227,7 +227,7 @@ def test_update_items_generates_embeddings_when_needed(mock_pgvector_conn):
 
 
 def test_delete_items_commits_and_returns_true(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
     assert conn.delete_items("coll", ids=["x"]) is True
@@ -235,7 +235,7 @@ def test_delete_items_commits_and_returns_true(mock_pgvector_conn):
 
 
 def test_pgvector_delete_where_uses_metadata_or_columns(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
 
@@ -254,7 +254,7 @@ def test_pgvector_delete_where_uses_metadata_or_columns(mock_pgvector_conn):
 
 
 def test_get_connection_info_reflects_connection_state(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, _mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection(host="h", port=1, database="d", user="u")
     assert conn.get_connection_info()["connected"] is False
     conn.connect()
@@ -287,7 +287,7 @@ def test_parse_vector_with_numpy_array():
 
 
 def test_create_collection_commits_and_handles_distance_ops(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    mock_conn, _mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
     # exercise with different distance keywords
@@ -299,7 +299,7 @@ def test_create_collection_commits_and_handles_distance_ops(mock_pgvector_conn):
 
 
 def test_add_items_maps_metadata_columns_when_no_metadata_col(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
 
@@ -317,7 +317,7 @@ def test_add_items_maps_metadata_columns_when_no_metadata_col(mock_pgvector_conn
     # execute was called multiple times; inspect the last call args
     *_, last_call = mock_cursor.execute.call_args_list
     # call_args = (sql_obj, values)
-    call_args, call_kwargs = last_call
+    call_args, _call_kwargs = last_call
     # ensure the values list contains the id and embedding we provided
     assert ids[0] in call_args[1]
     assert embeddings[0] in call_args[1]
@@ -334,7 +334,7 @@ def test_list_databases_handles_tmp_connect_failure():
 
 
 def test__get_table_schema_returns_empty_on_error(mock_pgvector_conn):
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     # make fetchall raise
     mock_cursor.fetchall.side_effect = Exception("boom")
     conn = PgVectorConnection()
@@ -344,7 +344,7 @@ def test__get_table_schema_returns_empty_on_error(mock_pgvector_conn):
 
 def test_pgvector_add_items_handles_exception(mock_pgvector_conn):
     """If DB cursor execute/insert raises, add_items should return False."""
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
 
@@ -356,7 +356,7 @@ def test_pgvector_add_items_handles_exception(mock_pgvector_conn):
 
 def test_pgvector_get_all_items_handles_exception(mock_pgvector_conn):
     """If fetching rows raises, get_all_items should return None."""
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
 
@@ -368,7 +368,7 @@ def test_pgvector_get_all_items_handles_exception(mock_pgvector_conn):
 
 def test_pgvector_delete_items_handles_exception(mock_pgvector_conn):
     """If delete execution raises, delete_items should return False."""
-    mock_conn, mock_cursor = mock_pgvector_conn
+    _mock_conn, mock_cursor = mock_pgvector_conn
     conn = PgVectorConnection()
     conn.connect()
 

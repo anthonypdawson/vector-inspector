@@ -2,7 +2,7 @@ import os
 import json
 import time
 import requests
-from typing import Optional, Dict
+from typing import Optional
 
 GITHUB_API_URL = "https://api.github.com/repos/anthonypdawson/vector-inspector/releases/latest"
 CACHE_FILE = os.path.expanduser("~/.vector_inspector_update_cache.json")
@@ -11,7 +11,7 @@ CACHE_TTL = 24 * 60 * 60  # 1 day in seconds
 
 class UpdateService:
     @staticmethod
-    def get_latest_release(force_refresh: bool = False) -> Optional[Dict]:
+    def get_latest_release(force_refresh: bool = False) -> Optional[dict]:
         """
         Fetch the latest release info from GitHub, with caching and rate limit handling.
         Returns None on error or if rate limited.
@@ -20,7 +20,7 @@ class UpdateService:
         # Check cache for rate limit state or valid release
         if os.path.exists(CACHE_FILE):
             try:
-                with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                with open(CACHE_FILE, encoding="utf-8") as f:
                     cache = json.load(f)
                 # If rate limited, respect the reset time
                 if cache.get("rate_limited_until", 0) > now:
@@ -36,7 +36,7 @@ class UpdateService:
                 with open(CACHE_FILE, "w", encoding="utf-8") as f:
                     json.dump({"timestamp": now, "release": release}, f)
                 return release
-            elif resp.status_code == 403:
+            if resp.status_code == 403:
                 # Check for rate limit headers
                 reset = resp.headers.get("X-RateLimit-Reset")
                 if reset:
@@ -63,7 +63,7 @@ class UpdateService:
         return parse(latest_version) > parse(current_version)
 
     @staticmethod
-    def get_update_instructions() -> Dict[str, str]:
+    def get_update_instructions() -> dict[str, str]:
         """
         Returns update instructions for both PyPI and GitHub.
         """

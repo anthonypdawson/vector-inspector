@@ -118,7 +118,7 @@ def test_prepare_plot_data_basic():
     # Simple reduced embeddings
     reduced = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
 
-    embeddings, labels, colors = svc.prepare_plot_data(reduced)
+    _embeddings, labels, colors = svc.prepare_plot_data(reduced)
 
     assert len(labels) == 3
     assert labels[0] == "Point 0"

@@ -133,7 +133,9 @@ class ConnectionController(QObject):
         # start a duplicate.  This prevents repeated db.connection_attempt telemetry
         # events when the user clicks "Connect" multiple times in quick succession.
         if profile_id in self._connection_threads and self._connection_threads[profile_id].isRunning():
-            log_info("[ConnectionController] Ignoring duplicate connect request for %s — already in progress", profile_id)
+            log_info(
+                "[ConnectionController] Ignoring duplicate connect request for %s — already in progress", profile_id
+            )
             return True
 
         # Check connection limit
@@ -267,7 +269,7 @@ class ConnectionController(QObject):
         # Emit signal for UI updates
         self.connection_completed.emit(connection_id, success, collections, error_message, duration_ms)
 
-    def create_collection_with_dialog(self, connection_id: str = None) -> bool:
+    def create_collection_with_dialog(self, connection_id: str | None = None) -> bool:
         """Show dialog to create a new collection with optional sample data.
 
         Args:

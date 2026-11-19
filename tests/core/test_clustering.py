@@ -103,7 +103,7 @@ def test_hdbscan_all_advanced_params(monkeypatch):
         "alpha": 1.0,
         "cluster_selection_method": "eom",
     }
-    labels, algo = run_clustering(embeddings, "HDBSCAN", params)
+    _labels, algo = run_clustering(embeddings, "HDBSCAN", params)
     assert algo == "HDBSCAN"
     assert received_kwargs["cluster_selection_epsilon"] == 0.1
     assert received_kwargs["allow_single_cluster"] is True
@@ -138,7 +138,7 @@ def test_kmeans_all_advanced_params(monkeypatch):
         "tol": 1e-4,
         "algorithm": "lloyd",
     }
-    labels, algo = run_clustering(embeddings, "KMeans", params)
+    _labels, algo = run_clustering(embeddings, "KMeans", params)
     assert algo == "KMeans"
     assert received_kwargs["init"] == "random"
     assert received_kwargs["max_iter"] == 50
@@ -172,7 +172,7 @@ def test_dbscan_all_advanced_params(monkeypatch):
         "algorithm": "ball_tree",
         "leaf_size": 20,
     }
-    labels, algo = run_clustering(embeddings, "DBSCAN", params)
+    _labels, algo = run_clustering(embeddings, "DBSCAN", params)
     assert algo == "DBSCAN"
     assert received_kwargs["metric"] == "cosine"
     assert received_kwargs["algorithm"] == "ball_tree"
@@ -207,7 +207,7 @@ def test_optics_all_advanced_params(monkeypatch):
         "algorithm": "kd_tree",
         "leaf_size": 30,
     }
-    labels, algo = run_clustering(embeddings, "OPTICS", params)
+    _labels, algo = run_clustering(embeddings, "OPTICS", params)
     assert algo == "OPTICS"
     assert received_kwargs["metric"] == "minkowski"
     assert received_kwargs["xi"] == 0.05

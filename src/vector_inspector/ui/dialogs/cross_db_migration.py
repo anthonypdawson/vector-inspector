@@ -1,20 +1,18 @@
 """Cross-database operations for migrating data between vector databases."""
 
-from typing import Optional, List, Dict, Any
+from typing import Optional
 from pathlib import Path
 import tempfile
 from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
-    QLabel,
     QComboBox,
     QPushButton,
     QProgressBar,
     QTextEdit,
     QGroupBox,
     QFormLayout,
-    QSpinBox,
     QCheckBox,
     QMessageBox,
 )
@@ -116,7 +114,7 @@ class MigrationThread(QThread):
                 return
 
             if success:
-                self.progress.emit(100, f"Migration complete!")
+                self.progress.emit(100, "Migration complete!")
                 self.finished.emit(
                     True,
                     f"Successfully migrated {self.source_collection} to {self.target_collection}",
@@ -134,9 +132,7 @@ class MigrationThread(QThread):
                 except Exception as cleanup_error:
                     log_error("Warning: Failed to clean up target collection: %s", cleanup_error)
 
-                self.finished.emit(
-                    False, "Failed to restore to target collection. Target collection cleaned up."
-                )
+                self.finished.emit(False, "Failed to restore to target collection. Target collection cleaned up.")
 
         except Exception as e:
             import traceback
@@ -159,7 +155,7 @@ class MigrationThread(QThread):
             except Exception as cleanup_error:
                 log_error("Warning: Failed to clean up target collection: %s", cleanup_error)
 
-            self.finished.emit(False, f"Migration error: {str(e)}")
+            self.finished.emit(False, f"Migration error: {e!s}")
 
         finally:
             # Clean up temporary backup file
@@ -307,9 +303,7 @@ class CrossDatabaseMigrationDialog(QDialog):
         target_conn_id = self.target_connection_combo.currentData()
 
         if not source_conn_id or not target_conn_id:
-            QMessageBox.warning(
-                self, "Invalid Selection", "Please select both source and target connections."
-            )
+            QMessageBox.warning(self, "Invalid Selection", "Please select both source and target connections.")
             return
 
         if source_conn_id == target_conn_id:
@@ -334,9 +328,7 @@ class CrossDatabaseMigrationDialog(QDialog):
         target_collection = self.target_collection_combo.currentText().strip()
 
         if not source_collection or not target_collection:
-            QMessageBox.warning(
-                self, "Invalid Selection", "Please select both source and target collections."
-            )
+            QMessageBox.warning(self, "Invalid Selection", "Please select both source and target collections.")
             return
 
         # Check if target collection exists

@@ -9,9 +9,7 @@ class UpdateDetailsDialog(QDialog):
     pip_command: str
     github_url: str
 
-    def __init__(
-        self, version: str, release_notes: str, pip_command: str, github_url: str, parent=None
-    ):
+    def __init__(self, version: str, release_notes: str, pip_command: str, github_url: str, parent=None):
         super().__init__(parent)
         self.version = version
         self.release_notes = release_notes

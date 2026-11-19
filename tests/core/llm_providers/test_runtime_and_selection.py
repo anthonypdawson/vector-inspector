@@ -39,8 +39,8 @@ class TestRuntimeManagerSelection:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         s = _make_settings(**{"llm.provider": "auto"})
         mgr = LLMRuntimeManager(settings=s)
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_resp = MagicMock = patch  # type: ignore
+        with patch("urllib.request.urlopen"):
+            pass  # type: ignore
         mgr.get_selection_debug()
 
 

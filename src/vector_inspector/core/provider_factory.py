@@ -13,9 +13,7 @@ class ProviderFactory:
     """Factory for creating database connections from configuration."""
 
     @staticmethod
-    def create(
-        provider: str, config: dict[str, Any], credentials: dict[str, Any] = None
-    ) -> VectorDBConnection:
+    def create(provider: str, config: dict[str, Any], credentials: dict[str, Any] | None = None) -> VectorDBConnection:
         """Create a connection object for the specified provider.
 
         Args:

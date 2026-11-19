@@ -106,12 +106,8 @@ class ConnectionManagerPanel(QWidget):
         self.connection_manager.connection_opened.connect(self._on_connection_opened)
         self.connection_manager.connection_closed.connect(self._on_connection_closed)
         self.connection_manager.connection_state_changed.connect(self._on_connection_state_changed)
-        self.connection_manager.active_connection_changed.connect(
-            self._on_active_connection_changed
-        )
-        self.connection_manager.active_collection_changed.connect(
-            self._on_active_collection_changed
-        )
+        self.connection_manager.active_connection_changed.connect(self._on_active_connection_changed)
+        self.connection_manager.active_collection_changed.connect(self._on_active_collection_changed)
         self.connection_manager.collections_updated.connect(self._on_collections_updated)
 
     def _on_connection_opened(self, connection_id: str):
@@ -127,9 +123,7 @@ class ConnectionManagerPanel(QWidget):
         # Create tree item for connection
         item = QTreeWidgetItem(self.connection_tree)
         item.setText(0, instance.get_display_name())
-        item.setData(
-            0, Qt.ItemDataRole.UserRole, {"type": "connection", "connection_id": connection_id}
-        )
+        item.setData(0, Qt.ItemDataRole.UserRole, {"type": "connection", "connection_id": connection_id})
 
         # Set icon/indicator based on state
         self._update_connection_indicator(item, instance.state)
@@ -267,9 +261,7 @@ class ConnectionManagerPanel(QWidget):
         if item_type == "connection":
             # Connection context menu
             set_active_action = menu.addAction("Set as Active")
-            set_active_action.triggered.connect(
-                lambda: self.connection_manager.set_active_connection(connection_id)
-            )
+            set_active_action.triggered.connect(lambda: self.connection_manager.set_active_connection(connection_id))
 
             menu.addSeparator()
 
@@ -290,24 +282,18 @@ class ConnectionManagerPanel(QWidget):
 
             select_action = menu.addAction("Select Collection")
             select_action.triggered.connect(
-                lambda: self.connection_manager.set_active_collection(
-                    connection_id, collection_name
-                )
+                lambda: self.connection_manager.set_active_collection(connection_id, collection_name)
             )
 
             menu.addSeparator()
 
             info_action = menu.addAction("View Info")
-            info_action.triggered.connect(
-                lambda: self._view_collection_info(connection_id, collection_name)
-            )
+            info_action.triggered.connect(lambda: self._view_collection_info(connection_id, collection_name))
 
             menu.addSeparator()
 
             delete_action = menu.addAction("Delete Collection...")
-            delete_action.triggered.connect(
-                lambda: self._delete_collection(connection_id, collection_name)
-            )
+            delete_action.triggered.connect(lambda: self._delete_collection(connection_id, collection_name))
             # Make delete action red/warning style
             delete_action.setIcon(QIcon())  # Could add warning icon
             font = delete_action.font()
@@ -322,9 +308,7 @@ class ConnectionManagerPanel(QWidget):
         if not instance:
             return
 
-        new_name, ok = QInputDialog.getText(
-            self, "Rename Connection", "Enter new name:", text=instance.name
-        )
+        new_name, ok = QInputDialog.getText(self, "Rename Connection", "Enter new name:", text=instance.name)
 
         if ok and new_name and self.connection_manager.rename_connection(connection_id, new_name):
             # Update tree item
@@ -343,11 +327,7 @@ class ConnectionManagerPanel(QWidget):
         loading.show_loading("Refreshing collections...")
 
         # Cancel any existing refresh thread
-        if (
-            hasattr(self, "_refresh_thread")
-            and self._refresh_thread
-            and self._refresh_thread.isRunning()
-        ):
+        if hasattr(self, "_refresh_thread") and self._refresh_thread and self._refresh_thread.isRunning():
             self._refresh_thread.quit()
             self._refresh_thread.wait()
 
@@ -359,9 +339,7 @@ class ConnectionManagerPanel(QWidget):
         self._refresh_thread.error.connect(lambda error: self._on_refresh_error(error, loading))
         self._refresh_thread.start()
 
-    def _on_refresh_finished(
-        self, connection_id: str, collections: list, loading: LoadingDialog
-    ) -> None:
+    def _on_refresh_finished(self, connection_id: str, collections: list, loading: LoadingDialog) -> None:
         """Handle successful collections refresh."""
         loading.hide_loading()
         self.connection_manager.update_collections(connection_id, collections)
@@ -415,9 +393,7 @@ class ConnectionManagerPanel(QWidget):
 
         # Warning header
         warning_label = QLabel("⚠️ PERMANENT DELETION WARNING ⚠️")
-        warning_label.setStyleSheet(
-            "font-size: 16px; font-weight: bold; color: #d32f2f; padding: 10px;"
-        )
+        warning_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #d32f2f; padding: 10px;")
         warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(warning_label)
 
@@ -439,16 +415,13 @@ class ConnectionManagerPanel(QWidget):
 
         # Confirmation checkbox
         confirm_checkbox = QCheckBox(
-            f"I understand this will PERMANENTLY DELETE '{collection_name}' "
-            f"and all {item_count:,} items"
+            f"I understand this will PERMANENTLY DELETE '{collection_name}' and all {item_count:,} items"
         )
         confirm_checkbox.setStyleSheet("font-weight: bold; color: #d32f2f; padding: 10px;")
         layout.addWidget(confirm_checkbox)
 
         # Type collection name to confirm
-        type_confirm_label = QLabel(
-            f"Type the collection name to confirm: <b>{collection_name}</b>"
-        )
+        type_confirm_label = QLabel(f"Type the collection name to confirm: <b>{collection_name}</b>")
         layout.addWidget(type_confirm_label)
 
         name_input = QLineEdit()
@@ -457,9 +430,7 @@ class ConnectionManagerPanel(QWidget):
 
         # Buttons
         button_box = QDialogButtonBox()
-        delete_button = button_box.addButton(
-            "DELETE PERMANENTLY", QDialogButtonBox.ButtonRole.DestructiveRole
-        )
+        delete_button = button_box.addButton("DELETE PERMANENTLY", QDialogButtonBox.ButtonRole.DestructiveRole)
         delete_button.setEnabled(False)  # Disabled until confirmed
         delete_button.setStyleSheet(
             "QPushButton { background-color: #d32f2f; color: white; font-weight: bold; "
@@ -491,11 +462,7 @@ class ConnectionManagerPanel(QWidget):
         loading.show_loading(f"Deleting collection '{collection_name}'...")
 
         # Cancel any existing delete thread
-        if (
-            hasattr(self, "_delete_thread")
-            and self._delete_thread
-            and self._delete_thread.isRunning()
-        ):
+        if hasattr(self, "_delete_thread") and self._delete_thread and self._delete_thread.isRunning():
             self._delete_thread.quit()
             self._delete_thread.wait()
 
@@ -507,13 +474,9 @@ class ConnectionManagerPanel(QWidget):
             parent=self,
         )
         self._delete_thread.finished.connect(
-            lambda collections: self._on_delete_finished(
-                connection_id, collection_name, collections, loading, instance
-            )
+            lambda collections: self._on_delete_finished(connection_id, collection_name, collections, loading, instance)
         )
-        self._delete_thread.error.connect(
-            lambda error: self._on_delete_error(collection_name, error, loading)
-        )
+        self._delete_thread.error.connect(lambda error: self._on_delete_error(collection_name, error, loading))
         self._delete_thread.start()
 
     def _on_delete_finished(
@@ -544,9 +507,7 @@ class ConnectionManagerPanel(QWidget):
             f"Collection '{collection_name}' has been permanently deleted.",
         )
 
-    def _on_delete_error(
-        self, collection_name: str, error_message: str, loading: LoadingDialog
-    ) -> None:
+    def _on_delete_error(self, collection_name: str, error_message: str, loading: LoadingDialog) -> None:
         """Handle delete error."""
         loading.hide_loading()
         QMessageBox.critical(

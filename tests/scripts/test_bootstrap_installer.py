@@ -10,7 +10,6 @@ import argparse
 import json
 import subprocess
 import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,9 +17,11 @@ import pytest
 # Import from vi_installer package modules
 from vi_installer import platform, python, venv, shortcuts, state, ui
 
+
 # For compatibility with existing tests, create a simple namespace object
 class MockBI:
     pass
+
 
 bi = MockBI()
 
@@ -317,9 +318,7 @@ def test_check_existing_install_path_does_not_exist(tmp_path):
 def test_check_existing_install_replace(tmp_path):
     install_root = tmp_path / "vi"
     install_root.mkdir()
-    (install_root / "bootstrap-state.json").write_text(
-        json.dumps({"app": "Vector Inspector"}), encoding="utf-8"
-    )
+    (install_root / "bootstrap-state.json").write_text(json.dumps({"app": "Vector Inspector"}), encoding="utf-8")
     config_dir = tmp_path / ".vector-inspector"
     config_dir.mkdir()
     (config_dir / "install_path").write_text(str(install_root), encoding="utf-8")
@@ -332,7 +331,7 @@ def test_check_existing_install_replace(tmp_path):
         patch("sys.stdin") as mock_stdin,
     ):
         mock_stdin.isatty.return_value = True
-        path, mode = bi.check_existing_install()
+        _path, mode = bi.check_existing_install()
 
     assert mode == "replace"
     assert not install_root.exists()
@@ -424,9 +423,7 @@ def test_check_existing_install_strips_whitespace_in_path(tmp_path):
 def test_run_uninstall_removes_install_root(tmp_path):
     install_root = tmp_path / "vi"
     install_root.mkdir()
-    (install_root / "bootstrap-state.json").write_text(
-        json.dumps({"app": "Vector Inspector"}), encoding="utf-8"
-    )
+    (install_root / "bootstrap-state.json").write_text(json.dumps({"app": "Vector Inspector"}), encoding="utf-8")
     config_dir = tmp_path / ".vector-inspector"
     config_dir.mkdir()
     install_path_file = config_dir / "install_path"
@@ -464,9 +461,7 @@ def test_run_uninstall_cancelled(tmp_path):
 def test_run_uninstall_removes_desktop_shortcut(tmp_path):
     install_root = tmp_path / "vi"
     install_root.mkdir()
-    (install_root / "bootstrap-state.json").write_text(
-        json.dumps({"app": "Vector Inspector"}), encoding="utf-8"
-    )
+    (install_root / "bootstrap-state.json").write_text(json.dumps({"app": "Vector Inspector"}), encoding="utf-8")
     shortcut = tmp_path / "Vector Inspector.command"
     shortcut.write_text("#!/bin/sh\n", encoding="utf-8")
     config_dir = tmp_path / ".vector-inspector"

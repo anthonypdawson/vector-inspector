@@ -1,4 +1,5 @@
 """Make scripts/ and project root importable from tests/scripts/."""
+
 import sys
 from pathlib import Path
 

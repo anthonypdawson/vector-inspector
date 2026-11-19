@@ -883,4 +883,3 @@ def test_session_start_deduplication_keeps_other_events():
     assert event_names.count("session.start") == 1
     assert "app_launch" in event_names
     TelemetryService.reset_for_tests()
-

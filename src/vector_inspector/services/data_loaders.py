@@ -59,8 +59,7 @@ class CollectionLoader:
         try:
             # Use get_all_items if available
             if hasattr(self.connection, "get_all_items"):
-                data = self.connection.get_all_items(collection_name=collection, limit=limit, offset=offset)
-                return data
+                return self.connection.get_all_items(collection_name=collection, limit=limit, offset=offset)
 
             log_tracked_error(
                 "Connection does not support get_all_items",
@@ -280,8 +279,7 @@ class MetadataLoader:
             if item_ids:
                 # Load specific items
                 if hasattr(self.connection, "get_by_ids"):
-                    data = self.connection.get_by_ids(collection, item_ids)
-                    return data
+                    return self.connection.get_by_ids(collection, item_ids)
             else:
                 # Load all metadata
                 if hasattr(self.connection, "get_all_items"):

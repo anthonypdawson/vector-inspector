@@ -141,7 +141,7 @@ class TestClusteringEdgeCases:
         from vector_inspector.core.clustering import run_clustering
 
         embeddings = np.array([[1.0, 2.0, 3.0]])
-        labels, algo = run_clustering(embeddings, "KMeans", {"n_clusters": 1})
+        labels, _algo = run_clustering(embeddings, "KMeans", {"n_clusters": 1})
         assert len(labels) == 1
         assert labels[0] == 0
 

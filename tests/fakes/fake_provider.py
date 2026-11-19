@@ -25,9 +25,7 @@ class FakeProvider:
                 "embeddings": [],
             }
 
-    def _matches_where(
-        self, meta: Optional[dict[str, Any]], where: Optional[dict[str, Any]]
-    ) -> bool:
+    def _matches_where(self, meta: Optional[dict[str, Any]], where: Optional[dict[str, Any]]) -> bool:
         if not where:
             return True
         if meta is None:
@@ -55,9 +53,7 @@ class FakeProvider:
         return {
             "name": name,
             "count": len(col.get("ids", [])),
-            "metadata_fields": list(
-                {k for m in col.get("metadatas", []) for k in (m or {}).keys()}
-            ),
+            "metadata_fields": list({k for m in col.get("metadatas", []) for k in (m or {})}),
         }
 
     # Alias used by some code paths
@@ -143,9 +139,7 @@ class FakeProvider:
 
         # If query embeddings provided, compute dot-product similarity for first query
         q = np.array(query_embeddings[0], dtype=float)
-        emb_list = [
-            embeddings[i] if embeddings[i] is not None else np.zeros_like(q) for i in indices
-        ]
+        emb_list = [embeddings[i] if embeddings[i] is not None else np.zeros_like(q) for i in indices]
         if len(emb_list) == 0:
             return {"ids": [], "distances": [], "documents": [], "metadatas": [], "embeddings": []}
 

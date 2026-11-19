@@ -67,16 +67,13 @@ class ItemDialog(QDialog):
 
         # Auto-timestamp checkbox
         self.auto_timestamp_checkbox = QCheckBox(
-            "Automatically add timestamp "
-            + ("(updated_at)" if self.is_edit_mode else "(created_at)")
+            "Automatically add timestamp " + ("(updated_at)" if self.is_edit_mode else "(created_at)")
         )
         self.auto_timestamp_checkbox.setChecked(False)  # Default to disabled
         layout.addWidget(self.auto_timestamp_checkbox)
 
         # Note about embeddings
-        note_label = QLabel(
-            "Note: Embeddings will be automatically generated from the document text."
-        )
+        note_label = QLabel("Note: Embeddings will be automatically generated from the document text.")
         note_label.setStyleSheet("color: gray; font-style: italic;")
         note_label.setWordWrap(True)
         layout.addWidget(note_label)

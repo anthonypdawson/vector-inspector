@@ -138,7 +138,6 @@ def test_get_clustering_params_hdbscan_basic(panel):
 
 def test_get_clustering_params_hdbscan_advanced(qtbot, app_state_with_fake_provider):
     """HDBSCAN params include advanced params when advanced_features_enabled."""
-    app_state = app_state_with_fake_provider
 
     # Override advanced_features_enabled to return True
     class AdvancedAppState:

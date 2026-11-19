@@ -7,6 +7,7 @@ Note: The module-level hook instances are intentional architectural extension po
 not user state. They provide a plugin system similar to event emitters or decorators.
 """
 
+import importlib
 from collections.abc import Callable
 from typing import Any, ClassVar
 
@@ -129,12 +130,14 @@ class SettingsPanelHook:
 settings_panel_hook = SettingsPanelHook()
 
 # Register built-in settings panel extensions
+# import_module is intentional: these imports exist for their side effects
+# (registering the panels), not for names used in this module.
 try:
-    import vector_inspector.extensions.telemetry_settings_panel as telemetry_settings_panel
+    importlib.import_module("vector_inspector.extensions.telemetry_settings_panel")
 except Exception:
     pass
 
 try:
-    import vector_inspector.extensions.llm_settings_panel as llm_settings_panel
+    importlib.import_module("vector_inspector.extensions.llm_settings_panel")
 except Exception:
     pass

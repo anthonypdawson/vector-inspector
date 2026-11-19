@@ -225,7 +225,6 @@ class LLMRuntimeManager:
         now = datetime.datetime.now(datetime.UTC).isoformat()
         selected_provider_id: str | None = None
         selected_model: str | None = None
-        explicit = False  # True when provider was explicitly configured
 
         # --- Rank 1: Explicit app config ---
         cfg_provider = self._settings.get("llm.provider", None) if self._settings else None
@@ -241,7 +240,6 @@ class LLMRuntimeManager:
                 }
             )
             selected_provider_id = cfg_provider
-            explicit = True
         else:
             reasons.append(
                 {
@@ -269,7 +267,6 @@ class LLMRuntimeManager:
                     }
                 )
                 selected_provider_id = env_provider
-                explicit = True
             else:
                 reasons.append(
                     {

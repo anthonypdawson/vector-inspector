@@ -29,9 +29,8 @@ def process_item_update_success(
         ctx.cache_manager.invalidate(ctx.current_database, ctx.current_collection)
 
     # Show info about embedding regeneration/preservation when applicable
-    regen_count = 0
     try:
-        regen_count = int(getattr(ctx.connection, "_last_regenerated_count", 0) or 0)
+        int(getattr(ctx.connection, "_last_regenerated_count", 0) or 0)
         if update_row_in_place(view.table, ctx, updated_data):
             return
 
