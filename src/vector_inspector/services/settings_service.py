@@ -6,10 +6,33 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from PySide6.QtCore import QObject, Signal
-
 from vector_inspector.core.cache_manager import invalidate_cache_on_settings_change
 from vector_inspector.core.logging import log_tracked_error
+
+
+class _NullSignal:
+    """No-op stand-in for a Qt Signal when PySide6 is unavailable.
+
+    Lets headless consumers (e.g. the MCP server) use SettingsService
+    without the Qt GUI stack: ``emit``/``connect`` calls silently do
+    nothing instead of raising.
+    """
+
+    def emit(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def connect(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def disconnect(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+
+class _NullSignals:
+    """No-op signal emitter used when Qt is unavailable."""
+
+    def __init__(self) -> None:
+        self.setting_changed = _NullSignal()
 
 
 class SettingsService:
@@ -38,11 +61,18 @@ class SettingsService:
         self._initialized = True
 
         # Expose a shared QObject-based signal emitter so UI can react to
-        # settings changes without polling.
-        class _Signals(QObject):
-            setting_changed = Signal(str, object)
+        # settings changes without polling. PySide6 is imported lazily so
+        # headless consumers (e.g. the MCP server) can use this service
+        # without the Qt GUI stack; without Qt the emitter is a no-op.
+        try:
+            from PySide6.QtCore import QObject, Signal
 
-        self.signals = _Signals()
+            class _Signals(QObject):
+                setting_changed = Signal(str, object)
+
+            self.signals = _Signals()
+        except ImportError:
+            self.signals = _NullSignals()
 
         self.settings_dir = Path.home() / ".vector-inspector"
         self.settings_file = self.settings_dir / "settings.json"

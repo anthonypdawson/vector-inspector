@@ -8,8 +8,12 @@ from typing import Any
 from vector_inspector.core.logging import log_info
 from vector_inspector.core.model_registry import get_model_registry
 
-# Default model to use when dimension is unknown or not mapped
-DEFAULT_MODEL = ("all-MiniLM-L6-v2", "sentence-transformer")
+# Default model to use when dimension is unknown or not mapped.
+# fastembed is the default: same model and 384 dims as the old
+# sentence-transformers default, but ONNX Runtime instead of torch,
+# so a bare install (e.g. the MCP server) stays light. Explicit
+# sentence-transformers use is still supported via model_type.
+DEFAULT_MODEL = ("all-MiniLM-L6-v2", "fastembed")
 
 
 def _get_dimension_to_model_dict():
@@ -104,16 +108,16 @@ def get_available_models_for_dimension(dimension: int) -> list:
 
 def load_embedding_model(model_name: str, model_type: str) -> SentenceTransformer | Any:
     """
-    Load an embedding model (sentence-transformer, CLIP, or Ollama).
+    Load an embedding model (fastembed, sentence-transformer, CLIP, or Ollama).
 
     Uses disk cache when available to speed up repeated loads.
 
     Args:
         model_name: Name of the model to load
-        model_type: Type of model ("sentence-transformer", "clip", or "ollama")
+        model_type: Type of model ("fastembed", "sentence-transformer", "clip", or "ollama")
 
     Returns:
-        Loaded model (SentenceTransformer, CLIP model, or Ollama client stub)
+        Loaded model (FastEmbedProvider, SentenceTransformer, CLIP model, or Ollama client stub)
     """
     from vector_inspector.core.model_cache import (
         is_cache_enabled,
@@ -125,6 +129,17 @@ def load_embedding_model(model_name: str, model_type: str) -> SentenceTransforme
     if model_type == "ollama":
         log_info(f"Using Ollama model: {model_name}")
         return model_name  # Return model name as-is for Ollama
+
+    # FastEmbed: ONNX Runtime, no torch. The provider manages its own
+    # model cache (fastembed downloads on first use); the app's disk
+    # cache below is for sentence-transformers only. The provider also
+    # disables ONNX Runtime telemetry before importing fastembed.
+    if model_type == "fastembed":
+        from vector_inspector.core.embedding_providers.fastembed_provider import FastEmbedProvider
+
+        provider = FastEmbedProvider(model_name)
+        provider.warmup()
+        return provider
 
     # Try to load from cache first
     cached_path = load_cached_path(model_name)
@@ -231,6 +246,13 @@ def encode_text(text: str, model: SentenceTransformer | tuple | str, model_type:
         # Normalize the features (CLIP embeddings are typically normalized)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
         return text_features[0].cpu().numpy().tolist()
+    if model_type == "fastembed":
+        # model is a FastEmbedProvider. Its encode() follows the
+        # provider contract and returns shape (n, dim) even for a
+        # single string, so take the first (only) row to return a
+        # flat vector, matching the sentence-transformer branch.
+        return model.encode(text)[0].tolist()
+
     # sentence-transformer
     # Lazy import for type hint only
     # from sentence_transformers import SentenceTransformer
@@ -251,6 +273,22 @@ def get_embedding_model_for_dimension(
         Tuple of (loaded_model, model_name, model_type)
     """
     model_name, model_type = get_model_for_dimension(dimension)
-    model = load_embedding_model(model_name, model_type)
+    try:
+        model = load_embedding_model(model_name, model_type)
+    except (ImportError, ModuleNotFoundError):
+        # The dimension-mapped model cannot load because its library
+        # is not installed (e.g. sentence-transformers absent in a
+        # bare MCP install). Fall back to the default model, but only
+        # when its dimension matches the requested one — otherwise
+        # re-raise, so the caller gets the real missing-library error
+        # instead of a dimension mismatch downstream.
+        default_name, default_type = DEFAULT_MODEL
+        if default_type == "fastembed":
+            from vector_inspector.core.embedding_providers.fastembed_provider import FastEmbedProvider
+
+            if FastEmbedProvider(default_name).get_metadata().dimension != dimension:
+                raise
+        model = load_embedding_model(default_name, default_type)
+        model_name, model_type = default_name, default_type
     # Returns a tuple: (loaded_model, model_name, model_type)
     return (model, model_name, model_type)

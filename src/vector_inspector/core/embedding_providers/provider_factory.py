@@ -2,6 +2,7 @@
 
 from typing import Optional
 from .base_provider import EmbeddingProvider
+from .fastembed_provider import FastEmbedProvider
 from .sentence_transformer_provider import SentenceTransformerProvider
 from .clip_provider import CLIPProvider
 from vector_inspector.core.model_registry import get_model_registry
@@ -13,6 +14,7 @@ class ProviderFactory:
     # Registry of provider classes by type
     _PROVIDER_REGISTRY: dict[str, type[EmbeddingProvider]] = {
         "sentence-transformer": SentenceTransformerProvider,
+        "fastembed": FastEmbedProvider,
         "clip": CLIPProvider,
     }
 
