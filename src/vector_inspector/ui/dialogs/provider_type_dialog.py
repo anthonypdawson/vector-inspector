@@ -1,6 +1,6 @@
 """Dialog for selecting embedding provider type (Step 1 of model selection)."""
 
-from typing import Optional, Tuple
+from typing import ClassVar, Optional, Tuple
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QRadioButton, QButtonGroup, QGroupBox,
@@ -15,7 +15,7 @@ class ProviderTypeDialog(QDialog):
     """Dialog for selecting the provider/type category before choosing specific model."""
     
     # Provider categories with display info
-    PROVIDER_CATEGORIES = [
+    PROVIDER_CATEGORIES: ClassVar[list[dict[str, str]]] = [
         {
             "id": "sentence-transformer",
             "name": "🤗 Sentence Transformers",

@@ -158,10 +158,13 @@ class ProviderManager:
                 normalized = {**normalized, **payload}
                 del normalized["payload"]
 
-        elif provider_type == "pinecone":
+        elif (
+            provider_type == "pinecone"
+            and "id" in normalized
+            and not isinstance(normalized["id"], str)
+        ):
             # Pinecone IDs must be strings
-            if "id" in normalized and not isinstance(normalized["id"], str):
-                normalized["id"] = str(normalized["id"])
+            normalized["id"] = str(normalized["id"])
 
         return normalized
 

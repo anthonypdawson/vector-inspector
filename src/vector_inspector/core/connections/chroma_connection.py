@@ -63,7 +63,7 @@ class DimensionAwareEmbeddingFunction(EmbeddingFunction):
             )
         self._initialized = True
 
-    def __call__(self, input: Documents) -> Embeddings:
+    def __call__(self, input: Documents) -> Embeddings:  # noqa: A002 - ChromaDB calls with keyword input=
         """Embed documents using the dimension-appropriate model."""
         self._ensure_model_loaded()
         from vector_inspector.core.embedding_utils import encode_text
@@ -316,7 +316,7 @@ class ChromaDBConnection(VectorDBConnection):
                     # Get embedding model if stored
                     if "embedding_model" in col_metadata:
                         embedding_model = col_metadata["embedding_model"]
-            except:
+            except Exception:
                 pass  # Use default if unable to determine
 
             result = {

@@ -38,7 +38,6 @@ class SentenceTransformerProvider(EmbeddingProvider):
         # Try to get metadata without loading full model
         try:
             # Import config utilities
-            from sentence_transformers import SentenceTransformer
             from transformers import AutoConfig
 
             # Try to get config without loading weights

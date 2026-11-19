@@ -311,12 +311,6 @@ def test_create_backup_with_collection_starts_thread(monkeypatch, qtbot):
         def start(self):
             started["called"] = True
 
-        def finished(self):
-            pass
-
-        def error(self):
-            pass
-
         finished = type("S", (), {"connect": lambda self, fn: None})()
         error = type("S", (), {"connect": lambda self, fn: None})()
 

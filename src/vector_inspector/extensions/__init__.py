@@ -130,11 +130,11 @@ settings_panel_hook = SettingsPanelHook()
 
 # Register built-in settings panel extensions
 try:
-    import vector_inspector.extensions.telemetry_settings_panel
+    import vector_inspector.extensions.telemetry_settings_panel as telemetry_settings_panel
 except Exception:
     pass
 
 try:
-    import vector_inspector.extensions.llm_settings_panel
+    import vector_inspector.extensions.llm_settings_panel as llm_settings_panel
 except Exception:
     pass

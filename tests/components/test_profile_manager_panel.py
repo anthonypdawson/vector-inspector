@@ -7,6 +7,8 @@ MOCKING STRATEGY:
 - Tests without either fixture will use real provider detection (may vary by environment).
 """
 
+from typing import ClassVar
+
 import pytest
 
 import vector_inspector.ui.components.profile_manager_panel as panel_mod
@@ -875,7 +877,7 @@ def test_on_databases_fetched_populates_and_handles_error(qtbot, fake_service, m
     )
 
     class _MB:
-        warned = []
+        warned: ClassVar[list] = []
 
         @classmethod
         def warning(cls, *a, **k):

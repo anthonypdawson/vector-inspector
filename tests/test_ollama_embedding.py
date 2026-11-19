@@ -208,5 +208,5 @@ def test_load_embedding_model_unknown_type():
     """Test loading model with unknown type falls through to sentence-transformer."""
     # Unknown types will attempt to load as sentence-transformer and likely fail
     # This test just verifies it doesn't crash immediately on the type check
-    with pytest.raises(Exception):  # Will fail during actual model loading
+    with pytest.raises((ImportError, OSError)):  # Will fail during actual model loading
         load_embedding_model("some-model", "unsupported-type")
