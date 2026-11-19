@@ -38,6 +38,13 @@ def _build_parser() -> argparse.ArgumentParser:
             "Secrets are given as env:VARNAME and resolved from the\n"
             "environment at connect time; they are never written in a spec.\n"
             "\n"
+            "Connections saved in the desktop GUI are also loaded\n"
+            "automatically from ~/.vector-inspector/profiles.json, and a\n"
+            "profile saved in the GUI mid-session is usable without\n"
+            "restarting. A launch spec wins when it shares a profile's\n"
+            "name. Profile credentials resolve from the environment\n"
+            "first, then the OS keychain entry the GUI wrote.\n"
+            "\n"
             "Examples:\n"
             "  vector-inspector-mcp \\\n"
             "    --connection local@chromadb?type=persistent&path=./chroma \\\n"
@@ -97,6 +104,7 @@ def main(argv: list[str] | None = None) -> None:
     # Imports happen after arg parsing and env setup, mirroring _cli.py:
     # nothing in this path imports Qt.
     from vector_inspector.mcp.config import load_configs
+    from vector_inspector.mcp.profiles import GuiProfiles
     from vector_inspector.mcp.server import create_server
 
     try:
@@ -105,16 +113,28 @@ def main(argv: list[str] | None = None) -> None:
         sys.stderr.write(f"vector-inspector-mcp: {exc}\n")
         raise SystemExit(2) from exc
 
-    if not configs:
+    profiles = GuiProfiles()
+    profile_configs = profiles.load()
+
+    if not configs and not profile_configs:
         logger.warning(
-            "No connections configured. Pass --connection specs or set "
-            "VI_MCP_CONNECTIONS; vi_list_providers still works."
+            "No connections configured. Pass --connection specs, set "
+            "VI_MCP_CONNECTIONS, or save a connection in the desktop "
+            "GUI; vi_list_providers still works."
         )
 
-    server = create_server(configs, read_only=args.read_only)
+    server = create_server(configs, read_only=args.read_only, profiles=profiles)
+    # create_server() imports the provider layer, which pins the
+    # "vector_inspector" parent logger to WARNING (see core/logging)
+    # and adds its own handler alongside basicConfig's root handler.
+    # Restore the level this process was asked for (or the startup
+    # line below is silently swallowed) and stop the record
+    # propagating to root (or it prints twice, once per handler).
+    logger.setLevel(getattr(logging, args.log_level))
+    logging.getLogger("vector_inspector").propagate = False
     logger.info(
         "Serving %d connection(s) over stdio (read_only=%s)",
-        len(configs),
+        len(set(configs) | set(profile_configs)),
         args.read_only,
     )
     try:

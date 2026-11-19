@@ -2,8 +2,10 @@
 
 One server, one tool surface, any supported vector database. Tools
 are named once (``vi_*``) and take a ``connection`` name; connections
-are named in the server configuration (see ``config.py``) and open
-lazily on first use, staying open for the server's lifetime.
+come from launch specs (see ``config.py``) and from the desktop
+GUI's saved profiles (see ``profiles.py``), and open lazily on
+first use, staying open for the server's lifetime. A profile saved
+in the GUI mid-session is usable without restarting the server.
 
 Safety rules (PRD):
 - stdio only; never ``print()`` to stdout — logging goes to stderr.
@@ -35,6 +37,7 @@ from vector_inspector.mcp.config import (
     SUPPORTED_PROVIDERS,
     ConnectionConfig,
 )
+from vector_inspector.mcp.profiles import GuiProfiles
 
 logger = logging.getLogger(__name__)
 
@@ -111,16 +114,61 @@ def _embedding_error_message(exc: BaseException) -> str | None:
 
 
 class ConnectionRegistry:
-    """Named connections, opened lazily and kept for the server lifetime."""
+    """Named connections, opened lazily and kept for the server lifetime.
 
-    def __init__(self, configs: dict[str, ConnectionConfig], read_only: bool = False):
-        self._configs = configs
+    Launch specs (``configs``) are fixed at startup and win on name
+    conflicts. GUI profiles (``profiles``, a ``GuiProfiles``) are
+    re-read whenever a name is looked up, so a connection saved in
+    the GUI mid-session is usable without restarting the server.
+    """
+
+    def __init__(
+        self,
+        configs: dict[str, ConnectionConfig],
+        read_only: bool = False,
+        profiles: GuiProfiles | None = None,
+    ):
+        self._configs = dict(configs)
         self._connections: dict[str, VectorDBConnection] = {}
         self.read_only = read_only
+        self._profiles = profiles
+        self._profile_configs: dict[str, ConnectionConfig] = {}
+
+    def _refresh_profiles(self) -> None:
+        """Re-read GUI profiles, keeping launch specs on conflicts."""
+        if self._profiles is None:
+            return
+        fresh = self._profiles.load()
+        self._profile_configs = {name: cfg for name, cfg in fresh.items() if name not in self._configs}
 
     @property
     def names(self) -> list[str]:
-        return sorted(self._configs)
+        self._refresh_profiles()
+        return sorted(set(self._configs) | set(self._profile_configs))
+
+    def _config_for(self, name: str) -> ConnectionConfig | None:
+        if name in self._configs:
+            return self._configs[name]
+        self._refresh_profiles()
+        return self._profile_configs.get(name)
+
+    def list_connections(self) -> list[dict[str, Any]]:
+        """Metadata for every available connection. Never includes secrets or config values."""
+        entries = []
+        for name in self.names:
+            cfg = self._configs.get(name) or self._profile_configs.get(name)
+            if cfg is None:  # pragma: no cover - names and configs are built together
+                continue
+            entries.append(
+                {
+                    "name": name,
+                    "provider": cfg.provider,
+                    "source": "launch" if name in self._configs else "profile",
+                    "credential_fields": list(cfg.credential_fields or cfg.secret_env),
+                    "connected": name in self._connections,
+                }
+            )
+        return entries
 
     def require_writable(self, tool: str) -> None:
         if self.read_only:
@@ -133,11 +181,11 @@ class ConnectionRegistry:
 
         A failed connect is not cached: the next call retries.
         """
-        if name not in self._configs:
+        cfg = self._config_for(name)
+        if cfg is None:
             known = ", ".join(self.names) or "(none configured)"
             raise ToolError(f"Unknown connection '{name}'. Configured connections: {known}.")
         if name not in self._connections:
-            cfg = self._configs[name]
             try:
                 credentials = cfg.resolve_credentials()
             except ValueError as exc:
@@ -170,10 +218,17 @@ class ConnectionRegistry:
 def create_server(
     configs: dict[str, ConnectionConfig] | None = None,
     read_only: bool = False,
+    profiles: GuiProfiles | None = None,
 ) -> MCPServer:
-    """Build the MCP server for the given named connections."""
+    """Build the MCP server for the given named connections.
+
+    ``configs`` are the launch specs; ``profiles`` is the GUI
+    profiles source, re-read on demand so connections saved in the
+    GUI are usable without restarting. Launch specs win on name
+    conflicts.
+    """
     disable_telemetry()
-    registry = ConnectionRegistry(configs or {}, read_only=read_only)
+    registry = ConnectionRegistry(configs or {}, read_only=read_only, profiles=profiles)
     mcp = MCPServer(
         name="vector-inspector",
         title="Vector Inspector",
@@ -203,6 +258,16 @@ def create_server(
                     }
                 )
         return _to_json({"providers": providers})
+
+    @mcp.tool()
+    def vi_list_connections() -> str:
+        """List every connection the server can use: launch specs plus GUI profiles.
+
+        Use this to discover what to connect to, and to switch
+        between connections — every other tool takes the connection
+        name per call. Never includes secrets or config values.
+        """
+        return _to_json({"connections": registry.list_connections()})
 
     @mcp.tool()
     def vi_connect(connection: str) -> str:

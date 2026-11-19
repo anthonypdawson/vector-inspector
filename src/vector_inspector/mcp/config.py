@@ -21,14 +21,63 @@ persists credentials anywhere.
 
 from __future__ import annotations
 
+import json
+import logging
 import os
 from dataclasses import dataclass, field
+from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # Parameter names treated as credentials: handed to
 # ProviderFactory.create as ``credentials`` (never echoed back in
 # tool output) and resolved from the environment when written as
 # ``env:VARNAME``.
 SECRET_PARAMS = frozenset({"api_key", "api_token", "password"})
+
+# (provider, credential field) -> environment variable checked first
+# when a GUI profile needs that credential. The keychain (where the
+# GUI stores the value) is the fallback; see ConnectionConfig.
+# Only fields with a well-known variable are listed — a field with
+# no entry here resolves from the keychain alone.
+DEFAULT_ENV_VARS: dict[tuple[str, str], str] = {
+    ("pinecone", "api_key"): "PINECONE_API_KEY",
+    ("qdrant", "api_key"): "QDRANT_API_KEY",
+    ("weaviate", "api_key"): "WEAVIATE_API_KEY",
+    ("pgvector", "password"): "PGPASSWORD",
+}
+
+# OS-keychain service name the GUI's CredentialService uses.
+KEYCHAIN_SERVICE = "vector-inspector"
+
+
+def read_keychain_credentials(profile_id: str) -> dict[str, str] | None:
+    """Read one GUI profile's credentials from the OS keychain.
+
+    The GUI stores them as a JSON object under service
+    ``vector-inspector``, username ``profile:<id>``. Returns None
+    when keyring is unavailable, the entry is missing, or the stored
+    value is not a JSON object. Never raises: a missing keychain is
+    an ordinary "no stored credential" result, not an error.
+    """
+    try:
+        import keyring
+    except ImportError:
+        return None
+    try:
+        stored = keyring.get_password(KEYCHAIN_SERVICE, f"profile:{profile_id}")
+    except Exception as exc:  # keyring backends raise on locked/missing stores
+        logger.debug("Keychain read failed for profile %s: %s", profile_id, exc)
+        return None
+    if not stored:
+        return None
+    try:
+        data = json.loads(stored)
+    except ValueError:
+        logger.debug("Keychain entry for profile %s is not JSON", profile_id)
+        return None
+    return data if isinstance(data, dict) else None
+
 
 # Provider name -> pip extra that provides its client, for the
 # "not installed" hint in vi_list_providers.
@@ -52,30 +101,63 @@ class ConnectionConfig:
     ``params`` are the non-secret ProviderFactory config values.
     ``secret_env`` maps a credential name (e.g. ``api_key``) to the
     environment variable it is resolved from at connect time.
+
+    GUI-profile configs also carry ``credential_fields`` (the field
+    names the GUI stored for this profile) and ``profile_id`` (the
+    GUI profile's id, used to read its credentials from the OS
+    keychain when the environment variable is unset).
     """
 
     name: str
     provider: str
-    params: dict[str, str] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     secret_env: dict[str, str] = field(default_factory=dict)
+    credential_fields: tuple[str, ...] = ()
+    profile_id: str | None = None
 
     def resolve_credentials(self) -> dict[str, str]:
-        """Resolve credential values from the environment.
+        """Resolve credential values: environment first, keychain second.
+
+        For each credential field, the environment variable named in
+        ``secret_env`` wins when set (an explicit per-launch choice).
+        When it is unset and this config came from a GUI profile
+        (``profile_id`` set), the value is read from the OS keychain
+        entry the GUI wrote for that profile.
 
         Raises:
-            ValueError: If a named environment variable is not set.
+            ValueError: If a field resolves from neither source.
         """
+        fields = self.credential_fields or tuple(self.secret_env)
+        if not fields:
+            return {}
         credentials: dict[str, str] = {}
-        for key, var in self.secret_env.items():
-            value = os.environ.get(var)
-            if not value:
+        keychain: dict[str, str] | None = None
+        for field_name in fields:
+            var = self.secret_env.get(field_name)
+            if var:
+                value = os.environ.get(var)
+                if value:
+                    credentials[field_name] = value
+                    continue
+            if self.profile_id is not None:
+                if keychain is None:
+                    keychain = read_keychain_credentials(self.profile_id)
+                if keychain and keychain.get(field_name):
+                    credentials[field_name] = keychain[field_name]
+                    continue
+            if var:
                 raise ValueError(
-                    f"Connection '{self.name}': environment variable '{var}' (for credential '{key}') is not set"
+                    f"Connection '{self.name}': environment variable '{var}' "
+                    f"(for credential '{field_name}') is not set"
+                    + (" and no value was found in the OS keychain" if self.profile_id is not None else "")
                 )
-            credentials[key] = value
+            raise ValueError(
+                f"Connection '{self.name}': credential '{field_name}' is not available "
+                "(no environment variable configured for it and no value in the OS keychain)"
+            )
         return credentials
 
-    def factory_config(self) -> dict[str, str]:
+    def factory_config(self) -> dict[str, Any]:
         """Config dict passed to ProviderFactory.create."""
         return dict(self.params)
 

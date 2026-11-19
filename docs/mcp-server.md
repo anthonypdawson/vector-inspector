@@ -61,6 +61,37 @@ time; a literal secret in a spec is refused outright (it would leak
 into `ps` output and shell history). The server never writes
 credentials anywhere.
 
+### GUI profiles
+
+Connections saved in the desktop GUI are loaded automatically
+from `~/.vector-inspector/profiles.json` — no `--connection`
+needed. A launch spec wins when it shares a profile's name, so an
+explicit spec is still the way to override a GUI profile.
+
+A profile saved in the GUI mid-session is usable without
+restarting the server: the profile file is re-read whenever a tool
+names a connection the server has not seen yet. `vi_list_connections`
+lists everything available (launch specs + profiles) so an agent
+can discover connections and switch between them per call.
+
+Profile credentials resolve **environment first, OS keychain
+second**: for a credential field with a well-known variable the
+server checks the environment, then the keychain entry the GUI
+wrote (`vector-inspector` service, `profile:<id>`).
+
+| Provider | Field | Environment variable |
+|---|---|---|
+| pinecone | `api_key` | `PINECONE_API_KEY` |
+| qdrant | `api_key` | `QDRANT_API_KEY` |
+| weaviate | `api_key` | `WEAVIATE_API_KEY` |
+| pgvector | `password` | `PGPASSWORD` |
+
+A field with no entry in that table (or a profile with no keychain
+entry and no variable set) fails at connect time with a clear
+error naming what was checked. Reading the keychain can prompt
+for permission on first access on macOS; that is the OS asking,
+not the server.
+
 Connections open **lazily on first use** and stay open for the
 server's lifetime. Nothing connects at startup, so one bad
 credential cannot kill the server at launch. `vi_connect` opens a
@@ -103,6 +134,7 @@ All tools take a `connection` name. Tool results are JSON text.
 | Tool | What it does |
 |---|---|
 | `vi_list_providers` | Supported providers and whether each client library is installed. |
+| `vi_list_connections` | Every connection available (launch specs + GUI profiles): name, provider, source, credential fields, connected state. Never includes secrets or config values. |
 | `vi_connect` | Open a named connection (or confirm it is open). Never returns credentials. |
 | `vi_list_collections` | Collection names on a connection. |
 | `vi_collection_info` | Schema, vector size, distance, item count, supported filter operators. |

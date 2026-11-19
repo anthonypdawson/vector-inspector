@@ -523,3 +523,85 @@ def test_telemetry_disabled_by_server_construction(mcp_server):
     assert TelemetryService.send_event.__name__ == "_no_op_send_event"
     # Calling it must do nothing observable (no queue file, no thread).
     TelemetryService.send_event("mcp.test", {"category": "test"})
+
+
+# --- GUI profiles ---------------------------------------------------------
+
+import os
+
+from vector_inspector.mcp.profiles import GuiProfiles
+
+
+def _write_profiles(path, profiles):
+    path.write_text(json.dumps({"profiles": profiles}), encoding="utf-8")
+
+
+def _profile_server(tmp_path, profiles, launch_specs=None):
+    """Build a server whose GUI profiles live in tmp_path/profiles.json."""
+    profiles_path = tmp_path / "profiles.json"
+    _write_profiles(profiles_path, profiles)
+    configs = parse_connection_specs(launch_specs or [])
+    return create_server(configs, profiles=GuiProfiles(profiles_path)), profiles_path
+
+
+def _chroma_profile(tmp_path, name="local"):
+    return {
+        "id": f"id-{name}",
+        "name": name,
+        "provider": "chromadb",
+        "config": {"type": "persistent", "path": str(tmp_path / name)},
+        "credential_fields": [],
+    }
+
+
+def test_vi_list_connections_lists_launch_and_profiles(tmp_path):
+    server, _ = _profile_server(
+        tmp_path,
+        [_chroma_profile(tmp_path, "gui-local")],
+        launch_specs=[f"cli@chromadb?type=persistent&path={tmp_path / 'cli'}"],
+    )
+    payload = call_json(server, "vi_list_connections", {})
+    by_name = {c["name"]: c for c in payload["connections"]}
+    assert by_name["cli"]["source"] == "launch"
+    assert by_name["gui-local"]["source"] == "profile"
+    assert by_name["gui-local"]["provider"] == "chromadb"
+    assert by_name["gui-local"]["credential_fields"] == []
+    assert by_name["gui-local"]["connected"] is False
+    # No config values (paths) or secrets in the listing.
+    assert "path" not in json.dumps(payload)
+
+
+def test_profile_connection_can_connect(tmp_path):
+    server, _ = _profile_server(tmp_path, [_chroma_profile(tmp_path, "local")])
+    payload = call_json(server, "vi_connect", {"connection": "local"})
+    assert payload["connected"] is True
+    assert payload["connection"] == "local"
+
+
+def test_profile_saved_after_start_is_usable_without_restart(tmp_path):
+    server, profiles_path = _profile_server(tmp_path, [])
+    assert call_json(server, "vi_list_connections", {})["connections"] == []
+    _write_profiles(profiles_path, [_chroma_profile(tmp_path, "late")])
+    os.utime(profiles_path, (1_000_000_000, 2_000_000_000))
+    names = [c["name"] for c in call_json(server, "vi_list_connections", {})["connections"]]
+    assert names == ["late"]
+    payload = call_json(server, "vi_connect", {"connection": "late"})
+    assert payload["connected"] is True
+
+
+def test_launch_spec_wins_on_name_conflict(tmp_path):
+    server, _ = _profile_server(
+        tmp_path,
+        [_chroma_profile(tmp_path, "same")],
+        launch_specs=[f"same@chromadb?type=persistent&path={tmp_path / 'cli-path'}"],
+    )
+    payload = call_json(server, "vi_list_connections", {})
+    assert payload["connections"] == [
+        {
+            "name": "same",
+            "provider": "chromadb",
+            "source": "launch",
+            "credential_fields": [],
+            "connected": False,
+        }
+    ]

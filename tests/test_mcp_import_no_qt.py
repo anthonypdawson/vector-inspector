@@ -71,6 +71,7 @@ def test_provider_layer_and_mcp_server_import_without_pyside6():
         "vi_delete_items",
         "vi_get_items",
         "vi_list_collections",
+        "vi_list_connections",
         "vi_list_providers",
         "vi_search",
         "vi_update_items",

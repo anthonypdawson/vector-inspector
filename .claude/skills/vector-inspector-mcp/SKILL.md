@@ -49,13 +49,19 @@ Claude Code (`.mcp.json` in the project root):
 Connections are named specs: `name@provider?key=value&key=value`,
 repeatable `--connection`, or semicolon-separated in
 `VI_MCP_CONNECTIONS` (`--connection` wins on name conflicts).
+Connections saved in the desktop GUI are also loaded
+automatically from `~/.vector-inspector/profiles.json`, and a
+profile saved in the GUI mid-session is usable without
+restarting. A launch spec wins when it shares a profile's name.
 Connections open **lazily on first use** and stay open for the
-server lifetime. **Connections are fixed at launch**: no tool can
-point the server at a new path, host, or database mid-session.
-Restart the server to change connections.
+server lifetime.
 
-**Secrets are env-only.** A value of the form `env:VARNAME` is
-resolved from the process environment at connect time. A literal
+**Secrets are env-first, keychain-second.** In a launch spec a
+value of the form `env:VARNAME` is resolved from the process
+environment at connect time. A GUI profile's credential is checked
+against its well-known environment variable first
+(`PINECONE_API_KEY`, `QDRANT_API_KEY`, `WEAVIATE_API_KEY`,
+`PGPASSWORD`), then the OS keychain entry the GUI wrote. A literal
 secret in a spec is refused outright (it would leak into `ps`
 output and shell history). The server never writes credentials
 anywhere, and tool output never includes them.
@@ -63,13 +69,15 @@ anywhere, and tool output never includes them.
 Other flags: `--read-only` (below), `--log-level` (default
 `WARNING`, logs to stderr — stdout is the MCP protocol wire).
 
-## Tools (12)
+## Tools (13)
 
-All tools take a `connection` name. Results are JSON text.
+All tools take a `connection` name, except `vi_list_providers` and
+`vi_list_connections`. Results are JSON text.
 
 | Tool | Args | What it does |
 |---|---|---|
 | `vi_list_providers` | — | Supported providers and whether each client library is installed. |
+| `vi_list_connections` | — | Every connection available (launch specs + GUI profiles): name, provider, source, credential fields, connected state. |
 | `vi_connect` | `connection` | Open a named connection (or confirm it is already open). |
 | `vi_list_collections` | `connection` | Collection names on a connection. |
 | `vi_collection_info` | `connection`, `collection` | Schema, vector size, distance, item count, supported filter operators. |
@@ -84,18 +92,21 @@ All tools take a `connection` name. Results are JSON text.
 
 ## Workflow
 
-1. `vi_list_providers` — confirm the provider's client is
+1. `vi_list_connections` — see what is available and switch
+   between connections; every other tool takes the connection
+   name per call.
+2. `vi_list_providers` — confirm the provider's client is
    installed (unavailable providers report the exact extra to
    install; the server never crashes on a missing client).
-2. `vi_connect` — optional health check; any tool opens its
+3. `vi_connect` — optional health check; any tool opens its
    connection lazily anyway.
-3. `vi_create_collection` with the collection's `vector_size`
+4. `vi_create_collection` with the collection's `vector_size`
    (must match the embedding dimension — 384 for the default
    model, below).
-4. `vi_add_items` in batches (hundreds of documents per call, not
+5. `vi_add_items` in batches (hundreds of documents per call, not
    thousands). Pass `embeddings` only when you already have
    vectors; otherwise documents are embedded server-side.
-5. `vi_search` with `query_texts`, then `vi_get_items` by id for
+6. `vi_search` with `query_texts`, then `vi_get_items` by id for
    full records. Page large collections with `vi_get_items`
    (`limit`/`offset`), never in one call.
 
