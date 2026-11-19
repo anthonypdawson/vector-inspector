@@ -14,6 +14,12 @@ class TestProviderFactoryCreate:
             ProviderFactory.create("all-MiniLM-L6-v2", model_type="sentence-transformer")
             MockST.assert_called_once_with("all-MiniLM-L6-v2")
 
+    def test_fastembed_explicit(self):
+        MockFE = MagicMock(return_value=MagicMock())
+        with patch.dict(ProviderFactory._PROVIDER_REGISTRY, {"fastembed": MockFE}):
+            ProviderFactory.create("all-MiniLM-L6-v2", model_type="fastembed")
+            MockFE.assert_called_once_with("all-MiniLM-L6-v2")
+
     def test_clip_explicit(self):
         MockCLIP = MagicMock(return_value=MagicMock())
         with patch.dict(ProviderFactory._PROVIDER_REGISTRY, {"clip": MockCLIP}):

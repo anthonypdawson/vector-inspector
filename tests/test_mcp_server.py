@@ -256,22 +256,104 @@ def test_search_needs_exactly_one_query_form(mcp_server):
     )
 
 
-def test_search_text_without_embedding_model_errors_clearly(mcp_server):
-    # No sentence-transformers in this env: text search must fail with
-    # the PRD's clear message, not a bare traceback. Where a model IS
-    # installed the download path is out of scope for unit tests.
-    if importlib.util.find_spec("sentence_transformers") is not None:
-        pytest.skip("sentence-transformers installed; no-model path not exercised")
+# Text search via the fastembed default (PRD: fastembed is the default
+# embedding; a bare `vector-inspector[mcp]` install embeds text out of
+# the box). A fresh 384-dim collection per connection, documents added
+# with NO embeddings — the add path and the search path both have to
+# resolve the model. Chroma ranks the fox document first; LanceDB
+# stores zero vectors for text-only adds (it never computes embeddings
+# in add_items), so only add + search completing is asserted there.
+TEXT_DOCS = [
+    "The quick brown fox jumps over the lazy dog.",
+    "Vector databases store embeddings for similarity search.",
+    "Bananas grow in warm climates.",
+]
+TEXT_IDS = ["text-fox", "text-vectors", "text-bananas"]
+TEXT_DIM = 384
+
+
+def _seed_text_collection(mcp_server, connection, collection="textdocs"):
+    call_json(
+        mcp_server,
+        "vi_create_collection",
+        {"connection": connection, "collection": collection, "vector_size": TEXT_DIM},
+    )
+    call_json(
+        mcp_server,
+        "vi_add_items",
+        {
+            "connection": connection,
+            "collection": collection,
+            "documents": TEXT_DOCS,
+            "ids": TEXT_IDS,
+        },
+    )
+
+
+@pytest.mark.parametrize("connection", ["chroma", "lance"])
+def test_search_text_uses_fastembed_default(mcp_server, connection):
+    if importlib.util.find_spec("fastembed") is None:
+        pytest.skip("fastembed not installed; default text search not exercised")
+    _seed_text_collection(mcp_server, connection)
+    payload = call_json(
+        mcp_server,
+        "vi_search",
+        {
+            "connection": connection,
+            "collection": "textdocs",
+            "query_texts": ["fox"],
+            "n_results": 2,
+        },
+    )
+    assert payload["results"]["ids"], "text search returned no ids"
+    if connection == "chroma":
+        # Real embeddings: the fox document must rank first.
+        assert _first_id(payload) == "text-fox"
+    # LanceDB: text-only add stores zero vectors, so ranking is
+    # meaningless (all distances tie); completing is the assertion.
+
+
+def test_search_text_without_embedding_model_errors_clearly(mcp_server, monkeypatch):
+    # With no embedding library loadable, text search must fail with
+    # the PRD's clear message, not a bare traceback. Monkeypatch the
+    # loader so the test is deterministic regardless of what is
+    # installed. The collection is seeded with explicit vectors so
+    # the add path never needs a model.
+    call_json(
+        mcp_server,
+        "vi_create_collection",
+        {"connection": "chroma", "collection": "nomodel", "vector_size": TEXT_DIM},
+    )
+    call_json(
+        mcp_server,
+        "vi_add_items",
+        {
+            "connection": "chroma",
+            "collection": "nomodel",
+            "documents": ["alpha"],
+            "ids": ["id-alpha"],
+            "embeddings": [[0.0] * TEXT_DIM],
+        },
+    )
+
+    def _missing(*args, **kwargs):
+        raise ModuleNotFoundError("No module named 'fastembed'")
+
+    monkeypatch.setattr(
+        "vector_inspector.core.embedding_utils.load_embedding_model",
+        _missing,
+    )
     message = call_error(
         mcp_server,
         "vi_search",
         {
             "connection": "chroma",
-            "collection": "docs",
+            "collection": "nomodel",
             "query_texts": ["alpha"],
         },
     )
     assert "embedding" in message.lower()
+    assert "fastembed" in message.lower()
 
 
 # --- vi_get_items ------------------------------------------------------

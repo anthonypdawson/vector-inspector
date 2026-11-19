@@ -76,3 +76,45 @@ def test_provider_layer_and_mcp_server_import_without_pyside6():
         "vi_update_items",
     ]
     assert tools == expected
+
+
+# Importing the MCP CLI must set ORT_DISABLE_TELEMETRY=1 by default,
+# before any ONNX Runtime import: ONNX Runtime 1.29+ ships telemetry
+# ON by default on Linux and POSTs to Microsoft's 1DS backend. An
+# explicit user setting (e.g. =0 to opt back in) is respected.
+_CHILD_TELEMETRY_SCRIPT = r"""
+import os
+
+import vector_inspector.mcp.cli  # noqa: F401  (sets ORT_DISABLE_TELEMETRY)
+
+print(os.environ.get("ORT_DISABLE_TELEMETRY"))
+"""
+
+
+def _run_cli_telemetry_child(preset):
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(REPO_ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    env.pop("QT_QPA_PLATFORM", None)
+    if preset is None:
+        env.pop("ORT_DISABLE_TELEMETRY", None)
+    else:
+        env["ORT_DISABLE_TELEMETRY"] = preset
+    proc = subprocess.run(
+        [sys.executable, "-c", _CHILD_TELEMETRY_SCRIPT],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=120,
+    )
+    assert proc.returncode == 0, (
+        f"CLI telemetry child failed.\n--- stdout ---\n{proc.stdout}\n--- stderr ---\n{proc.stderr}"
+    )
+    return proc.stdout.strip()
+
+
+def test_cli_disables_onnx_telemetry_by_default():
+    assert _run_cli_telemetry_child(preset=None) == "1"
+
+
+def test_cli_respects_explicit_telemetry_opt_in():
+    assert _run_cli_telemetry_child(preset="0") == "0"

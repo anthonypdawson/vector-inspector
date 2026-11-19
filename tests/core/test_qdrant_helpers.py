@@ -153,12 +153,8 @@ class TestResolveEmbeddingModel:
 
         mock_model = MagicMock()
         monkeypatch.setattr(
-            "vector_inspector.core.connections.qdrant_helpers.qdrant_embedding_resolver.load_embedding_model",
-            lambda name, mtype: mock_model,
-        )
-        monkeypatch.setattr(
-            "vector_inspector.core.connections.qdrant_helpers.qdrant_embedding_resolver.get_model_for_dimension",
-            lambda dim: ("dim-model", "sentence-transformer"),
+            "vector_inspector.core.connections.qdrant_helpers.qdrant_embedding_resolver.get_embedding_model_for_dimension",
+            lambda dim: (mock_model, "dim-model", "sentence-transformer"),
         )
 
         _model, name, _mtype = resolve_embedding_model(mock_conn, "col")

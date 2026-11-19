@@ -11,6 +11,17 @@ import logging
 import os
 import sys
 
+# ONNX Runtime telemetry is ON by default (1.29+) and POSTs trace
+# events — including a persistent device ID — to Microsoft's 1DS
+# backend. The only reliable opt-out is ORT_DISABLE_TELEMETRY=1 set
+# before ONNX Runtime initializes; the library's
+# disable_telemetry_events() call does not stop it. Set it here, at
+# module import, so it is in place before any import in this process
+# can pull in ONNX Runtime (via fastembed or a provider's default
+# embedding). setdefault keeps an explicit user setting: setting
+# ORT_DISABLE_TELEMETRY=0 opts back in.
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
+
 GITHUB_URL = "https://github.com/anthonypdawson/vector-inspector"
 
 

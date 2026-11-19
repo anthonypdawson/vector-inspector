@@ -1,4 +1,8 @@
-from vector_inspector.core.embedding_utils import get_model_for_dimension, load_embedding_model, DEFAULT_MODEL
+from vector_inspector.core.embedding_utils import (
+    get_embedding_model_for_dimension,
+    load_embedding_model,
+    DEFAULT_MODEL,
+)
 
 
 def resolve_embedding_model(connection, collection_name: str) -> tuple[object, str, str]:
@@ -28,6 +32,8 @@ def resolve_embedding_model(connection, collection_name: str) -> tuple[object, s
         model = load_embedding_model(model_name, model_type)
         return (model, model_name, model_type)
 
-    model_name, model_type = get_model_for_dimension(vector_dim)
-    model = load_embedding_model(model_name, model_type)
-    return (model, model_name, model_type)
+    # Priority 3: guess by vector dimension. get_embedding_model_for_dimension
+    # falls back to DEFAULT_MODEL when the dimension-mapped model cannot load
+    # (e.g. sentence-transformers not installed), so text search keeps working
+    # in bare installs.
+    return get_embedding_model_for_dimension(vector_dim)

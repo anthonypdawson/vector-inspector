@@ -16,11 +16,15 @@ workspace; not in this repo).
 pip install vector-inspector[mcp,chromadb,lancedb]
 ```
 
-The `mcp` extra is the official MCP Python SDK v2 (`mcp>=2.0`).
+The `mcp` extra is the official MCP Python SDK v2 (`mcp>=2.0`) **plus
+fastembed** (`fastembed>=0.7.4`) — the default embedding runtime, so
+a bare MCP install embeds text out of the box with no torch.
 Provider clients are opt-in extras, mirroring the app:
 `chromadb`, `qdrant`, `pinecone`, `lancedb`, `pgvector`,
-`weaviate`, `milvus`, plus `embeddings` (sentence-transformers /
-fastembed) for text search. A provider whose client is not
+`weaviate`, `milvus`. The `embeddings` extra
+(sentence-transformers + fastembed) is the desktop app's text-search
+extra: install it to opt into the sentence-transformers runtime
+(see "Text search and embeddings"). A provider whose client is not
 installed reports as unavailable from `vi_list_providers` with the
 exact extra to install — it never crashes the server.
 
@@ -155,20 +159,46 @@ check before filtering.
 
 `vi_search` takes `query_texts` (embedded server-side) or
 `query_embeddings` (raw vectors) — exactly one of the two. The
-embedding path reuses the app's existing layer, whose default model
-is `all-MiniLM-L6-v2` via sentence-transformers
-(`vector-inspector[sentence-transformers]`).
+embedding path reuses the app's existing layer. The default model
+is `all-MiniLM-L6-v2` (384 dims) via **fastembed**
+(`vector-inspector[mcp]` includes it), the ONNX runtime — no torch
+install, so a bare `uvx vector-inspector-mcp` embeds text out of
+the box. Same model and dimension as the old sentence-transformers
+default, so existing collections keep working.
 
-> **Deviation from the PRD, recorded honestly:** the PRD decided a
-> fastembed default, but fastembed is not wired into the app's
-> embedding layer at all — no fastembed provider exists in
-> `core/embedding_providers/`, and `DEFAULT_MODEL` is
-> sentence-transformers. Wiring a FastEmbed provider is a separate
-> change to the app, not part of this spike. Until then, text search
-> needs sentence-transformers installed. If no embedding model is
-> available, `vi_search` fails with a clear error telling the agent
-> to install the extra or pass raw vectors — it never silently falls
-> back to a different model.
+Resolution order for both add and search, per collection:
+
+1. An explicitly recorded model (desktop app: embedding settings
+   for the collection, saved in SettingsService).
+2. Dimension lookup: the registry maps the collection's vector
+   dimension to a model — 384 dims resolves to
+   `all-MiniLM-L6-v2` via sentence-transformers *when that library
+   is installed*. When it is not installed, the lookup falls back
+   to the fastembed default, but only when the dimensions match
+   (a 512-dim CLIP collection never silently gets 384-dim
+   vectors; it errors instead).
+3. The fastembed default (`DEFAULT_MODEL`).
+
+So in a bare MCP install everything resolves to fastembed, and in
+the desktop app with sentence-transformers installed, 384-dim
+collections keep using the sentence-transformers runtime — same
+model, same dimensions, same results.
+
+- **Opt into sentence-transformers**: install
+  `vector-inspector[embeddings]` (which also includes fastembed).
+  With it installed, the dimension lookup uses it for 384-dim
+  collections, as before. To force a specific runtime for one
+  collection, record it in the desktop app's embedding settings
+  for that collection.
+- **No model at all**: `vi_search` with `query_texts` fails with a
+  clear error telling the agent to install fastembed
+  (`pip install vector-inspector[mcp]`) or pass `query_embeddings`
+  instead — it never silently falls back to a different model.
+- **LanceDB caveat**: `add_items` never computes embeddings for
+  LanceDB — a text-only add stores zero vectors and "succeeds", so
+  search over such a collection returns all-tied distances and
+  meaningless ranking. Add explicit embeddings for LanceDB, or use
+  Chroma, until that is fixed.
 
 ## Safety
 
@@ -179,6 +209,19 @@ is `all-MiniLM-L6-v2` via sentence-transformers
   setting is unset, and the env var alone does not cover the
   `log_tracked_error` path the provider layer uses. The patch is
   process-local and touches no user settings.
+- **ONNX Runtime telemetry is off by default**: the CLI sets
+  `ORT_DISABLE_TELEMETRY=1` before any ONNX Runtime import, and
+  the FastEmbed provider does the same before importing fastembed.
+  ONNX Runtime 1.29+ ships telemetry ON by default on Linux and
+  POSTs trace events (including a persistent device ID, launch
+  path, and model names) to Microsoft's 1DS backend
+  (`mobile.events.data.microsoft.com`). The library's own
+  `disable_telemetry_events()` does not stop it, and it ignores
+  `DO_NOT_TRACK`. The env var must be set **before launch** — it
+  is read when ONNX Runtime initializes. To opt back in, set
+  `ORT_DISABLE_TELEMETRY=0` before launching the server; the CLI
+  and provider both respect an explicit setting and never override
+  it.
 - **`--read-only`** blocks all five mutating tools.
 - **`vi_get_items` pages with a capped limit** (default 50, max
   100) — no unbounded collection dumps into an agent's context.

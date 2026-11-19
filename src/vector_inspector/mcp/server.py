@@ -102,9 +102,9 @@ def _embedding_error_message(exc: BaseException) -> str | None:
     if "embedding" in text or isinstance(exc, (ImportError, ModuleNotFoundError)):
         return (
             "Text search needs an embedding model, and none is available: "
-            "install the sentence-transformers extra "
-            "(pip install vector-inspector[sentence-transformers]) or pass "
-            "query_embeddings (raw vectors) instead of query_texts. "
+            "install fastembed (pip install vector-inspector[mcp], which "
+            "includes it) or pass query_embeddings (raw vectors) instead "
+            "of query_texts. "
             f"Underlying error: {exc}"
         )
     return None
