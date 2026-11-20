@@ -188,6 +188,29 @@ def _reset_telemetry_singleton():
     _purge_queue_file()
 
 
+@pytest.fixture(autouse=True)
+def _isolated_settings(tmp_path, monkeypatch):
+    """Isolate SettingsService from the real ~/.vector-inspector/settings.json.
+
+    Regression guard for issue #42: ``test_manual_override`` persists a
+    content-column override via ``set_content_column`` to the real settings
+    file, and every later ``PgVectorConnection()`` loads it, so the other
+    content-column tests see ``'custom_text'`` and fail depending on run
+    order (and the failure count grows on repeat runs).
+
+    ``SettingsService`` is a singleton, so patching the single instance's
+    ``settings_file``/``settings_dir``/``settings`` redirects all settings
+    reads and writes for the test into ``tmp_path``. ``monkeypatch`` restores
+    the real attributes on teardown.
+    """
+    from vector_inspector.services.settings_service import SettingsService
+
+    svc = SettingsService()
+    monkeypatch.setattr(svc, "settings_file", tmp_path / "settings.json")
+    monkeypatch.setattr(svc, "settings_dir", tmp_path)
+    monkeypatch.setattr(svc, "settings", {})
+
+
 @pytest.fixture
 def webengine_cleanup(qtbot):
     """Opt-in fixture to track widgets added via ``qtbot.addWidget`` and detach

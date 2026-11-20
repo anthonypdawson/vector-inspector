@@ -60,7 +60,12 @@ def test_priority_order():
 
 
 def test_cache_behavior():
-    """Test that detected column is cached."""
+    """Test that detected column is cached for the same schema.
+
+    The cache is keyed by schema fingerprint: a repeat call with an
+    unchanged schema returns the cached value, while a changed schema
+    invalidates the cache and re-detects (see _detect_content_column).
+    """
     conn = PgVectorConnection()
     schema = {"id": "int", "content": "text", "embedding": "vector"}
 
@@ -68,9 +73,13 @@ def test_cache_behavior():
     result1 = conn._detect_content_column("test_col", schema)
     assert result1 == "content"
 
-    # Second call should use cache (even with different schema)
-    result2 = conn._detect_content_column("test_col", {"id": "int", "other": "text"})
+    # Second call with the same schema should use the cache
+    result2 = conn._detect_content_column("test_col", schema)
     assert result2 == "content"
+
+    # A changed schema invalidates the cache and re-detects
+    result3 = conn._detect_content_column("test_col", {"id": "int", "other": "text"})
+    assert result3 == "other"
 
 
 def test_manual_override():

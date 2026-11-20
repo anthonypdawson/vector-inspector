@@ -1,6 +1,6 @@
 """Factory for creating embedding providers."""
 
-from typing import Optional
+from typing import ClassVar, Optional
 from .base_provider import EmbeddingProvider
 from .sentence_transformer_provider import SentenceTransformerProvider
 from .clip_provider import CLIPProvider
@@ -11,13 +11,13 @@ class ProviderFactory:
     """Factory for creating appropriate embedding providers based on model type."""
 
     # Registry of provider classes by type
-    _PROVIDER_REGISTRY: dict[str, type[EmbeddingProvider]] = {
+    _PROVIDER_REGISTRY: ClassVar[dict[str, type[EmbeddingProvider]]] = {
         "sentence-transformer": SentenceTransformerProvider,
         "clip": CLIPProvider,
     }
 
     # Model name patterns to auto-detect provider type
-    _MODEL_PATTERNS = {
+    _MODEL_PATTERNS: ClassVar[dict[str, list[str]]] = {
         "clip": ["clip", "CLIP"],
         "sentence-transformer": [
             "sentence-transformers/",

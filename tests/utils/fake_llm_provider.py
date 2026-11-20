@@ -148,8 +148,7 @@ class FakeLLMProvider(LLMProvider):
         request_id = kwargs.get("request_id", self._next_request_id())
         self._maybe_inject_error(model, request_id)
         response = self._build_response(messages)
-        index = 0
-        for i in range(0, len(response), self._fragment_size):
+        for index, i in enumerate(range(0, len(response), self._fragment_size)):
             fragment = response[i : i + self._fragment_size]
             if self._latency_ms > 0:
                 time.sleep(self._latency_ms / 1000.0)
@@ -158,7 +157,6 @@ class FakeLLMProvider(LLMProvider):
                 content=fragment,
                 meta={"request_id": request_id, "index": index},
             )
-            index += 1
         yield StreamEvent(
             type="done",
             content="",

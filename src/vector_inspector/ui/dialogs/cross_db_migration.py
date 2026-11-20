@@ -93,11 +93,10 @@ class MigrationThread(QThread):
             self.progress.emit(50, f"Restoring to {self.target_collection}...")
 
             # Verify target connection before restore
-            if not self.target_conn.is_connected:
-                # Try to reconnect
-                if not self.target_conn.connect():
-                    self.finished.emit(False, "Target connection lost. Please try again.")
-                    return
+            # Try to reconnect if not connected
+            if not self.target_conn.is_connected and not self.target_conn.connect():
+                self.finished.emit(False, "Target connection lost. Please try again.")
+                return
 
             # Check if target collection exists
             target_exists = self.target_collection in self.target_conn.collections
@@ -143,13 +142,16 @@ class MigrationThread(QThread):
 
             # Clean up target collection on exception
             try:
-                if self.target_conn and self.target_conn.is_connected:
-                    if self.target_collection in self.target_conn.list_collections():
-                        log_info(
-                            "Cleaning up failed migration: deleting target collection '%s'",
-                            self.target_collection,
-                        )
-                        self.target_conn.delete_collection(self.target_collection)
+                if (
+                    self.target_conn
+                    and self.target_conn.is_connected
+                    and self.target_collection in self.target_conn.list_collections()
+                ):
+                    log_info(
+                        "Cleaning up failed migration: deleting target collection '%s'",
+                        self.target_collection,
+                    )
+                    self.target_conn.delete_collection(self.target_collection)
             except Exception as cleanup_error:
                 log_error("Warning: Failed to clean up target collection: %s", cleanup_error)
 
