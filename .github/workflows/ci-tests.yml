@@ -32,6 +32,9 @@ jobs:
   test:
     name: Test on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    # Bound the whole job: a hanging test must fail the run, not burn the
+    # 6-hour GitHub default. The suite normally finishes in minutes.
+    timeout-minutes: 30
     strategy:
       matrix:
         python-version: ${{ fromJson(inputs.python-versions || '["3.11", "3.12"]') }}
@@ -80,7 +83,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: "--no-sandbox --disable-gpu"
           QTWEBENGINE_DISABLE_SANDBOX: 1
-        run: pdm run pytest tests --cov=vector_inspector --cov-report=lcov -vv -s --junit-xml=test-results.xml -o junit_family=legacy
+        run: pdm run pytest tests --timeout=180 --timeout-method=thread --cov=vector_inspector --cov-report=lcov -vv -s --junit-xml=test-results.xml -o junit_family=legacy
 
       - name: Surface failing tests
         if: matrix.python-version == '3.12'
