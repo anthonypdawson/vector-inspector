@@ -356,3 +356,28 @@ def test_get_supported_filter_operators_server_side_flags():
     client_only = {o["name"] for o in ops if not o["server_side"]}
     assert "=" in server_only
     assert "contains" in client_only
+
+
+def test_chroma_get_collection_info_metadata_error_uses_defaults(monkeypatch):
+    """When reading collection metadata raises, get_collection_info falls back to defaults."""
+    conn = ChromaDBConnection()
+    conn.connect()
+
+    class _RaisingMetadataCollection:
+        def count(self):
+            return 1
+
+        def get(self, limit=1, include=None):
+            return {"metadatas": [{}], "embeddings": [[0.1, 0.2]]}
+
+        @property
+        def metadata(self):
+            raise RuntimeError("metadata boom")
+
+    monkeypatch.setattr(conn, "_get_collection_basic", lambda name: _RaisingMetadataCollection())
+
+    info = conn.get_collection_info("any_collection")
+    assert info is not None
+    assert info["count"] == 1
+    assert info["distance_metric"] == "Cosine (default)"
+    assert "embedding_model" not in info
