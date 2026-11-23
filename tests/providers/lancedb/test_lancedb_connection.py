@@ -462,3 +462,13 @@ def test_lancedb_get_collection_info_returns_none_when_not_connected():
     assert conn.is_connected is False
     result = conn.get_collection_info("any_collection")
     assert result is None
+
+
+def test_lancedb_create_collection_failure_returns_false():
+    """When create_table raises, create_collection returns False instead of raising."""
+    conn = LanceDBConnection(uri="/tmp/fake")
+    conn._connected = True
+    conn._db = MagicMock()
+    conn._db.create_table.side_effect = RuntimeError("create boom")
+
+    assert conn.create_collection("coll", vector_size=2) is False

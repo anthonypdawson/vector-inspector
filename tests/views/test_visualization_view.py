@@ -310,9 +310,6 @@ def test_generate_visualization_starts_thread_when_collection_set(qtbot, viz_vie
         def isRunning(self):
             return False
 
-        def finished(self, *a):
-            pass
-
         finished = MagicMock()
         error = MagicMock()
 

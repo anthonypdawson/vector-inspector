@@ -39,7 +39,7 @@ def test_set_updates_timestamp():
 
     cm = CacheManager()
     entry = CacheEntry(data=None)
-    old_ts = datetime(2000, 1, 1)
+    old_ts = datetime(2000, 1, 1)  # noqa: DTZ001 - CacheManager uses naive datetimes; must stay comparable
     entry.timestamp = old_ts
     cm.set("db1", "col1", entry)
     assert cm.get("db1", "col1").timestamp > old_ts

@@ -293,3 +293,69 @@ def test_migration_thread_cancel(monkeypatch):
 
     assert results and results[0][0] is False
     assert "cancel" in results[0][1].lower()
+
+
+def test_migration_thread_run_direct_target_connection_lost(monkeypatch):
+    """Emits 'Target connection lost' when the target drops after backup and reconnect fails."""
+    source = MagicMock()
+    source.is_connected = True
+    source.connection = MagicMock()
+    target = MagicMock()
+    target.is_connected = True
+    target.connection = MagicMock()
+    target.collections = []
+    target.connect.return_value = False
+
+    class DisconnectingBackupService(FakeBackupService):
+        def backup_collection(self, conn, collection, temp_dir, include_embeddings, connection_id):
+            target.is_connected = False
+            return "/tmp/backup.json"
+
+    monkeypatch.setattr(migration_module, "BackupRestoreService", lambda: DisconnectingBackupService())
+
+    thread = MigrationThread(
+        source_conn=source,
+        target_conn=target,
+        source_collection="src_col",
+        target_collection="tgt_col",
+        include_embeddings=True,
+    )
+    results = []
+    thread.finished.connect(lambda s, m: results.append((s, m)))
+    thread.run()
+
+    assert results and results[0][0] is False
+    assert "target connection lost" in results[0][1].lower()
+
+
+def test_migration_thread_run_direct_exception_cleans_up_target(monkeypatch):
+    """On an exception during restore, the target collection is deleted if it exists."""
+    source = MagicMock()
+    source.is_connected = True
+    source.connection = MagicMock()
+    target = MagicMock()
+    target.is_connected = True
+    target.connection = MagicMock()
+    target.collections = []
+    target.list_collections.return_value = ["tgt_col"]
+
+    class RaisingBackupService(FakeBackupService):
+        def restore_collection(self, conn, backup_path, collection_name, overwrite, connection_id):
+            raise RuntimeError("restore boom")
+
+    monkeypatch.setattr(migration_module, "BackupRestoreService", lambda: RaisingBackupService())
+
+    thread = MigrationThread(
+        source_conn=source,
+        target_conn=target,
+        source_collection="src_col",
+        target_collection="tgt_col",
+        include_embeddings=True,
+    )
+    results = []
+    thread.finished.connect(lambda s, m: results.append((s, m)))
+    thread.run()
+
+    assert results and results[0][0] is False
+    assert "migration error" in results[0][1].lower()
+    target.delete_collection.assert_called_once_with("tgt_col")

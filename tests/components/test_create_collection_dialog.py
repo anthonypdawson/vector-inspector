@@ -1,9 +1,34 @@
 from PySide6.QtWidgets import QApplication
 
+from vector_inspector.core.provider_detection import FeatureInfo
 from vector_inspector.ui.components.create_collection_dialog import CreateCollectionDialog
 
 if QApplication.instance() is None:
     _qapp = QApplication([])
+
+
+def _embeddings_available(monkeypatch):
+    """Pretend the embeddings feature is installed.
+
+    Toggling the sample-data checkbox opens a modal ProviderInstallDialog
+    when embeddings are missing, which blocks forever in a headless test
+    (nobody dismisses it). Stub the feature check so the dialog never opens
+    and the test exercises the dialog's own state logic.
+    """
+    monkeypatch.setattr(
+        "vector_inspector.core.provider_detection.get_feature_info",
+        lambda feature_id: (
+            FeatureInfo(
+                id="embeddings",
+                name="Text Embeddings",
+                available=True,
+                install_command="pip install vector-inspector[embeddings]",
+                description="Generate embeddings for semantic search",
+            )
+            if feature_id == "embeddings"
+            else None
+        ),
+    )
 
 
 class DummyConnection:
@@ -24,7 +49,8 @@ def test_dialog_updates_connection_label_on_set():
     assert dlg.connection_label.text() == "TestConn"
 
 
-def test_sample_options_enable_and_random_flag():
+def test_sample_options_enable_and_random_flag(monkeypatch):
+    _embeddings_available(monkeypatch)
     dlg = CreateCollectionDialog()
 
     # By default sample options are disabled

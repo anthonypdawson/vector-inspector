@@ -331,7 +331,7 @@ class ItemDetailsDialog(QDialog):
         img_label.mouseDoubleClickEvent = lambda _evt, p=path: QDesktopServices.openUrl(QUrl.fromLocalFile(p))
         self._preview_layout.addWidget(img_label)
 
-        dim_text = f"{pixmap.width()}×{pixmap.height()}" if not pixmap.isNull() else ""
+        dim_text = f"{pixmap.width()}x{pixmap.height()}" if not pixmap.isNull() else ""
         info_label = QLabel(f"{os.path.basename(path)}  {dim_text}")
         info_label.setStyleSheet("color: #a0a0a0; font-size: 9pt;")
         self._preview_layout.addWidget(info_label)

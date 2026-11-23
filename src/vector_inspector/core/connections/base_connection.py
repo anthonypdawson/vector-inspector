@@ -200,17 +200,16 @@ class VectorDBConnection(ABC):
                     reserved = {"id", "embedding", "metadata", "vector"}
 
                     for col_name, col_type in schema.items():
-                        if col_name.lower() not in reserved:
-                            if any(t in col_type.lower() for t in text_types):
-                                from vector_inspector.core.logging import log_info
+                        if col_name.lower() not in reserved and any(t in col_type.lower() for t in text_types):
+                            from vector_inspector.core.logging import log_info
 
-                                log_info(
-                                    "Content column auto-detected (last resort): '%s' for collection '%s'",
-                                    col_name,
-                                    collection_name,
-                                )
-                                detected_column = col_name
-                                break
+                            log_info(
+                                "Content column auto-detected (last resort): '%s' for collection '%s'",
+                                col_name,
+                                collection_name,
+                            )
+                            detected_column = col_name
+                            break
 
             # Default fallback if nothing found
             if not detected_column:
