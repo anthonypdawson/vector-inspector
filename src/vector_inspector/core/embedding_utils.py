@@ -11,12 +11,8 @@ from vector_inspector.core.model_registry import get_model_registry
 if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
 
-# Default model to use when dimension is unknown or not mapped.
-# fastembed is the default: same model and 384 dims as the old
-# sentence-transformers default, but ONNX Runtime instead of torch,
-# so a bare install (e.g. the MCP server) stays light. Explicit
-# sentence-transformers use is still supported via model_type.
-DEFAULT_MODEL = ("all-MiniLM-L6-v2", "fastembed")
+# Default model to use when dimension is unknown or not mapped
+DEFAULT_MODEL = ("all-MiniLM-L6-v2", "sentence-transformer")
 
 
 def _get_dimension_to_model_dict():
