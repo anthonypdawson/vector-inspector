@@ -10,8 +10,6 @@ from typing import TYPE_CHECKING, Literal, overload
 from .base_connection import VectorDBConnection
 
 if TYPE_CHECKING:
-    from typing import Type
-
     from .chroma_connection import ChromaDBConnection
     from .lancedb_connection import LanceDBConnection
     from .milvus_connection import MilvusConnection

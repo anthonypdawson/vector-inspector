@@ -2,11 +2,14 @@
 
 from __future__ import annotations  # Allows us to use class names in typehints while lazyloading
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 # Lazy import: see below
 from vector_inspector.core.logging import log_info
 from vector_inspector.core.model_registry import get_model_registry
+
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
 
 # Default model to use when dimension is unknown or not mapped
 DEFAULT_MODEL = ("all-MiniLM-L6-v2", "sentence-transformer")

@@ -16,7 +16,7 @@ class SplashWindow(QDialog):
         layout.addWidget(label)
         feedback = QLabel(
             "If you have thoughts, feature requests, or run into anything confusing,<br>"
-            "I’d really appreciate hearing from you. Feedback helps shape the roadmap."
+            "I'd really appreciate hearing from you. Feedback helps shape the roadmap."
         )
         feedback.setTextFormat(Qt.RichText)
         feedback.setWordWrap(True)

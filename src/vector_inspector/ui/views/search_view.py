@@ -1114,7 +1114,7 @@ class SearchView(QWidget):
             columns_with_order.sort(key=lambda x: x[1])
 
             # Move columns to restore order
-            for target_visual_index, (col_name, old_visual, logical_index) in enumerate(columns_with_order):
+            for target_visual_index, (_col_name, _old_visual, logical_index) in enumerate(columns_with_order):
                 current_visual = header.visualIndex(logical_index)
                 if current_visual != target_visual_index:
                     header.moveSection(current_visual, target_visual_index)

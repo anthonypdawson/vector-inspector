@@ -32,6 +32,9 @@ jobs:
   test:
     name: Test on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    # Bound the whole job: a hanging test must fail the run, not burn the
+    # 6-hour GitHub default. The suite normally finishes in minutes.
+    timeout-minutes: 30
     strategy:
       matrix:
         python-version: ${{ fromJson(inputs.python-versions || '["3.11", "3.12"]') }}
@@ -51,9 +54,12 @@ jobs:
           pip install pdm
 
       - name: Install system dependencies (Qt/OpenGL libs)
+        # libegl1: ubuntu-latest moved to 26.04 (Nov 2026) and its image lacks
+        # libEGL.so.1, which QtGui needs at import; without it pytest-qt
+        # crashes at startup and no tests run at all.
         run: |
           sudo apt-get update
-          sudo apt-get install -y freeglut3-dev
+          sudo apt-get install -y freeglut3-dev libegl1
 
       - name: Cache PDM virtualenv and pip
         uses: actions/cache@v4
@@ -77,7 +83,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: "--no-sandbox --disable-gpu"
           QTWEBENGINE_DISABLE_SANDBOX: 1
-        run: pdm run pytest tests --cov=vector_inspector --cov-report=lcov -vv -s --junit-xml=test-results.xml -o junit_family=legacy
+        run: pdm run pytest tests --timeout=180 --timeout-method=thread --cov=vector_inspector --cov-report=lcov -vv -s --junit-xml=test-results.xml -o junit_family=legacy
 
       - name: Surface failing tests
         if: matrix.python-version == '3.12'
