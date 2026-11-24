@@ -113,27 +113,23 @@ All tools take a `connection` name, except `vi_list_providers` and
 ## Embeddings (text search)
 
 The default model is `all-MiniLM-L6-v2` (384 dims) via
-**fastembed** (ONNX, no torch). `vector-inspector[mcp]`
-includes fastembed, so a bare MCP install embeds text out of the
-box. Same model and dimension as the old sentence-transformers
-default, so existing collections keep working.
+**sentence-transformers**. `vector-inspector[mcp]` also includes
+fastembed (ONNX, no torch) for explicit use, but a bare MCP
+install without sentence-transformers cannot embed text: install
+`vector-inspector[embeddings]` or pass raw vectors.
 
 Resolution order, per collection: (1) an explicitly recorded model
 (desktop app: embedding settings for the collection); (2)
 dimension lookup — 384 dims resolves to `all-MiniLM-L6-v2` via
-sentence-transformers **when that library is installed**; when it
-is not installed the lookup falls back to the fastembed default,
-but only when the dimensions match (a 512-dim CLIP collection
-never silently gets 384-dim vectors — it errors instead);
-(3) the fastembed default.
+sentence-transformers; (3) the sentence-transformers default
+(`DEFAULT_MODEL`). Fastembed is never picked automatically; opt
+into it per collection via embedding settings.
 
-- **Opt into sentence-transformers**: install
+- **sentence-transformers required for text**: install
   `vector-inspector[embeddings]` (sentence-transformers +
-  fastembed). With it installed, the dimension lookup uses it for
-  384-dim collections, as before.
+  fastembed) for any `query_texts` / text-add usage.
 - **No model at all**: `vi_search` with `query_texts` fails with a
-  clear error ("install fastembed … or pass `query_embeddings`
-  instead") — it never silently falls back to a different model.
+  clear error — it never silently falls back to a different model.
   Passing `query_embeddings` (raw vectors) always works with no
   model installed.
 - **Text-only add embeds**: `add_items` with documents and no

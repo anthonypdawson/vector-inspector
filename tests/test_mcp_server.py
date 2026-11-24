@@ -256,13 +256,13 @@ def test_search_needs_exactly_one_query_form(mcp_server):
     )
 
 
-# Text search via the fastembed default (PRD: fastembed is the default
-# embedding; a bare `vector-inspector[mcp]` install embeds text out of
-# the box). A fresh 384-dim collection per connection, documents added
-# with NO embeddings — the add path and the search path both have to
-# resolve the model. Chroma ranks the fox document first; LanceDB
-# stores zero vectors for text-only adds (it never computes embeddings
-# in add_items), so only add + search completing is asserted there.
+# Text search via the default model (sentence-transformers
+# `all-MiniLM-L6-v2`). A fresh 384-dim collection per connection,
+# documents added with NO embeddings — the add path and the search
+# path both have to resolve the model. Chroma ranks the fox document
+# first; LanceDB stores zero vectors for text-only adds (it never
+# computes embeddings in add_items), so only add + search completing
+# is asserted there.
 TEXT_DOCS = [
     "The quick brown fox jumps over the lazy dog.",
     "Vector databases store embeddings for similarity search.",
@@ -291,9 +291,9 @@ def _seed_text_collection(mcp_server, connection, collection="textdocs"):
 
 
 @pytest.mark.parametrize("connection", ["chroma", "lance"])
-def test_search_text_uses_fastembed_default(mcp_server, connection):
-    if importlib.util.find_spec("fastembed") is None:
-        pytest.skip("fastembed not installed; default text search not exercised")
+def test_search_text_uses_default_model(mcp_server, connection):
+    if importlib.util.find_spec("sentence_transformers") is None:
+        pytest.skip("sentence-transformers not installed; default text search not exercised")
     _seed_text_collection(mcp_server, connection)
     payload = call_json(
         mcp_server,
@@ -337,7 +337,7 @@ def test_search_text_without_embedding_model_errors_clearly(mcp_server, monkeypa
     )
 
     def _missing(*args, **kwargs):
-        raise ModuleNotFoundError("No module named 'fastembed'")
+        raise ModuleNotFoundError("No module named 'sentence_transformers'")
 
     monkeypatch.setattr(
         "vector_inspector.core.embedding_utils.load_embedding_model",
@@ -353,7 +353,7 @@ def test_search_text_without_embedding_model_errors_clearly(mcp_server, monkeypa
         },
     )
     assert "embedding" in message.lower()
-    assert "fastembed" in message.lower()
+    assert "sentence-transformers" in message.lower()
 
 
 # --- vi_get_items ------------------------------------------------------

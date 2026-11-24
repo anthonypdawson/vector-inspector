@@ -102,9 +102,7 @@ class FastEmbedProvider(EmbeddingProvider):
                     description = supported.get("description") or description
                     break
         except ImportError:
-            raise ImportError(
-                "fastembed library not installed. Install with: pip install fastembed"
-            )
+            raise ImportError("fastembed library not installed. Install with: pip install fastembed")
         except Exception:
             dimension = None
 
@@ -137,13 +135,13 @@ class FastEmbedProvider(EmbeddingProvider):
         try:
             from fastembed import TextEmbedding
         except ImportError:
-            raise ImportError(
-                "fastembed library not installed. Install with: pip install fastembed"
-            )
+            raise ImportError("fastembed library not installed. Install with: pip install fastembed")
 
         self._model = TextEmbedding(model_name=self._fastembed_model_id)
 
-    def encode(self, inputs: str | list[str], normalize: bool = True, show_progress: bool = False, **kwargs) -> np.ndarray:
+    def encode(
+        self, inputs: str | list[str], normalize: bool = True, show_progress: bool = False, **kwargs
+    ) -> np.ndarray:
         """Encode text inputs into embeddings.
 
         Args:

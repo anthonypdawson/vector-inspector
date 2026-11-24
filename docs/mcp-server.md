@@ -17,8 +17,10 @@ pip install vector-inspector[mcp,chromadb,lancedb]
 ```
 
 The `mcp` extra is the official MCP Python SDK v2 (`mcp>=2.0`) **plus
-fastembed** (`fastembed>=0.7.4`) — the default embedding runtime, so
-a bare MCP install embeds text out of the box with no torch.
+fastembed** (`fastembed>=0.7.4`) for explicit opt-in embedding use
+(ONNX, no torch). Text search still defaults to the
+sentence-transformers runtime, so a bare MCP install needs
+`vector-inspector[embeddings]` for `query_texts`.
 Provider clients are opt-in extras, mirroring the app:
 `chromadb`, `qdrant`, `pinecone`, `lancedb`, `pgvector`,
 `weaviate`, `milvus`. The `embeddings` extra
@@ -204,19 +206,17 @@ Resolution order for both add and search, per collection:
    for the collection, saved in SettingsService).
 2. Dimension lookup: the registry maps the collection's vector
    dimension to a model — 384 dims resolves to
-   `all-MiniLM-L6-v2` via sentence-transformers *when that library
-   is installed*. When it is not installed, the lookup falls back
-   to the fastembed default, but only when the dimensions match
-   (a 512-dim CLIP collection never silently gets 384-dim
-   vectors; it errors instead).
-3. The fastembed default (`DEFAULT_MODEL`).
+   `all-MiniLM-L6-v2` via sentence-transformers. If that library
+   is not installed, resolution fails with a clear error (a 512-dim
+   CLIP collection never silently gets 384-dim vectors either).
+3. The sentence-transformers default (`DEFAULT_MODEL`).
 
-So in a bare MCP install everything resolves to fastembed, and in
-the desktop app with sentence-transformers installed, 384-dim
-collections keep using the sentence-transformers runtime — same
-model, same dimensions, same results.
+So 384-dim collections use the sentence-transformers runtime —
+same model, same dimensions, same results as the desktop app.
+Fastembed is available for explicit per-collection opt-in but is
+never picked automatically.
 
-- **Opt into sentence-transformers**: install
+- **Text search needs sentence-transformers**: install
   `vector-inspector[embeddings]` (which also includes fastembed).
   With it installed, the dimension lookup uses it for 384-dim
   collections, as before. To force a specific runtime for one

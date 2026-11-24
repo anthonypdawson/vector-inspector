@@ -18,34 +18,25 @@ from vector_inspector.core.embedding_providers.fastembed_provider import (
 from vector_inspector.core.embedding_utils import DEFAULT_MODEL, encode_text
 
 FASTEmbed_AVAILABLE = importlib.util.find_spec("fastembed") is not None
-needs_fastembed = pytest.mark.skipif(
-    not FASTEmbed_AVAILABLE, reason="fastembed not installed"
-)
+needs_fastembed = pytest.mark.skipif(not FASTEmbed_AVAILABLE, reason="fastembed not installed")
 
 
 class TestResolveFastembedModelId:
     def test_known_bare_name_maps_to_org(self):
-        assert (
-            resolve_fastembed_model_id("all-MiniLM-L6-v2")
-            == "sentence-transformers/all-MiniLM-L6-v2"
-        )
+        assert resolve_fastembed_model_id("all-MiniLM-L6-v2") == "sentence-transformers/all-MiniLM-L6-v2"
 
     def test_slash_name_passes_through(self):
-        assert (
-            resolve_fastembed_model_id("BAAI/bge-small-en-v1.5")
-            == "BAAI/bge-small-en-v1.5"
-        )
+        assert resolve_fastembed_model_id("BAAI/bge-small-en-v1.5") == "BAAI/bge-small-en-v1.5"
 
     def test_unknown_bare_name_gets_sentence_transformers_prefix(self):
-        assert (
-            resolve_fastembed_model_id("some-model")
-            == "sentence-transformers/some-model"
-        )
+        assert resolve_fastembed_model_id("some-model") == "sentence-transformers/some-model"
 
 
 class TestDefaultModel:
-    def test_default_model_is_fastembed(self):
-        assert DEFAULT_MODEL == ("all-MiniLM-L6-v2", "fastembed")
+    def test_default_model_is_sentence_transformer(self):
+        # Reverted from fastembed: the default stays sentence-transformer
+        # (fastembed remains available for explicit use via the provider factory).
+        assert DEFAULT_MODEL == ("all-MiniLM-L6-v2", "sentence-transformer")
 
 
 @needs_fastembed
