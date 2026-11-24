@@ -208,15 +208,15 @@ def test_dimension_aware_embedding_function_calls_encode_and_model(monkeypatch):
         # return deterministic vector
         return [0.1, 0.2]
 
+    # _ensure_model_loaded / __call__ import these from embedding_utils
+    # at call time, so patch them there (not on chroma_connection).
     monkeypatch.setattr(
-        "vector_inspector.core.connections.chroma_connection.get_embedding_model_for_dimension",
+        "vector_inspector.core.embedding_utils.get_embedding_model_for_dimension",
         fake_get_model,
-        raising=False,
     )
     monkeypatch.setattr(
-        "vector_inspector.core.connections.chroma_connection.encode_text",
+        "vector_inspector.core.embedding_utils.encode_text",
         fake_encode,
-        raising=False,
     )
 
     # The __call__ should load model and encode texts

@@ -271,11 +271,29 @@ class LanceDBConnection(VectorDBConnection):
             # Prepare data
             if embeddings:
                 vectors = embeddings
-            else:
-                # Prefer cached vector size for this collection
+            elif documents:
+                # No embeddings supplied: compute them with the configured
+                # model for this collection. Never store zero vectors —
+                # they make search ranking meaningless.
+                try:
+                    vectors = self.compute_embeddings_for_documents(collection_name, documents)
+                except Exception as e:
+                    log_tracked_error(
+                        "LanceDB add_items failed: could not compute embeddings for %s: %s",
+                        collection_name,
+                        e,
+                        category="embedding",
+                        operation="add_items",
+                        provider="lancedb",
+                        error_type=type(e).__name__,
+                        exc_info=True,
+                    )
+                    return False
+                # The computed vectors must fit the collection's declared
+                # dimension; a mismatch is a configuration error, not
+                # something to paper over with padding.
                 vec_len = self._collection_meta.get(collection_name)
                 if not vec_len:
-                    # Try to infer vector dimension from collection info; fail early if unknown
                     try:
                         info = self.get_collection_info(collection_name)
                         vec_len = info.get("vector_dimension") if info else None
@@ -283,20 +301,20 @@ class LanceDBConnection(VectorDBConnection):
                             vec_len = int(vec_len)
                     except Exception:
                         vec_len = None
-
-                if not vec_len or vec_len == "Unknown":
-                    # Cannot safely generate fixed-size vectors without a known dimension
+                if vec_len and vec_len != "Unknown" and vectors and len(vectors[0]) != int(vec_len):
                     log_tracked_error(
-                        "LanceDB add_items failed: unknown vector dimension for %s",
+                        "LanceDB add_items failed: computed embedding dimension %d does not match collection %s dimension %s",
+                        len(vectors[0]),
                         collection_name,
-                        category="data",
+                        vec_len,
+                        category="embedding",
                         operation="add_items",
                         provider="lancedb",
-                        exc_info=True,
+                        error_type="ConfigError",
                     )
                     return False
-
-                vectors = [[0.0] * int(vec_len) for _ in range(len(documents))]
+            else:
+                vectors = []
             meta = metadatas if metadatas else [{}] * len(documents)
             id_list = ids if ids else [str(i) for i in range(len(documents))]
             doc_list = documents if documents else [""] * len(vectors)

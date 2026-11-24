@@ -4,7 +4,7 @@ import pytest
 pytest.importorskip("lancedb")
 
 import uuid
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from vector_inspector.core.connections.lancedb_connection import LanceDBConnection
 
@@ -48,13 +48,28 @@ def test_lancedb_add_without_embeddings_and_get_items(tmp_path):
     assert conn.connect()
     assert conn.create_collection(collection_name, vector_size=2)
 
-    # add without embeddings should succeed now because create_collection caches vector_size
-    assert conn.add_items(collection_name, documents=test_docs, metadatas=test_metadata) is True
+    # add without embeddings computes them with the configured model
+    computed = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]
+    with patch.object(conn, "compute_embeddings_for_documents", return_value=computed):
+        assert conn.add_items(collection_name, documents=test_docs, metadatas=test_metadata) is True
     out = conn.get_all_items(collection_name)
     # items were added and metadata parsed
     assert out is not None
     assert len(out.get("documents", [])) == 3
     assert isinstance(out.get("metadatas", [])[0], dict)
+    # stored vectors are the computed embeddings, not zeros
+    assert sorted(map(tuple, out.get("embeddings", []))) == sorted(map(tuple, computed))
+
+
+def test_lancedb_add_items_missing_embeddings_auto_embed_fails(tmp_path):
+    collection_name = f"test_collection_{uuid.uuid4().hex[:8]}"
+    conn = LanceDBConnection(uri=str(tmp_path))
+    assert conn.connect()
+    assert conn.create_collection(collection_name, vector_size=2)
+    # Embedding failure is a loud failure, never silent zero vectors
+    with patch.object(conn, "compute_embeddings_for_documents", side_effect=Exception("embedding failure")):
+        result = conn.add_items(collection_name, documents=["doc1"], ids=["id1"])
+        assert result is False
 
 
 def test_lancedb_count_and_delete_items(tmp_path):
@@ -149,6 +164,13 @@ def test_add_items_infers_vector_size_and_calls_tbl_add(monkeypatch):
 
     # stub get_collection_info to report vector dimension 2
     monkeypatch.setattr(conn, "get_collection_info", lambda name: {"vector_dimension": 2})
+
+    # add_items computes embeddings with the configured model when none are given
+    monkeypatch.setattr(
+        conn,
+        "compute_embeddings_for_documents",
+        lambda name, docs: [[0.1, 0.2] for _ in docs],
+    )
 
     docs = ["x", "y"]
     res = conn.add_items("coll", documents=docs)
